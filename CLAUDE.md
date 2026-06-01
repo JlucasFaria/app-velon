@@ -154,17 +154,23 @@ When in doubt, ask before creating a branch or Tasks.md.
 
 ## Project Overview
 
-A REST API template built with **Hono** (web framework), **Prisma 7** ORM (with `@prisma/adapter-pg`), **Zod 4** validation, and **Bun** runtime. Features OpenAPI/Swagger documentation, JWT authentication with refresh tokens, and PostgreSQL database via Docker.
+**Velon** — internal web management system for local small businesses (service orders, client management, receipts, billing reports). College final project demonstrated at a real partner commerce.
+
+**Backend**: Hono (web framework) + Prisma 7 ORM (`@prisma/adapter-pg`) + Zod 4 validation + Bun runtime. Features OpenAPI/Swagger documentation, JWT authentication with refresh tokens, PostgreSQL via Docker.
+
+**Frontend**: React + Vite + TypeScript + shadcn/ui + Tailwind CSS — located in `/client`. Vite proxies `/api` to `http://localhost:3000` in development (no CORS configuration needed).
+
+**Structure**: Monorepo — backend at repo root (`src/`), frontend at `/client`. Each has its own `package.json`. Bun manages both.
 
 ## Commands
 
 ```bash
-# Development
+# Backend — Development
 bun run dev              # Start server with watch mode (bun --watch)
 bun run dev:all          # Start database container + dev server
 bun run start            # Start server without watch mode (production)
 
-# Database
+# Backend — Database
 bun run db:up            # Start PostgreSQL container (docker compose up -d)
 bun run db:stop          # Stop container (preserves data)
 bun run db:down          # Stop and remove container
@@ -174,18 +180,25 @@ bun run db:seed          # Seed database with initial data (bun prisma/seed.ts)
 bun run db:studio        # Open Prisma Studio GUI
 bun run db:reset         # Full reset: destroy volume, recreate, migrate, seed
 
-# Testing
+# Backend — Testing
 bun run test             # Run all tests (bun test)
 bun run test:watch       # Run tests in watch mode
 
-# Code Quality
+# Backend — Code Quality
 bun run lint             # ESLint check
 bun run lint:fix         # ESLint auto-fix
 bun run format           # Prettier format (2 spaces, semicolons, double quotes)
 bun run format:check     # Prettier check only, no writes (used in CI)
 
-# Database (production)
+# Backend — Database (production)
 bun run db:migrate:prod  # Apply pending migrations non-interactively (prisma migrate deploy)
+
+# Frontend — run from /client directory
+bun run dev              # Start Vite dev server (http://localhost:5173)
+bun run build            # Production build (output: client/dist/)
+bun run preview          # Preview production build locally
+bun run lint             # ESLint check
+bun run lint:fix         # ESLint auto-fix
 ```
 
 ## Architecture
@@ -211,6 +224,46 @@ Request → secureHeaders → requestIdMiddleware → logger → cors → rateLi
 - `GET /doc` — OpenAPI JSON spec
 
 ### Directory Structure
+
+```
+app-velon/                              # Monorepo root
+├── src/                               # Backend (Hono + Prisma)
+├── client/                            # Frontend (React + Vite)
+│   ├── src/
+│   │   ├── main.tsx
+│   │   ├── App.tsx
+│   │   ├── api/                       # Fetch layer — one file per domain
+│   │   │   ├── client.ts              # Base fetch (injects Authorization header, 401 → redirect)
+│   │   │   ├── auth.ts
+│   │   │   ├── clients.ts
+│   │   │   ├── orders.ts
+│   │   │   ├── receipts.ts
+│   │   │   └── reports.ts
+│   │   ├── components/
+│   │   │   ├── ui/                    # shadcn/ui generated components
+│   │   │   ├── layout/                # AppShell, Sidebar, TopBar
+│   │   │   ├── clients/               # ClientForm, ClientTypeBadge
+│   │   │   └── orders/                # OrderForm, StatusTimeline, StatusChangeDialog, OrderStatusBadge
+│   │   ├── contexts/
+│   │   │   └── AuthContext.tsx        # user, accessToken, login(), logout() — tokens in localStorage
+│   │   ├── pages/
+│   │   │   ├── auth/                  # LoginPage
+│   │   │   ├── dashboard/             # DashboardPage
+│   │   │   ├── clients/               # ClientsPage, ClientDetailPage
+│   │   │   ├── orders/                # OrdersPage, OrderDetailPage
+│   │   │   ├── receipts/              # ReceiptPage (print-friendly)
+│   │   │   └── reports/               # ReportsPage
+│   │   ├── router/
+│   │   │   └── index.tsx              # Route tree + ProtectedRoute wrapper
+│   │   └── lib/                       # Utility functions (cn, formatters)
+│   ├── package.json
+│   ├── vite.config.ts                 # Proxy: /api → http://localhost:3000
+│   ├── tailwind.config.ts
+│   └── components.json                # shadcn/ui config
+├── prisma/
+├── package.json                       # Backend
+└── CLAUDE.md
+```
 
 ```
 src/
@@ -260,6 +313,10 @@ src/
 
 - **User**: id (autoincrement), email (unique), password (hashed), name?, createdAt, updatedAt
 - **RefreshToken**: id, token (unique, 40 random bytes), userId (FK → User, cascade delete), expiresAt, createdAt, lastUsedAt?
+- **Client**: id (autoincrement), name, document (CPF/CNPJ unique), phone?, address?, clientType (COUNTER|PARTNER), createdAt, updatedAt
+- **ServiceOrder**: id (autoincrement), orderNumber (unique, e.g. OS-0001), description, value (Decimal), status (PENDING|IN_PROGRESS|AWAITING_CLIENT|COMPLETED|CANCELLED), clientId (FK → Client), assignedUserId (FK → User nullable), createdAt, updatedAt
+- **StatusHistory**: id (autoincrement), orderId (FK → ServiceOrder cascade delete), fromStatus?, toStatus, changedById (FK → User), changedAt, note?
+- **Receipt**: id (autoincrement), receiptNumber (unique autoincrement), orderId (FK → ServiceOrder unique), issuedAt, createdAt
 
 ### Key Patterns
 
@@ -394,6 +451,20 @@ The project uses a custom structured JSON logger middleware at `src/utils/logger
 Unexpected server errors are logged via `console.error` inside the error handler (`error-handler.ts`), also as JSON, including `requestId` and the full stack trace.
 
 These structured logs integrate with log aggregation platforms (Datadog, CloudWatch, Grafana Loki). For future improvements, consider adding `userId` from the JWT payload when available.
+
+## Frontend Conventions
+
+**Routing**: React Router v6. All authenticated pages are wrapped in `ProtectedRoute` which checks `AuthContext` — redirects to `/login` if no token. Routes defined in `client/src/router/index.tsx`.
+
+**API Layer**: All HTTP calls go through `client/src/api/`. The base `client.ts` injects `Authorization: Bearer <token>` automatically. On 401, it clears localStorage and redirects to `/login`. No page component calls `fetch` directly.
+
+**Auth**: `AuthContext` provides `user` (decoded JWT payload), `accessToken`, `login(email, password)`, `logout()`. Tokens are stored in `localStorage`. The access token is refreshed automatically when a 401 is received (via the refresh token flow).
+
+**Components**: shadcn/ui components live in `client/src/components/ui/` (generated, do not edit manually). Domain components (`ClientForm`, `StatusTimeline`, etc.) live in `client/src/components/{domain}/`. Page-level components live in `client/src/pages/{domain}/`.
+
+**Print layout**: Receipt page uses `@media print` CSS to hide `AppShell`, sidebar, top bar, and the print button — only the receipt content is printed. The "Print" button calls `window.print()`.
+
+**Naming (frontend)**: PascalCase for components and pages (`OrderDetailPage.tsx`), camelCase for hooks and utilities, kebab-case for non-component files (`order-status.ts`).
 
 ## Code Style & Conventions
 
