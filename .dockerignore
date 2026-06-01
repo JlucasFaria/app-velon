@@ -1,0 +1,12 @@
+node_modules
+.env
+.env.*
+generated/
+coverage/
+*.log
+.git
+docker-compose.yaml
+AUDIT.md
+CLAUDE.md
+project.md
+TASKS.md

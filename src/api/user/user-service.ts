@@ -1,0 +1,67 @@
+// Business service for user operations
+import prismaClient from "../../db/client";
+import type { PrismaClient } from "../../../generated/prisma";
+import {
+  getPaginationParams,
+  createPaginationMeta,
+} from "../../utils/pagination";
+
+export class UserService {
+  constructor(private prisma: PrismaClient = prismaClient) {}
+  async create(data: {
+    email: string;
+    name?: string | null;
+    password: string;
+  }) {
+    const { password, ...rest } = data;
+    const hashedPassword = await Bun.password.hash(password);
+
+    return await this.prisma.user.create({
+      data: {
+        ...rest,
+        password: hashedPassword,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async getAll(page?: string | number, limit?: string | number) {
+    const params = getPaginationParams(page, limit);
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        skip: params.skip,
+        take: params.limit,
+        orderBy: { id: "asc" },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      this.prisma.user.count(),
+    ]);
+
+    const pagination = createPaginationMeta(params.page, params.limit, total);
+
+    return { users, pagination };
+  }
+
+  async verifyPassword(hash: string, password: string) {
+    return await Bun.password.verify(password, hash);
+  }
+
+  async findByEmail(email: string) {
+    return await this.prisma.user.findUnique({
+      where: { email },
+    });
+  }
+}

@@ -1,0 +1,26 @@
+name: Linting and Formatting
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Prisma Generate
+        run: bunx prisma generate
+
+      - name: Prettier Check
+        run: bun run format:check
+
+      - name: ESLint
+        run: bun run lint

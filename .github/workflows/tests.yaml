@@ -1,0 +1,52 @@
+name: Automated Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # Native GitHub Actions health check replaces manual wait-for-postgres scripts
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Prisma Generate
+        run: bunx prisma generate
+
+      # Sync the database schema before running tests
+      - name: Push Database Schema
+        run: bunx prisma db push
+        env:
+          DATABASE_URL: postgresql://user:password@localhost:5432/test_db
+
+      - name: Run Tests
+        run: bun run test
+        env:
+          DATABASE_URL: postgresql://user:password@localhost:5432/test_db
+          JWT_SECRET: test_jwt_secret_key_minimum_32_characters_long
+          PORT: "3000"
+          NODE_ENV: test
+          CORS_ORIGIN: "*"
