@@ -35,16 +35,16 @@ Velon é um sistema web responsivo voltado à gestão interna de pequenos comér
 
 ## Stack
 
-| Camada     | Tecnologia                                           |
-| ---------- | ---------------------------------------------------- |
-| Runtime    | [Bun](https://bun.sh)                                |
-| Backend    | [Hono](https://hono.dev) + `@hono/zod-openapi`       |
-| ORM        | [Prisma 7](https://prisma.io) + `@prisma/adapter-pg` |
-| Validação  | [Zod 4](https://zod.dev)                             |
-| Frontend   | [React](https://react.dev) + Vite + shadcn/ui        |
-| Estilização | [Tailwind CSS](https://tailwindcss.com)             |
-| Banco      | PostgreSQL 16 (Docker)                               |
-| Linguagem  | TypeScript (strict mode)                             |
+| Camada      | Tecnologia                                           |
+| ----------- | ---------------------------------------------------- |
+| Runtime     | [Bun](https://bun.sh)                                |
+| Backend     | [Hono](https://hono.dev) + `@hono/zod-openapi`       |
+| ORM         | [Prisma 7](https://prisma.io) + `@prisma/adapter-pg` |
+| Validação   | [Zod 4](https://zod.dev)                             |
+| Frontend    | [React](https://react.dev) + Vite + shadcn/ui        |
+| Estilização | [Tailwind CSS](https://tailwindcss.com)              |
+| Banco       | PostgreSQL 16 (Docker)                               |
+| Linguagem   | TypeScript (strict mode)                             |
 
 ---
 
@@ -61,4 +61,4 @@ app-velon/
 
 ---
 
-*Documentação completa será adicionada ao final do desenvolvimento.*
+_Documentação completa será adicionada ao final do desenvolvimento._
