@@ -7,14 +7,78 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ClientType {
+  COUNTER
+  PARTNER
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  AWAITING_CLIENT
+  COMPLETED
+  CANCELLED
+}
+
 model User {
-  id            Int            @id @default(autoincrement())
-  email         String         @unique
-  password      String
-  name          String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  refreshTokens RefreshToken[]
+  id             Int             @id @default(autoincrement())
+  email          String          @unique
+  password       String
+  name           String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  refreshTokens  RefreshToken[]
+  assignedOrders ServiceOrder[]
+  statusChanges  StatusHistory[]
+}
+
+model Client {
+  id         Int            @id @default(autoincrement())
+  name       String
+  document   String         @unique
+  phone      String?
+  address    String?
+  clientType ClientType
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  orders     ServiceOrder[]
+}
+
+model ServiceOrder {
+  id             Int             @id @default(autoincrement())
+  orderNumber    String          @unique
+  description    String
+  value          Decimal         @db.Decimal(10, 2)
+  status         OrderStatus     @default(PENDING)
+  clientId       Int
+  client         Client          @relation(fields: [clientId], references: [id])
+  assignedUserId Int?
+  assignedUser   User?           @relation(fields: [assignedUserId], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  statusHistory  StatusHistory[]
+  receipt        Receipt?
+}
+
+model Receipt {
+  id            Int          @id @default(autoincrement())
+  receiptNumber Int          @unique @default(autoincrement())
+  orderId       Int          @unique
+  order         ServiceOrder @relation(fields: [orderId], references: [id])
+  issuedAt      DateTime     @default(now())
+  createdAt     DateTime     @default(now())
+}
+
+model StatusHistory {
+  id          Int         @id @default(autoincrement())
+  orderId     Int
+  order       ServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus  OrderStatus?
+  toStatus    OrderStatus
+  changedById Int
+  changedBy   User        @relation(fields: [changedById], references: [id])
+  changedAt   DateTime    @default(now())
+  note        String?
 }
 
 model RefreshToken {

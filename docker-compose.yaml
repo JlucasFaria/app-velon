@@ -1,5 +1,8 @@
+name: app-velon
+
 services:
   postgres:
+    container_name: app-velon-db
     image: postgres:16-alpine
     ports:
       - "5432:5432"
