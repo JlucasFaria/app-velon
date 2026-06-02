@@ -7,6 +7,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ClientType {
+  COUNTER
+  PARTNER
+}
+
 model User {
   id            Int            @id @default(autoincrement())
   email         String         @unique
@@ -15,6 +20,17 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   refreshTokens RefreshToken[]
+}
+
+model Client {
+  id         Int        @id @default(autoincrement())
+  name       String
+  document   String     @unique
+  phone      String?
+  address    String?
+  clientType ClientType
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 }
 
 model RefreshToken {
