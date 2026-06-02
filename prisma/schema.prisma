@@ -48,7 +48,7 @@ model ServiceOrder {
   id             Int             @id @default(autoincrement())
   orderNumber    String          @unique
   description    String
-  value          Decimal
+  value          Decimal         @db.Decimal(10, 2)
   status         OrderStatus     @default(PENDING)
   clientId       Int
   client         Client          @relation(fields: [clientId], references: [id])
