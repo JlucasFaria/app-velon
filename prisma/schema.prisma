@@ -21,14 +21,15 @@ enum OrderStatus {
 }
 
 model User {
-  id             Int            @id @default(autoincrement())
-  email          String         @unique
+  id             Int             @id @default(autoincrement())
+  email          String          @unique
   password       String
   name           String?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   refreshTokens  RefreshToken[]
   assignedOrders ServiceOrder[]
+  statusChanges  StatusHistory[]
 }
 
 model Client {
@@ -44,17 +45,30 @@ model Client {
 }
 
 model ServiceOrder {
-  id             Int         @id @default(autoincrement())
-  orderNumber    String      @unique
+  id             Int             @id @default(autoincrement())
+  orderNumber    String          @unique
   description    String
   value          Decimal
-  status         OrderStatus @default(PENDING)
+  status         OrderStatus     @default(PENDING)
   clientId       Int
-  client         Client      @relation(fields: [clientId], references: [id])
+  client         Client          @relation(fields: [clientId], references: [id])
   assignedUserId Int?
-  assignedUser   User?       @relation(fields: [assignedUserId], references: [id])
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  assignedUser   User?           @relation(fields: [assignedUserId], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  statusHistory  StatusHistory[]
+}
+
+model StatusHistory {
+  id          Int         @id @default(autoincrement())
+  orderId     Int
+  order       ServiceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus  OrderStatus?
+  toStatus    OrderStatus
+  changedById Int
+  changedBy   User        @relation(fields: [changedById], references: [id])
+  changedAt   DateTime    @default(now())
+  note        String?
 }
 
 model RefreshToken {
