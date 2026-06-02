@@ -12,25 +12,49 @@ enum ClientType {
   PARTNER
 }
 
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  AWAITING_CLIENT
+  COMPLETED
+  CANCELLED
+}
+
 model User {
-  id            Int            @id @default(autoincrement())
-  email         String         @unique
-  password      String
-  name          String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  refreshTokens RefreshToken[]
+  id             Int            @id @default(autoincrement())
+  email          String         @unique
+  password       String
+  name           String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  refreshTokens  RefreshToken[]
+  assignedOrders ServiceOrder[]
 }
 
 model Client {
-  id         Int        @id @default(autoincrement())
+  id         Int            @id @default(autoincrement())
   name       String
-  document   String     @unique
+  document   String         @unique
   phone      String?
   address    String?
   clientType ClientType
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  orders     ServiceOrder[]
+}
+
+model ServiceOrder {
+  id             Int         @id @default(autoincrement())
+  orderNumber    String      @unique
+  description    String
+  value          Decimal
+  status         OrderStatus @default(PENDING)
+  clientId       Int
+  client         Client      @relation(fields: [clientId], references: [id])
+  assignedUserId Int?
+  assignedUser   User?       @relation(fields: [assignedUserId], references: [id])
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 }
 
 model RefreshToken {
