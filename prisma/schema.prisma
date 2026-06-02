@@ -57,6 +57,16 @@ model ServiceOrder {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   statusHistory  StatusHistory[]
+  receipt        Receipt?
+}
+
+model Receipt {
+  id            Int          @id @default(autoincrement())
+  receiptNumber Int          @unique @default(autoincrement())
+  orderId       Int          @unique
+  order         ServiceOrder @relation(fields: [orderId], references: [id])
+  issuedAt      DateTime     @default(now())
+  createdAt     DateTime     @default(now())
 }
 
 model StatusHistory {
