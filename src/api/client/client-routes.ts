@@ -103,7 +103,7 @@ export function createClientRoutes(
 
   const getClientRoute = createRoute({
     method: "get",
-    path: "/:id",
+    path: "/{id}",
     tags: ["Clients"],
     security: [{ bearerAuth: [] }],
     request: { params: idParamSchema },
@@ -127,7 +127,7 @@ export function createClientRoutes(
 
   const updateClientRoute = createRoute({
     method: "put",
-    path: "/:id",
+    path: "/{id}",
     tags: ["Clients"],
     security: [{ bearerAuth: [] }],
     request: {
@@ -166,7 +166,7 @@ export function createClientRoutes(
 
   const deleteClientRoute = createRoute({
     method: "delete",
-    path: "/:id",
+    path: "/{id}",
     tags: ["Clients"],
     security: [{ bearerAuth: [] }],
     request: { params: idParamSchema },
