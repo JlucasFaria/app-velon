@@ -135,6 +135,21 @@ describe("errorHandler", () => {
     expect(body.error).toBe("Record not found");
   });
 
+  // ─── Prisma P2003 (foreign key constraint) ───────────────────────
+
+  it("should return 409 for a Prisma P2003 error", async () => {
+    const app = makeApp(
+      () =>
+        new PrismaClientKnownRequestError("Foreign key constraint failed", {
+          code: "P2003",
+          clientVersion: "5.0.0",
+        }),
+    );
+
+    const res = await app.request("/");
+    expect(res.status).toBe(409);
+  });
+
   // ─── Unknown / generic errors ─────────────────────────────────────
 
   it("should return 500 for an unknown error", async () => {

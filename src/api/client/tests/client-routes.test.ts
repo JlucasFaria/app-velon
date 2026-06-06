@@ -17,6 +17,8 @@ describe("Client Routes", () => {
   });
 
   beforeEach(async () => {
+    // Delete in FK-safe order: orders reference clients.
+    await prisma.serviceOrder.deleteMany();
     await prisma.client.deleteMany();
   });
 
@@ -312,6 +314,28 @@ describe("Client Routes", () => {
         headers: authHeader(),
       });
       expect(res.status).toBe(400);
+    });
+
+    it("should return 409 when deleting a client that has linked orders", async () => {
+      const created = (await (await post(basePayload)).json()) as {
+        data: { id: number };
+      };
+
+      // assignedUserId is nullable, so an order needs only a clientId.
+      await prisma.serviceOrder.create({
+        data: {
+          orderNumber: "OS-DEL-1",
+          description: "linked order",
+          value: "10.00",
+          clientId: created.data.id,
+        },
+      });
+
+      const res = await app.request(`/api/clients/${created.data.id}`, {
+        method: "DELETE",
+        headers: authHeader(),
+      });
+      expect(res.status).toBe(409);
     });
   });
 
