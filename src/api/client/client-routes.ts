@@ -29,7 +29,15 @@ const clientQuerySchema = paginationQuerySchema.extend({
 });
 
 const idParamSchema = z.object({
-  id: z.string().openapi({ description: "Client ID", example: "1" }),
+  id: z.coerce
+    .number()
+    .int()
+    .positive()
+    .openapi({
+      param: { name: "id", in: "path" },
+      description: "Client ID",
+      example: 1,
+    }),
 });
 
 export function createClientRoutes(
@@ -204,7 +212,7 @@ export function createClientRoutes(
 
   clientRoutes.openapi(getClientRoute, async (c) => {
     const { id } = c.req.valid("param");
-    const client = await clientService.findById(Number(id));
+    const client = await clientService.findById(id);
 
     if (!client) {
       return errorResponse(c, "Client not found", 404);
@@ -216,13 +224,13 @@ export function createClientRoutes(
   clientRoutes.openapi(updateClientRoute, async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
-    const client = await clientService.update(Number(id), body);
+    const client = await clientService.update(id, body);
     return successResponse(c, client, 200, "Client updated successfully");
   });
 
   clientRoutes.openapi(deleteClientRoute, async (c) => {
     const { id } = c.req.valid("param");
-    await clientService.delete(Number(id));
+    await clientService.delete(id);
     return c.json(
       { success: true as const, message: "Client deleted successfully" },
       200,

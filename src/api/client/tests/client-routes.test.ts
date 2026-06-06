@@ -287,6 +287,34 @@ describe("Client Routes", () => {
     });
   });
 
+  // ─── Edge cases ───────────────────────────────────────────────────
+
+  describe("edge cases", () => {
+    it("should return 400 on GET with a non-numeric id", async () => {
+      const res = await app.request("/api/clients/abc", {
+        headers: authHeader(),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 on PUT with a non-numeric id", async () => {
+      const res = await app.request("/api/clients/abc", {
+        method: "PUT",
+        body: JSON.stringify({ name: "Qualquer" }),
+        headers: { "Content-Type": "application/json", ...authHeader() },
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 on DELETE with a non-numeric id", async () => {
+      const res = await app.request("/api/clients/abc", {
+        method: "DELETE",
+        headers: authHeader(),
+      });
+      expect(res.status).toBe(400);
+    });
+  });
+
   // ─── Security headers ─────────────────────────────────────────────
 
   describe("security headers", () => {
