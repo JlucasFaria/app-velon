@@ -40,13 +40,13 @@ export class ClientService {
   async getAll(
     page?: string | number,
     limit?: string | number,
-    clientType?: string,
+    clientType?: ClientType,
     search?: string,
   ) {
     const params = getPaginationParams(page, limit);
 
     const where = {
-      ...(clientType ? { clientType: clientType as ClientType } : {}),
+      ...(clientType ? { clientType } : {}),
       ...(search
         ? {
             OR: [
