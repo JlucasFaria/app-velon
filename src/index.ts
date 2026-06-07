@@ -10,6 +10,7 @@ import { createUserRoutes } from "./api/user/user-routes";
 import { createAuthRoutes } from "./api/auth/auth-routes";
 import { createHealthRoutes } from "./api/health/health-routes";
 import { createClientRoutes } from "./api/client/client-routes";
+import { createOrderRoutes } from "./api/order/order-routes";
 import { UserService } from "./api/user/user-service";
 import { errorHandler } from "./middlewares/error-handler";
 import { requestIdMiddleware } from "./middlewares/request-id";
@@ -76,6 +77,7 @@ app.route("/health", createHealthRoutes());
 app.route("/api/users", createUserRoutes());
 app.route("/api/auth", createAuthRoutes(new UserService()));
 app.route("/api/clients", createClientRoutes());
+app.route("/api/orders", createOrderRoutes());
 
 const port = env.PORT;
 console.log(`\n🚀 Server running at: http://localhost:${port}`);
