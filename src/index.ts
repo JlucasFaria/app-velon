@@ -9,6 +9,7 @@ import { bodyLimit } from "hono/body-limit";
 import { createUserRoutes } from "./api/user/user-routes";
 import { createAuthRoutes } from "./api/auth/auth-routes";
 import { createHealthRoutes } from "./api/health/health-routes";
+import { createClientRoutes } from "./api/client/client-routes";
 import { UserService } from "./api/user/user-service";
 import { errorHandler } from "./middlewares/error-handler";
 import { requestIdMiddleware } from "./middlewares/request-id";
@@ -74,6 +75,7 @@ app.onError(errorHandler);
 app.route("/health", createHealthRoutes());
 app.route("/api/users", createUserRoutes());
 app.route("/api/auth", createAuthRoutes(new UserService()));
+app.route("/api/clients", createClientRoutes());
 
 const port = env.PORT;
 console.log(`\n🚀 Server running at: http://localhost:${port}`);

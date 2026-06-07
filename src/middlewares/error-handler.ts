@@ -43,6 +43,16 @@ export const errorHandler: ErrorHandler = (err, c) => {
     if (err.code === "P2025") {
       return c.json({ success: false, error: "Record not found" }, 404);
     }
+
+    if (err.code === "P2003") {
+      return c.json(
+        {
+          success: false,
+          error: "Cannot delete: record has linked entities",
+        },
+        409,
+      );
+    }
   }
 
   // Unexpected server errors
