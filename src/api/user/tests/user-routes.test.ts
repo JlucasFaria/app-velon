@@ -23,6 +23,7 @@ describe("User Routes", () => {
   // Clean the database before each test to ensure test isolation.
   // This prevents one test's data from affecting another.
   beforeEach(async () => {
+    await prisma.serviceOrder.deleteMany(); // cascades StatusHistory; clears changedById and assignedUserId FK refs
     await prisma.user.deleteMany();
   });
 
