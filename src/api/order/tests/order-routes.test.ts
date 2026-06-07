@@ -150,6 +150,22 @@ describe("Order Routes", () => {
       const res = await post({ description: "Test", value: "100.00" });
       expect(res.status).toBe(400);
     });
+
+    it("should return 404 when clientId does not exist", async () => {
+      const res = await post({ ...basePayload(), clientId: 999999 });
+      const body = (await res.json()) as { error: string };
+
+      expect(res.status).toBe(404);
+      expect(body.error).toBe("Client not found");
+    });
+
+    it("should return 404 when assignedUserId does not exist", async () => {
+      const res = await post({ ...basePayload(), assignedUserId: 999999 });
+      const body = (await res.json()) as { error: string };
+
+      expect(res.status).toBe(404);
+      expect(body.error).toBe("Assigned user not found");
+    });
   });
 
   // ─── GET /api/orders ──────────────────────────────────────────────
@@ -309,6 +325,22 @@ describe("Order Routes", () => {
         headers: h({ "Content-Type": "application/json" }),
       });
       expect(res.status).toBe(404);
+    });
+
+    it("should return 404 when assignedUserId does not exist", async () => {
+      const created = (await (await post(basePayload())).json()) as {
+        data: { id: number };
+      };
+
+      const res = await app.request(`/api/orders/${created.data.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ assignedUserId: 999999 }),
+        headers: h({ "Content-Type": "application/json" }),
+      });
+      const body = (await res.json()) as { error: string };
+
+      expect(res.status).toBe(404);
+      expect(body.error).toBe("Assigned user not found");
     });
   });
 

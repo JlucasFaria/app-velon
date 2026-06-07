@@ -171,7 +171,7 @@ export function createOrderRoutes(
       },
       404: {
         content: { "application/json": { schema: errorResponseSchema } },
-        description: "Order not found",
+        description: "Order or assigned user not found",
       },
     },
   });
@@ -260,6 +260,17 @@ export function createOrderRoutes(
   orderRoutes.openapi(createOrderRoute, async (c) => {
     const body = c.req.valid("json");
     const { id: createdById } = getAuthPayload(c);
+
+    if (!(await orderService.clientExists(body.clientId))) {
+      return errorResponse(c, "Client not found", 404);
+    }
+    if (
+      typeof body.assignedUserId === "number" &&
+      !(await orderService.userExists(body.assignedUserId))
+    ) {
+      return errorResponse(c, "Assigned user not found", 404);
+    }
+
     const order = await orderService.create(body, createdById);
     return successResponse(c, order, 201, "Order created successfully");
   });
@@ -278,6 +289,14 @@ export function createOrderRoutes(
   orderRoutes.openapi(updateOrderRoute, async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
+
+    if (
+      typeof body.assignedUserId === "number" &&
+      !(await orderService.userExists(body.assignedUserId))
+    ) {
+      return errorResponse(c, "Assigned user not found", 404);
+    }
+
     const order = await orderService.update(id, body);
     return successResponse(c, order, 200, "Order updated successfully");
   });

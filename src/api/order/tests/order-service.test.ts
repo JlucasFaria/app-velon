@@ -321,4 +321,24 @@ describe("OrderService", () => {
       expect(found).toBeNull();
     });
   });
+
+  describe("clientExists", () => {
+    it("should return true for an existing client", async () => {
+      expect(await orderService.clientExists(testClientId)).toBe(true);
+    });
+
+    it("should return false for a non-existent client", async () => {
+      expect(await orderService.clientExists(999999)).toBe(false);
+    });
+  });
+
+  describe("userExists", () => {
+    it("should return true for an existing user", async () => {
+      expect(await orderService.userExists(testUserId)).toBe(true);
+    });
+
+    it("should return false for a non-existent user", async () => {
+      expect(await orderService.userExists(999999)).toBe(false);
+    });
+  });
 });

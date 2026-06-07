@@ -72,6 +72,22 @@ export class OrderService {
     return `OS-${String(num + 1).padStart(4, "0")}`;
   }
 
+  async clientExists(id: number): Promise<boolean> {
+    const client = await this.prisma.client.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    return client !== null;
+  }
+
+  async userExists(id: number): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    return user !== null;
+  }
+
   async create(data: CreateOrderInput, createdById: number) {
     const orderNumber = await this.generateOrderNumber();
 
