@@ -28,8 +28,12 @@ async function createAndLogin(
 }
 
 describe("Auth Routes", () => {
-  // Deleting users also deletes their refresh tokens (onDelete: Cascade)
+  // Delete in FK-safe order: receipts → orders (cascades StatusHistory,
+  // clearing changedById/assignedUserId refs) → users (cascades their
+  // refresh tokens). Required because other test files create orders/receipts.
   beforeEach(async () => {
+    await prisma.receipt.deleteMany();
+    await prisma.serviceOrder.deleteMany();
     await prisma.user.deleteMany();
   });
 

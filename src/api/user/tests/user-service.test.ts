@@ -7,6 +7,9 @@ const userService = new UserService();
 
 describe("UserService", () => {
   beforeEach(async () => {
+    // FK-safe order: receipts → orders (cascades StatusHistory) → users
+    await prisma.receipt.deleteMany();
+    await prisma.serviceOrder.deleteMany();
     await prisma.user.deleteMany();
   });
 

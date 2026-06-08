@@ -314,6 +314,20 @@ src/
     │   └── tests/
     │       ├── order-routes.test.ts   # Integration tests (CRUD, status transitions, FK 404, auth guard)
     │       └── order-service.test.ts  # Unit tests (orderNumber, updateStatus history, existence checks)
+    ├── receipt/
+    │   ├── receipt-schema.ts       # response schema (receiptNumber, issuedAt, order + client)
+    │   ├── receipt-service.ts      # generate (idempotent), getByOrderId, orderExists
+    │   ├── receipt-routes.ts       # Protected POST/GET /:id/receipt (mounted at /api/orders)
+    │   └── tests/
+    │       ├── receipt-routes.test.ts  # Integration tests (generate/idempotency, 404, auth guard)
+    │       └── receipt-service.test.ts # Unit tests (idempotency, getByOrderId, orderExists)
+    ├── report/
+    │   ├── report-schema.ts        # monthly-billing + orders-summary response schemas, billingQuerySchema
+    │   ├── report-service.ts       # getMonthlyBilling (via StatusHistory completion date), getOrdersSummary (groupBy)
+    │   ├── report-routes.ts        # Protected GET /billing?month=&year= + GET /summary at /api/reports
+    │   └── tests/
+    │       ├── report-routes.test.ts   # Integration tests (billing filters, summary counts, auth guard)
+    │       └── report-service.test.ts  # Unit tests (billing totals, completion-date filter, summary counts)
     └── user/
         ├── user-schema.ts          # UserSchema, createUserSchema, paginatedUsersResponseSchema
         ├── user-service.ts         # CRUD, password hashing (Bun.password)
@@ -336,7 +350,7 @@ src/
 
 **Auth Routes Factory**: `auth-routes.ts` exports `createAuthRoutes(userRepo: IUserAuthRepository)` instead of a default route instance. The `IUserAuthRepository` interface (defined in `auth-routes.ts`) exposes only `findByEmail` and `verifyPassword` — the two methods auth actually needs. `UserService` satisfies this interface via TypeScript's structural typing. Wiring happens at the composition root (`index.ts`): `app.route("/api/auth", createAuthRoutes(new UserService()))`. This keeps `auth` decoupled from the `user` implementation and testable in isolation.
 
-**Domain Module Structure**: Each domain (`auth`, `user`, `client`, `order`) follows the pattern:
+**Domain Module Structure**: Each domain (`auth`, `user`, `client`, `order`, `receipt`, `report`) follows the pattern:
 
 - `{domain}-schema.ts` — Zod schemas with OpenAPI metadata
 - `{domain}-service.ts` — Business logic class with Prisma DI
@@ -387,6 +401,21 @@ return errorResponse(c, "Not found", 404);
 - `findById` embeds `client` (id, name, document, clientType) and `statusHistory` (ascending, each with `changedBy` user info — never the password).
 
 **Foreign-key validation**: Order create/update validate referenced records up front via `orderService.clientExists(id)` / `userExists(id)` and return **404** (`"Client not found"` / `"Assigned user not found"`) instead of letting an invalid FK fall through to the generic P2003 → 409 handler (whose message is tailored to the delete-with-children case).
+
+**Receipt Routes** (`createReceiptRoutes(receiptService?)`): mounted at `/api/orders` so paths resolve to `POST /api/orders/:id/receipt` (generate or retrieve) and `GET /api/orders/:id/receipt` (retrieve). All protected by `authMiddleware`.
+
+**Receipt Business Logic** (`ReceiptService`):
+
+- `generate(orderId)` is **idempotent**: returns the existing receipt if the order already has one, otherwise creates it. The `@unique` constraint on `orderId` guards integrity under concurrent creates (collision → P2002 → 409).
+- `POST` validates the order exists up front via `orderService.orderExists(id)` → **404** `"Order not found"` (prevents a misleading P2003 → 409). `GET` skips this check: it returns the receipt or **404** `"Receipt not found"` in a single query (the only realistic caller already has the order loaded).
+- Response embeds the order (orderNumber, description, value) and its client (id, name, document) — everything the frontend needs to render/print, no extra fetches.
+
+**Report Routes** (`createReportRoutes(reportService?)`): mounted at `/api/reports` — `GET /billing?month=&year=` and `GET /summary`. Both protected by `authMiddleware`. `month` (1–12) and `year` (≥2000) are validated/coerced by `billingQuerySchema` (Zod) → invalid/missing params return 400.
+
+**Report Business Logic** (`ReportService`):
+
+- `getMonthlyBilling(month, year)` filters on the **actual completion event** — `StatusHistory` entries with `toStatus: COMPLETED` and `changedAt` within the month, requiring `order.status` to still be `COMPLETED` (so orders later reverted/cancelled are excluded). Filtering on `updatedAt` was intentionally avoided because it shifts on any later edit. `completedAt` in the response is the history `changedAt`. Totals are summed in integer cents to avoid float drift; all monetary strings (`value`, `totalRevenue`) are returned with 2 decimals — display formatting (`R$ 100,00`, pt-BR) is the frontend's responsibility.
+- `getOrdersSummary()` uses a single Prisma `groupBy` over `status`; the result is mapped onto an object with all five statuses defaulting to 0.
 
 **Pagination**: Use `getPaginationParams(page, limit)` and `createPaginationMeta(page, limit, total)` from `src/utils/pagination.ts`. Default: page 1, limit 10, max 100. Non-numeric values fall back to defaults safely.
 
@@ -440,20 +469,24 @@ The seed is idempotent (`upsert`) and can be run multiple times safely.
 
 Test files:
 
-| File                                          | Type        | Coverage                                                                                                        |
-| --------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------- |
-| `src/api/health/tests/health.test.ts`         | Integration | `GET /health` — 200 (DB up), 503 (DB down via DI), CORS, security headers                                       |
-| `src/api/auth/tests/auth-routes.test.ts`      | Integration | Login, refresh token rotation, logout, token reuse prevention, CORS, sec headers                                |
-| `src/api/auth/tests/auth-service.test.ts`     | Unit        | `generateRefreshToken`, `validateRefreshToken`, `revokeRefreshToken`, `revokeAllUserTokens`                     |
-| `src/api/user/tests/user-routes.test.ts`      | Integration | User creation, duplicate detection, auth, pagination, body limit, CORS, sec headers                             |
-| `src/api/user/tests/user-service.test.ts`     | Unit        | `create`, `getAll`, `findByEmail`, `verifyPassword`                                                             |
-| `src/api/client/tests/client-routes.test.ts`  | Integration | Client CRUD, type filter, search, pagination, duplicate document (409), FK conflict on delete                   |
-| `src/api/client/tests/client-service.test.ts` | Unit        | `create`, `getAll` (filter/search), `findById` (with orders), `update`, `delete`                                |
-| `src/api/order/tests/order-routes.test.ts`    | Integration | Order CRUD, status transitions + history, FK existence → 404, filters/search, auth, sec headers                 |
-| `src/api/order/tests/order-service.test.ts`   | Unit        | `create` (orderNumber gen + initial history), `getAll`, `findById`, `updateStatus`, `clientExists`/`userExists` |
-| `src/middlewares/tests/error-handler.test.ts` | Unit        | ZodError → 400, HTTPException, P2002 → 409, P2025 → 404, generic → 500                                          |
-| `src/middlewares/tests/rate-limit.test.ts`    | Unit        | IP tracking, 429 after limit exceeded, independent buckets per IP                                               |
-| `src/middlewares/tests/request-id.test.ts`    | Unit        | X-Request-ID presence, 16-char hex format, uniqueness per request                                               |
+| File                                            | Type        | Coverage                                                                                                        |
+| ----------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------- |
+| `src/api/health/tests/health.test.ts`           | Integration | `GET /health` — 200 (DB up), 503 (DB down via DI), CORS, security headers                                       |
+| `src/api/auth/tests/auth-routes.test.ts`        | Integration | Login, refresh token rotation, logout, token reuse prevention, CORS, sec headers                                |
+| `src/api/auth/tests/auth-service.test.ts`       | Unit        | `generateRefreshToken`, `validateRefreshToken`, `revokeRefreshToken`, `revokeAllUserTokens`                     |
+| `src/api/user/tests/user-routes.test.ts`        | Integration | User creation, duplicate detection, auth, pagination, body limit, CORS, sec headers                             |
+| `src/api/user/tests/user-service.test.ts`       | Unit        | `create`, `getAll`, `findByEmail`, `verifyPassword`                                                             |
+| `src/api/client/tests/client-routes.test.ts`    | Integration | Client CRUD, type filter, search, pagination, duplicate document (409), FK conflict on delete                   |
+| `src/api/client/tests/client-service.test.ts`   | Unit        | `create`, `getAll` (filter/search), `findById` (with orders), `update`, `delete`                                |
+| `src/api/order/tests/order-routes.test.ts`      | Integration | Order CRUD, status transitions + history, FK existence → 404, filters/search, auth, sec headers                 |
+| `src/api/order/tests/order-service.test.ts`     | Unit        | `create` (orderNumber gen + initial history), `getAll`, `findById`, `updateStatus`, `clientExists`/`userExists` |
+| `src/api/receipt/tests/receipt-routes.test.ts`  | Integration | Generate/retrieve, idempotency, order-not-found (404), receipt-not-found (404), auth guard, sec headers         |
+| `src/api/receipt/tests/receipt-service.test.ts` | Unit        | `generate` (idempotency, embedded order+client), `getByOrderId`, `orderExists`                                  |
+| `src/api/report/tests/report-routes.test.ts`    | Integration | Billing (totals, month filter, 400 on bad params), summary counts, auth guard, sec headers                      |
+| `src/api/report/tests/report-service.test.ts`   | Unit        | `getMonthlyBilling` (completion-date filter, totals, reverted-order exclusion), `getOrdersSummary`              |
+| `src/middlewares/tests/error-handler.test.ts`   | Unit        | ZodError → 400, HTTPException, P2002 → 409, P2025 → 404, generic → 500                                          |
+| `src/middlewares/tests/rate-limit.test.ts`      | Unit        | IP tracking, 429 after limit exceeded, independent buckets per IP                                               |
+| `src/middlewares/tests/request-id.test.ts`      | Unit        | X-Request-ID presence, 16-char hex format, uniqueness per request                                               |
 
 ## CI/CD
 
