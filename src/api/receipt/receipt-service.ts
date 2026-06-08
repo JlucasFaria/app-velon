@@ -25,6 +25,14 @@ const RECEIPT_SELECT = {
 export class ReceiptService {
   constructor(private prisma: PrismaClient = prismaClient) {}
 
+  async orderExists(id: number): Promise<boolean> {
+    const order = await this.prisma.serviceOrder.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    return order !== null;
+  }
+
   async generate(orderId: number) {
     const existing = await this.prisma.receipt.findUnique({
       where: { orderId },
