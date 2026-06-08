@@ -21,7 +21,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "client:dev": "cd client && bun run dev",
+    "client:build": "cd client && bun run build"
   },
   "devDependencies": {
     "@prisma/config": "^7.2.0",

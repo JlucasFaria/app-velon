@@ -11,6 +11,7 @@ export default [
       "**/generated/**",
       "prisma/migrations/**",
       "bun.lockb",
+      "client/**", // frontend has its own ESLint config
     ],
   },
   eslint.configs.recommended,
