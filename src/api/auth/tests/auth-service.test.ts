@@ -12,6 +12,9 @@ describe("AuthService", () => {
   let userId: number;
 
   beforeEach(async () => {
+    // FK-safe order: receipts → orders (cascades StatusHistory) → users
+    await prisma.receipt.deleteMany();
+    await prisma.serviceOrder.deleteMany();
     await prisma.user.deleteMany();
     const user = await userService.create({
       email: "auth@test.com",
