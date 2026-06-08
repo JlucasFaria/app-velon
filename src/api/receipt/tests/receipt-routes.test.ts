@@ -199,14 +199,14 @@ describe("Receipt Routes", () => {
       expect(body.error).toBe("Receipt not found");
     });
 
-    it("should return 404 when order does not exist", async () => {
+    it("should return 404 (Receipt not found) when order does not exist", async () => {
       const res = await app.request("/api/orders/999999/receipt", {
         headers: h(),
       });
       const body = (await res.json()) as { error: string };
 
       expect(res.status).toBe(404);
-      expect(body.error).toBe("Order not found");
+      expect(body.error).toBe("Receipt not found");
     });
 
     it("should return 400 for a non-numeric order id", async () => {

@@ -68,7 +68,7 @@ export function createReceiptRoutes(
       },
       404: {
         content: { "application/json": { schema: errorResponseSchema } },
-        description: "Order or receipt not found",
+        description: "Receipt not found",
       },
     },
   });
@@ -92,10 +92,6 @@ export function createReceiptRoutes(
 
   receiptRoutes.openapi(getReceiptRoute, async (c) => {
     const { id } = c.req.valid("param");
-
-    if (!(await receiptService.orderExists(id))) {
-      return errorResponse(c, "Order not found", 404);
-    }
 
     const receipt = await receiptService.getByOrderId(id);
 
