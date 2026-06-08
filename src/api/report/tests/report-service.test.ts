@@ -162,7 +162,7 @@ describe("ReportService", () => {
       const order = result.orders[0]!;
 
       expect(order.description).toBe("Screen fix");
-      expect(order.value).toBe("150");
+      expect(order.value).toBe("150.00");
       expect(order.completedAt).toBeDefined();
       expect(order.client.id).toBe(testClientId);
       expect(order.client.name).toBe("Report Test Client");

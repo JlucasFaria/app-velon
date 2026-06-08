@@ -47,7 +47,9 @@ export class ReportService {
         id: h.order.id,
         orderNumber: h.order.orderNumber,
         description: h.order.description,
-        value: h.order.value.toString(),
+        // Always 2 decimals so the payload is consistent with totalRevenue.
+        // Display formatting (R$ 100,00 / pt-BR) is handled on the frontend.
+        value: parseFloat(h.order.value.toString()).toFixed(2),
         completedAt: h.changedAt.toISOString(),
         client: h.order.client,
       })),
