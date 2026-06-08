@@ -8,40 +8,48 @@ export class ReportService {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);
 
-    const orders = await this.prisma.serviceOrder.findMany({
+    // Filter by the actual completion event (StatusHistory) rather than
+    // updatedAt, which changes on any later edit. The order must still be
+    // COMPLETED to exclude ones reverted/cancelled afterwards.
+    const histories = await this.prisma.statusHistory.findMany({
       where: {
-        status: "COMPLETED",
-        updatedAt: { gte: startDate, lt: endDate },
+        toStatus: "COMPLETED",
+        changedAt: { gte: startDate, lt: endDate },
+        order: { status: "COMPLETED" },
       },
       select: {
-        id: true,
-        orderNumber: true,
-        description: true,
-        value: true,
-        updatedAt: true,
-        client: {
-          select: { id: true, name: true },
+        changedAt: true,
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            description: true,
+            value: true,
+            client: {
+              select: { id: true, name: true },
+            },
+          },
         },
       },
-      orderBy: { updatedAt: "asc" },
+      orderBy: { changedAt: "asc" },
     });
 
-    const totalCents = orders.reduce((sum, o) => {
-      return sum + Math.round(parseFloat(o.value.toString()) * 100);
+    const totalCents = histories.reduce((sum, h) => {
+      return sum + Math.round(parseFloat(h.order.value.toString()) * 100);
     }, 0);
 
     return {
       month,
       year,
       totalRevenue: (totalCents / 100).toFixed(2),
-      orderCount: orders.length,
-      orders: orders.map((o) => ({
-        id: o.id,
-        orderNumber: o.orderNumber,
-        description: o.description,
-        value: o.value.toString(),
-        completedAt: o.updatedAt.toISOString(),
-        client: o.client,
+      orderCount: histories.length,
+      orders: histories.map((h) => ({
+        id: h.order.id,
+        orderNumber: h.order.orderNumber,
+        description: h.order.description,
+        value: h.order.value.toString(),
+        completedAt: h.changedAt.toISOString(),
+        client: h.order.client,
       })),
     };
   }

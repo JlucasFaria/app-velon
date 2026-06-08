@@ -39,6 +39,8 @@ beforeEach(async () => {
   await prisma.serviceOrder.deleteMany();
 });
 
+// Creates an order; when status is COMPLETED, records a COMPLETED StatusHistory
+// entry at `completedAt` (the date billing actually filters on).
 const createOrder = async (
   overrides: Partial<{
     status:
@@ -48,21 +50,33 @@ const createOrder = async (
       | "COMPLETED"
       | "CANCELLED";
     value: string;
-    updatedAt: Date;
+    completedAt: Date;
     description: string;
   }> = {},
 ) => {
   const seq = await prisma.serviceOrder.count();
+  const status = overrides.status ?? "PENDING";
+  const completedAt = overrides.completedAt ?? JUNE_2026;
   return prisma.serviceOrder.create({
     data: {
       orderNumber: `OS-RPT-${String(seq + 1).padStart(3, "0")}`,
       description: overrides.description ?? "Test service",
       value: overrides.value ?? "100.00",
       clientId: testClientId,
-      status: overrides.status ?? "PENDING",
-      updatedAt: overrides.updatedAt ?? JUNE_2026,
+      status,
       statusHistory: {
-        create: { toStatus: "PENDING", changedById: testUserId },
+        create:
+          status === "COMPLETED"
+            ? [
+                { toStatus: "PENDING", changedById: testUserId },
+                {
+                  fromStatus: "PENDING",
+                  toStatus: "COMPLETED",
+                  changedById: testUserId,
+                  changedAt: completedAt,
+                },
+              ]
+            : [{ toStatus: "PENDING", changedById: testUserId }],
       },
     },
   });
@@ -84,18 +98,10 @@ describe("ReportService", () => {
       await createOrder({
         status: "COMPLETED",
         value: "100.00",
-        updatedAt: JUNE_2026,
+        completedAt: JUNE_2026,
       });
-      await createOrder({
-        status: "PENDING",
-        value: "200.00",
-        updatedAt: JUNE_2026,
-      });
-      await createOrder({
-        status: "IN_PROGRESS",
-        value: "300.00",
-        updatedAt: JUNE_2026,
-      });
+      await createOrder({ status: "PENDING", value: "200.00" });
+      await createOrder({ status: "IN_PROGRESS", value: "300.00" });
 
       const result = await reportService.getMonthlyBilling(6, 2026);
 
@@ -103,16 +109,16 @@ describe("ReportService", () => {
       expect(result.totalRevenue).toBe("100.00");
     });
 
-    it("should exclude COMPLETED orders from other months", async () => {
+    it("should exclude orders completed in other months", async () => {
       await createOrder({
         status: "COMPLETED",
         value: "100.00",
-        updatedAt: JUNE_2026,
+        completedAt: JUNE_2026,
       });
       await createOrder({
         status: "COMPLETED",
         value: "250.00",
-        updatedAt: MAY_2026,
+        completedAt: MAY_2026,
       });
 
       const result = await reportService.getMonthlyBilling(6, 2026);
@@ -125,17 +131,17 @@ describe("ReportService", () => {
       await createOrder({
         status: "COMPLETED",
         value: "100.00",
-        updatedAt: JUNE_2026,
+        completedAt: JUNE_2026,
       });
       await createOrder({
         status: "COMPLETED",
         value: "250.50",
-        updatedAt: JUNE_2026,
+        completedAt: JUNE_2026,
       });
       await createOrder({
         status: "COMPLETED",
         value: "49.50",
-        updatedAt: JUNE_2026,
+        completedAt: JUNE_2026,
       });
 
       const result = await reportService.getMonthlyBilling(6, 2026);
@@ -149,7 +155,7 @@ describe("ReportService", () => {
         status: "COMPLETED",
         value: "150.00",
         description: "Screen fix",
-        updatedAt: JUNE_2026,
+        completedAt: JUNE_2026,
       });
 
       const result = await reportService.getMonthlyBilling(6, 2026);
@@ -160,6 +166,24 @@ describe("ReportService", () => {
       expect(order.completedAt).toBeDefined();
       expect(order.client.id).toBe(testClientId);
       expect(order.client.name).toBe("Report Test Client");
+    });
+
+    it("should not count an order completed in the month but later cancelled", async () => {
+      // Completed in June, then moved to CANCELLED — must not appear in billing
+      const order = await createOrder({
+        status: "COMPLETED",
+        value: "500.00",
+        completedAt: JUNE_2026,
+      });
+      await prisma.serviceOrder.update({
+        where: { id: order.id },
+        data: { status: "CANCELLED" },
+      });
+
+      const result = await reportService.getMonthlyBilling(6, 2026);
+
+      expect(result.orderCount).toBe(0);
+      expect(result.totalRevenue).toBe("0.00");
     });
   });
 

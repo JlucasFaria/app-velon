@@ -58,6 +58,8 @@ describe("Report Routes", () => {
     ...extra,
   });
 
+  // Creates an order; when status is COMPLETED, records a COMPLETED
+  // StatusHistory entry at `completedAt` (the date billing filters on).
   const createOrder = async (overrides: {
     status:
       | "PENDING"
@@ -66,9 +68,10 @@ describe("Report Routes", () => {
       | "COMPLETED"
       | "CANCELLED";
     value?: string;
-    updatedAt?: Date;
+    completedAt?: Date;
   }) => {
     const seq = await prisma.serviceOrder.count();
+    const completedAt = overrides.completedAt ?? JUNE_2026;
     return prisma.serviceOrder.create({
       data: {
         orderNumber: `OS-RPT-${String(seq + 1).padStart(3, "0")}`,
@@ -76,9 +79,19 @@ describe("Report Routes", () => {
         value: overrides.value ?? "100.00",
         clientId: testClientId,
         status: overrides.status,
-        updatedAt: overrides.updatedAt ?? JUNE_2026,
         statusHistory: {
-          create: { toStatus: "PENDING", changedById: testUserId },
+          create:
+            overrides.status === "COMPLETED"
+              ? [
+                  { toStatus: "PENDING", changedById: testUserId },
+                  {
+                    fromStatus: "PENDING",
+                    toStatus: "COMPLETED",
+                    changedById: testUserId,
+                    changedAt: completedAt,
+                  },
+                ]
+              : [{ toStatus: "PENDING", changedById: testUserId }],
         },
       },
     });
@@ -109,12 +122,12 @@ describe("Report Routes", () => {
       await createOrder({
         status: "COMPLETED",
         value: "250.00",
-        updatedAt: JUNE_2026,
+        completedAt: JUNE_2026,
       });
       await createOrder({
         status: "COMPLETED",
         value: "100.00",
-        updatedAt: JUNE_2026,
+        completedAt: JUNE_2026,
       });
 
       const res = await app.request("/api/reports/billing?month=6&year=2026", {
@@ -141,7 +154,7 @@ describe("Report Routes", () => {
     });
 
     it("should return empty result when no COMPLETED orders in the month", async () => {
-      await createOrder({ status: "PENDING", updatedAt: JUNE_2026 });
+      await createOrder({ status: "PENDING" });
 
       const res = await app.request("/api/reports/billing?month=6&year=2026", {
         headers: h(),
@@ -155,11 +168,11 @@ describe("Report Routes", () => {
       expect(body.data.totalRevenue).toBe("0.00");
     });
 
-    it("should exclude COMPLETED orders from other months", async () => {
+    it("should exclude orders completed in other months", async () => {
       await createOrder({
         status: "COMPLETED",
         value: "500.00",
-        updatedAt: MAY_2026,
+        completedAt: MAY_2026,
       });
 
       const res = await app.request("/api/reports/billing?month=6&year=2026", {
