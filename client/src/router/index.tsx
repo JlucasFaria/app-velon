@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
+import { ClientsPage } from "@/pages/clients/ClientsPage";
 
 function ProtectedRoute() {
   const { accessToken } = useAuth();
@@ -26,7 +27,10 @@ const router = createBrowserRouter([
   {
     // Authenticated area
     element: <ProtectedRoute />,
-    children: [{ path: "/", element: <DashboardPage /> }],
+    children: [
+      { path: "/", element: <DashboardPage /> },
+      { path: "/clients", element: <ClientsPage /> },
+    ],
   },
   // Unknown paths fall back to the dashboard (which itself guards auth)
   { path: "*", element: <Navigate to="/" replace /> },
