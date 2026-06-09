@@ -530,6 +530,164 @@ These structured logs integrate with log aggregation platforms (Datadog, CloudWa
 
 **Naming (frontend)**: PascalCase for components and pages (`OrderDetailPage.tsx`), camelCase for hooks and utilities, kebab-case for non-component files (`order-status.ts`).
 
+### Frontend — Critical version notes
+
+The frontend uses bleeding-edge versions that differ significantly from common training data. Always follow these rules exactly.
+
+**Package versions (client/package.json)**
+
+| Package         | Version        | Key difference from older versions                                          |
+| --------------- | -------------- | --------------------------------------------------------------------------- |
+| React           | 19.2           | `use()` hook for promises; concurrent features on by default                |
+| Vite            | 8.x            | Config API stable but newer plugin ecosystem                                |
+| TypeScript      | 6.x            | `erasableSyntaxOnly` enabled — no `const enum`, no `namespace`              |
+| Zod             | 4.x            | Breaking changes from v3 — see rules below                                  |
+| React Hook Form | 7.78           | API unchanged but resolver must match Zod 4                                 |
+| Tailwind CSS    | 4.x            | No `tailwind.config.ts` — theme configured via CSS variables in `index.css` |
+| shadcn/ui       | new-york style | Components in `client/src/components/ui/` — never edit manually             |
+
+**Zod 4 rules (breaking vs Zod 3)**
+
+```typescript
+// Inferring types — same as v3
+type MyType = z.infer<typeof mySchema>;
+
+// .safeParse() return type changed — use .data and .error directly
+const result = schema.safeParse(value);
+if (result.success)
+  result.data; // ok
+else result.error; // ZodError
+
+// z.string().email() — still works
+// z.coerce.number() — still works
+// z.enum([...]) — still works
+
+// REMOVED in Zod 4: z.ZodError (use z.core.$ZodError or just catch ZodError)
+// REMOVED in Zod 4: .parse() throwing is the same, but error shape changed
+```
+
+**React Router v6 — required pattern**
+
+Always use `createBrowserRouter` + `RouterProvider`. Never use `<BrowserRouter>`.
+
+```tsx
+// client/src/router/index.tsx
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+} from "react-router-dom";
+
+const router = createBrowserRouter([
+  { path: "/login", element: <LoginPage /> },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      { path: "/", element: <DashboardPage /> },
+      { path: "/clients", element: <ClientsPage /> },
+    ],
+  },
+]);
+
+export function AppRouter() {
+  return <RouterProvider router={router} />;
+}
+```
+
+**Forms — required pattern**
+
+Always use React Hook Form + `zodResolver` + shadcn `Form` components. Never use uncontrolled inputs or `useState` for form fields.
+
+```tsx
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+const schema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+type FormData = z.infer<typeof schema>;
+
+export function MyForm() {
+  const form = useForm<FormData>({ resolver: zodResolver(schema) });
+
+  function onSubmit(data: FormData) {
+    /* call api function here */
+  }
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit">Submit</Button>
+      </form>
+    </Form>
+  );
+}
+```
+
+**TypeScript strict flags active in tsconfig.app.json**
+
+- `noUnusedLocals` + `noUnusedParameters`: every declared variable and parameter must be used. Prefix with `_` if intentionally unused.
+- `erasableSyntaxOnly`: no `const enum`, no TypeScript `namespace`, no experimental decorators.
+- `verbatimModuleSyntax`: use `import type` for type-only imports.
+
+```typescript
+// Correct
+import type { ReactNode } from "react";
+import { useState } from "react";
+
+// Wrong — will fail build
+import { ReactNode } from "react"; // must be import type
+```
+
+**Tailwind CSS v4 — no config file**
+
+Tailwind v4 does not use `tailwind.config.ts`. All theme customization lives in `client/src/index.css` via CSS variables. Do not create or modify a `tailwind.config.ts` file. Do not use `theme()` function in CSS — use CSS variables directly (`var(--color-primary)`).
+
+**shadcn/ui components installed**
+
+`Button` `Input` `Card` `Table` `Badge` `Dialog` `Select` `Label` `Form` `Sonner` `Separator` `Avatar` `DropdownMenu`
+
+Do not run `bunx shadcn add` for components already in this list. Do not edit files inside `client/src/components/ui/`.
+
+**Toast notifications**
+
+Use `sonner` (already installed). Import `toast` from `"sonner"` and place `<Toaster />` once in the root layout.
+
+```tsx
+import { toast } from "sonner";
+toast.success("Saved!");
+toast.error("Something went wrong");
+```
+
+**Frontend build validation**
+
+After every task that touches frontend code, run `cd client && bun run build` to catch TypeScript errors before committing. The linter alone is not sufficient — the build is the source of truth.
+
 ## Code Style & Conventions
 
 - **Language**: TypeScript strict mode (`noUncheckedIndexedAccess`, `noImplicitOverride`)
