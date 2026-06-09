@@ -536,26 +536,27 @@ The frontend uses bleeding-edge versions that differ significantly from common t
 
 **Package versions (client/package.json)**
 
-| Package | Version | Key difference from older versions |
-|---|---|---|
-| React | 19.2 | `use()` hook for promises; concurrent features on by default |
-| Vite | 8.x | Config API stable but newer plugin ecosystem |
-| TypeScript | 6.x | `erasableSyntaxOnly` enabled — no `const enum`, no `namespace` |
-| Zod | 4.x | Breaking changes from v3 — see rules below |
-| React Hook Form | 7.78 | API unchanged but resolver must match Zod 4 |
-| Tailwind CSS | 4.x | No `tailwind.config.ts` — theme configured via CSS variables in `index.css` |
-| shadcn/ui | new-york style | Components in `client/src/components/ui/` — never edit manually |
+| Package         | Version        | Key difference from older versions                                          |
+| --------------- | -------------- | --------------------------------------------------------------------------- |
+| React           | 19.2           | `use()` hook for promises; concurrent features on by default                |
+| Vite            | 8.x            | Config API stable but newer plugin ecosystem                                |
+| TypeScript      | 6.x            | `erasableSyntaxOnly` enabled — no `const enum`, no `namespace`              |
+| Zod             | 4.x            | Breaking changes from v3 — see rules below                                  |
+| React Hook Form | 7.78           | API unchanged but resolver must match Zod 4                                 |
+| Tailwind CSS    | 4.x            | No `tailwind.config.ts` — theme configured via CSS variables in `index.css` |
+| shadcn/ui       | new-york style | Components in `client/src/components/ui/` — never edit manually             |
 
 **Zod 4 rules (breaking vs Zod 3)**
 
 ```typescript
 // Inferring types — same as v3
-type MyType = z.infer<typeof mySchema>
+type MyType = z.infer<typeof mySchema>;
 
 // .safeParse() return type changed — use .data and .error directly
-const result = schema.safeParse(value)
-if (result.success) result.data  // ok
-else result.error                // ZodError
+const result = schema.safeParse(value);
+if (result.success)
+  result.data; // ok
+else result.error; // ZodError
 
 // z.string().email() — still works
 // z.coerce.number() — still works
@@ -571,7 +572,11 @@ Always use `createBrowserRouter` + `RouterProvider`. Never use `<BrowserRouter>`
 
 ```tsx
 // client/src/router/index.tsx
-import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom"
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+} from "react-router-dom";
 
 const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -582,10 +587,10 @@ const router = createBrowserRouter([
       { path: "/clients", element: <ClientsPage /> },
     ],
   },
-])
+]);
 
 export function AppRouter() {
-  return <RouterProvider router={router} />
+  return <RouterProvider router={router} />;
 }
 ```
 
@@ -594,35 +599,53 @@ export function AppRouter() {
 Always use React Hook Form + `zodResolver` + shadcn `Form` components. Never use uncontrolled inputs or `useState` for form fields.
 
 ```tsx
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
-const schema = z.object({ email: z.string().email(), password: z.string().min(6) })
-type FormData = z.infer<typeof schema>
+const schema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+type FormData = z.infer<typeof schema>;
 
 export function MyForm() {
-  const form = useForm<FormData>({ resolver: zodResolver(schema) })
+  const form = useForm<FormData>({ resolver: zodResolver(schema) });
 
-  function onSubmit(data: FormData) { /* call api function here */ }
+  function onSubmit(data: FormData) {
+    /* call api function here */
+  }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <FormField control={form.control} name="email" render={({ field }) => (
-          <FormItem>
-            <FormLabel>Email</FormLabel>
-            <FormControl><Input {...field} /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <Button type="submit">Submit</Button>
       </form>
     </Form>
-  )
+  );
 }
 ```
 
@@ -634,11 +657,11 @@ export function MyForm() {
 
 ```typescript
 // Correct
-import type { ReactNode } from "react"
-import { useState } from "react"
+import type { ReactNode } from "react";
+import { useState } from "react";
 
 // Wrong — will fail build
-import { ReactNode } from "react"  // must be import type
+import { ReactNode } from "react"; // must be import type
 ```
 
 **Tailwind CSS v4 — no config file**
@@ -656,9 +679,9 @@ Do not run `bunx shadcn add` for components already in this list. Do not edit fi
 Use `sonner` (already installed). Import `toast` from `"sonner"` and place `<Toaster />` once in the root layout.
 
 ```tsx
-import { toast } from "sonner"
-toast.success("Saved!")
-toast.error("Something went wrong")
+import { toast } from "sonner";
+toast.success("Saved!");
+toast.error("Something went wrong");
 ```
 
 **Frontend build validation**
