@@ -42,7 +42,12 @@ export async function apiRequest<T>(
   });
 
   const text = await res.text();
-  const json = text ? JSON.parse(text) : null;
+  let json: { data?: unknown; error?: unknown } | null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    json = null; // non-JSON response (e.g. a proxy/network error page)
+  }
 
   if (!res.ok) {
     const message =

@@ -8,7 +8,11 @@ const REFRESH_TOKEN_KEY = "refreshToken";
 /** Decodes the JWT payload into a user, or null if invalid/expired. */
 function decodeUser(token: string): AuthUser | null {
   try {
-    const payload = JSON.parse(atob(token.split(".")[1] ?? "")) as {
+    // JWT payloads are base64url-encoded — normalize to base64 before atob.
+    const base64 = (token.split(".")[1] ?? "")
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+    const payload = JSON.parse(atob(base64)) as {
       id?: unknown;
       email?: unknown;
       exp?: unknown;
@@ -27,13 +31,16 @@ function decodeUser(token: string): AuthUser | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [accessToken, setAccessToken] = useState<string | null>(() =>
-    localStorage.getItem(ACCESS_TOKEN_KEY),
-  );
-  const [user, setUser] = useState<AuthUser | null>(() => {
+  // Derive the initial session from a single check so token and user stay
+  // consistent: a missing or expired token means no session at all.
+  const initialUser = (() => {
     const token = localStorage.getItem(ACCESS_TOKEN_KEY);
     return token ? decodeUser(token) : null;
-  });
+  })();
+  const [user, setUser] = useState<AuthUser | null>(initialUser);
+  const [accessToken, setAccessToken] = useState<string | null>(
+    initialUser ? localStorage.getItem(ACCESS_TOKEN_KEY) : null,
+  );
 
   const login = useCallback(async (email: string, password: string) => {
     const { token, refreshToken } = await authApi.login(email, password);
