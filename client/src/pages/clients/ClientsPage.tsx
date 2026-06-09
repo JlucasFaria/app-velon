@@ -9,6 +9,7 @@ import {
   type ClientType,
   type PaginatedClients,
 } from "@/api/clients";
+import { ClientForm } from "@/components/clients/ClientForm";
 import { ClientTypeBadge } from "@/components/clients/ClientTypeBadge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +49,8 @@ export function ClientsPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Client | undefined>(undefined);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
@@ -115,7 +118,7 @@ export function ClientsPage() {
           <h1 className="text-2xl font-semibold">Clients</h1>
           <p className="text-sm text-muted-foreground">Manage your clients</p>
         </div>
-        <Button disabled>
+        <Button onClick={() => { setEditTarget(undefined); setFormOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
           New Client
         </Button>
@@ -203,7 +206,11 @@ export function ClientsPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" disabled>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => { setEditTarget(client); setFormOpen(true); }}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
@@ -251,6 +258,13 @@ export function ClientsPage() {
           )}
         </div>
       )}
+
+      <ClientForm
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        client={editTarget}
+        onSuccess={refresh}
+      />
 
       <Dialog
         open={!!deleteTarget}
