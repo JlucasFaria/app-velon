@@ -1,4 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
 import { useAuth } from "@/contexts/auth-context";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
@@ -15,20 +20,17 @@ function ProtectedRoute() {
   return <Outlet />;
 }
 
+const router = createBrowserRouter([
+  { path: "/login", element: <LoginPage /> },
+  {
+    // Authenticated area
+    element: <ProtectedRoute />,
+    children: [{ path: "/", element: <DashboardPage /> }],
+  },
+  // Unknown paths fall back to the dashboard (which itself guards auth)
+  { path: "*", element: <Navigate to="/" replace /> },
+]);
+
 export function AppRouter() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-
-        {/* Authenticated area */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<DashboardPage />} />
-        </Route>
-
-        {/* Unknown paths fall back to the dashboard (which itself guards auth) */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
-  );
+  return <RouterProvider router={router} />;
 }
