@@ -1,14 +1,15 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "@/contexts/auth-context";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
 
 /**
- * Guards authenticated routes. Redirects to /login when no access token is
- * present. Tokens live in localStorage (see AuthContext / api client).
+ * Guards authenticated routes. Redirects to /login when there is no
+ * authenticated session (access token in AuthContext).
  */
 function ProtectedRoute() {
-  const token = localStorage.getItem("accessToken");
-  if (!token) {
+  const { accessToken } = useAuth();
+  if (!accessToken) {
     return <Navigate to="/login" replace />;
   }
   return <Outlet />;

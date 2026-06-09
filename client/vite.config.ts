@@ -11,4 +11,10 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      // Forward API calls to the backend in dev (no CORS needed).
+      "/api": "http://localhost:3000",
+    },
+  },
 });
