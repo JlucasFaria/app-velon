@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,22 +31,20 @@ type FormData = z.infer<typeof schema>;
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "" },
   });
 
+  const { isSubmitting } = form.formState;
+
   async function onSubmit(data: FormData) {
-    setIsLoading(true);
     try {
       await login(data.email, data.password);
       navigate("/", { replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Login failed");
-    } finally {
-      setIsLoading(false);
     }
   }
 
@@ -95,8 +92,8 @@ export function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in…" : "Sign in"}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Signing in…" : "Sign in"}
               </Button>
             </form>
           </Form>

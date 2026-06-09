@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ElementType } from "react";
 import {
   ClipboardList,
   Clock,
@@ -9,6 +10,28 @@ import {
 } from "lucide-react";
 import { getOrdersSummary, type OrdersSummary } from "@/api/reports";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+interface StatCardProps {
+  title: string;
+  value: number | null;
+  description: string;
+  icon: ElementType;
+}
+
+function StatCard({ title, value, description, icon: Icon }: StatCardProps) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value !== null ? value : "—"}</div>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function DashboardPage() {
   const [summary, setSummary] = useState<OrdersSummary | null>(null);
@@ -46,92 +69,43 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {total !== null ? total : "—"}
-            </div>
-            <p className="text-xs text-muted-foreground">All time</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {summary !== null ? summary.PENDING : "—"}
-            </div>
-            <p className="text-xs text-muted-foreground">Awaiting start</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <Wrench className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {summary !== null ? summary.IN_PROGRESS : "—"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Currently being worked on
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {summary !== null ? summary.COMPLETED : "—"}
-            </div>
-            <p className="text-xs text-muted-foreground">All time</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Awaiting Client
-            </CardTitle>
-            <HourglassIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {summary !== null ? summary.AWAITING_CLIENT : "—"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Waiting for client response
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cancelled</CardTitle>
-            <XCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {summary !== null ? summary.CANCELLED : "—"}
-            </div>
-            <p className="text-xs text-muted-foreground">All time</p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard
+          title="Total Orders"
+          value={total}
+          description="All time"
+          icon={ClipboardList}
+        />
+        <StatCard
+          title="Pending"
+          value={summary?.PENDING ?? null}
+          description="Awaiting start"
+          icon={Clock}
+        />
+        <StatCard
+          title="In Progress"
+          value={summary?.IN_PROGRESS ?? null}
+          description="Currently being worked on"
+          icon={Wrench}
+        />
+        <StatCard
+          title="Awaiting Client"
+          value={summary?.AWAITING_CLIENT ?? null}
+          description="Waiting for client response"
+          icon={HourglassIcon}
+        />
+        <StatCard
+          title="Completed"
+          value={summary?.COMPLETED ?? null}
+          description="All time"
+          icon={CheckCircle2}
+        />
+        <StatCard
+          title="Cancelled"
+          value={summary?.CANCELLED ?? null}
+          description="All time"
+          icon={XCircle}
+        />
       </div>
     </div>
   );

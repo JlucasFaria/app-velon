@@ -1,13 +1,21 @@
+import type { ElementType } from "react";
 import { NavLink } from "react-router-dom";
 import { LayoutDashboard, Users, ClipboardList, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+interface NavItem {
+  to: string;
+  label: string;
+  icon: ElementType;
+  end?: boolean;
+}
+
+const navItems: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/clients", label: "Clients", icon: Users, end: false },
-  { to: "/orders", label: "Orders", icon: ClipboardList, end: false },
-  { to: "/reports", label: "Reports", icon: BarChart2, end: false },
-] as const;
+  { to: "/clients", label: "Clients", icon: Users },
+  { to: "/orders", label: "Orders", icon: ClipboardList },
+  { to: "/reports", label: "Reports", icon: BarChart2 },
+];
 
 export function Sidebar() {
   return (
@@ -16,7 +24,7 @@ export function Sidebar() {
         <span className="text-lg font-semibold tracking-tight">Velon</span>
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-3">
-        {navItems.map(({ to, label, icon: Icon, end }) => (
+        {navItems.map(({ to, label, icon: Icon, end = false }) => (
           <NavLink
             key={to}
             to={to}
