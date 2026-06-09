@@ -1,11 +1,7 @@
+import { AppRouter } from "@/router";
+
 function App() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
-      <h1 className="text-2xl font-semibold text-slate-900">
-        Velon — frontend setup
-      </h1>
-    </div>
-  );
+  return <AppRouter />;
 }
 
 export default App;
