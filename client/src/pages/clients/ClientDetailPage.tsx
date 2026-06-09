@@ -41,14 +41,16 @@ export function ClientDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    setLoading(true);
-    setError(null);
     getClient(Number(id))
-      .then(setClient)
+      .then((data) => {
+        setClient(data);
+        setError(null);
+        setLoading(false);
+      })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : "Failed to load client");
-      })
-      .finally(() => setLoading(false));
+        setLoading(false);
+      });
   }, [id]);
 
   if (loading) {

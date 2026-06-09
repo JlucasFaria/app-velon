@@ -67,8 +67,6 @@ export function ClientsPage() {
   // Fetch clients
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
     getClients({
       search: search || undefined,
       clientType: typeFilter || undefined,
@@ -76,16 +74,19 @@ export function ClientsPage() {
       limit: 10,
     })
       .then((d) => {
-        if (!cancelled) setData(d);
+        if (!cancelled) {
+          setData(d);
+          setError(null);
+          setLoading(false);
+        }
       })
       .catch((err: unknown) => {
-        if (!cancelled)
+        if (!cancelled) {
           setError(
             err instanceof Error ? err.message : "Failed to load clients",
           );
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+          setLoading(false);
+        }
       });
     return () => {
       cancelled = true;
