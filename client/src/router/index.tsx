@@ -5,19 +5,20 @@ import {
   Outlet,
 } from "react-router-dom";
 import { useAuth } from "@/contexts/auth-context";
+import { AppShell } from "@/components/layout/AppShell";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
 
-/**
- * Guards authenticated routes. Redirects to /login when there is no
- * authenticated session (access token in AuthContext).
- */
 function ProtectedRoute() {
   const { accessToken } = useAuth();
   if (!accessToken) {
     return <Navigate to="/login" replace />;
   }
-  return <Outlet />;
+  return (
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  );
 }
 
 const router = createBrowserRouter([
