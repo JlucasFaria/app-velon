@@ -97,6 +97,7 @@ export function MobileSidebar({
         role="dialog"
         aria-modal="true"
         aria-label="Menu de navegação"
+        inert={!open}
         className={cn(
           "absolute inset-y-0 left-0 flex w-64 flex-col border-r bg-card shadow-overlay transition-transform duration-200",
           open ? "translate-x-0" : "-translate-x-full",
