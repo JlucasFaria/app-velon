@@ -1,21 +1,21 @@
 import type { OrderStatus } from "@/api/orders";
 
-type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
-
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  PENDING: "Pending",
-  IN_PROGRESS: "In Progress",
-  AWAITING_CLIENT: "Awaiting Client",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
+  PENDING: "Pendente",
+  IN_PROGRESS: "Em andamento",
+  AWAITING_CLIENT: "Aguardando cliente",
+  COMPLETED: "Concluída",
+  CANCELLED: "Cancelada",
 };
 
-export const ORDER_STATUS_VARIANTS: Record<OrderStatus, BadgeVariant> = {
-  PENDING: "secondary",
-  IN_PROGRESS: "default",
-  AWAITING_CLIENT: "outline",
-  COMPLETED: "default",
-  CANCELLED: "destructive",
+// Semantic chip colors per status. Solid background + paired `-foreground`
+// token guarantees legible contrast in both light and dark themes.
+export const ORDER_STATUS_BADGE_CLASSES: Record<OrderStatus, string> = {
+  PENDING: "border border-border bg-secondary text-secondary-foreground",
+  IN_PROGRESS: "bg-info text-info-foreground",
+  AWAITING_CLIENT: "bg-warning text-warning-foreground",
+  COMPLETED: "bg-success text-success-foreground",
+  CANCELLED: "bg-danger text-danger-foreground",
 };
 
 // Ordered list for status dropdowns (filters, status-change control).

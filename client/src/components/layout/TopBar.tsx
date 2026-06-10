@@ -21,6 +21,7 @@ export function TopBar() {
       <Button
         variant="ghost"
         size="icon"
+        className="relative min-h-11 min-w-11"
         aria-label={isDark ? "Ativar tema claro" : "Ativar tema escuro"}
         title={isDark ? "Tema claro" : "Tema escuro"}
         onClick={() => setTheme(isDark ? "light" : "dark")}
