@@ -13,6 +13,7 @@ import { ClientDetailPage } from "@/pages/clients/ClientDetailPage";
 import { OrdersPage } from "@/pages/orders/OrdersPage";
 import { OrderDetailPage } from "@/pages/orders/OrderDetailPage";
 import { ReceiptPage } from "@/pages/receipts/ReceiptPage";
+import { ReportsPage } from "@/pages/reports/ReportsPage";
 
 function ProtectedRoute() {
   const { accessToken } = useAuth();
@@ -38,6 +39,7 @@ const router = createBrowserRouter([
       { path: "/orders", element: <OrdersPage /> },
       { path: "/orders/:id", element: <OrderDetailPage /> },
       { path: "/orders/:id/receipt", element: <ReceiptPage /> },
+      { path: "/reports", element: <ReportsPage /> },
     ],
   },
   // Unknown paths fall back to the dashboard (which itself guards auth)
