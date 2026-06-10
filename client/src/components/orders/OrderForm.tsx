@@ -4,12 +4,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { createOrder } from "@/api/orders";
 import { ClientCombobox } from "@/components/clients/ClientCombobox";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -26,16 +28,16 @@ import { Textarea } from "@/components/ui/textarea";
 
 const schema = z.object({
   clientId: z
-    .number({ error: "Select a client" })
+    .number({ error: "Selecione um cliente" })
     .int()
-    .positive("Select a client"),
+    .positive("Selecione um cliente"),
   description: z
     .string()
-    .min(3, "Description must be at least 3 characters"),
+    .min(3, "A descrição deve ter ao menos 3 caracteres"),
   // Accept both "250.00" and the Brazilian "250,00"; normalized before submit.
   value: z
     .string()
-    .regex(/^\d+([.,]\d{1,2})?$/, "Enter a valid amount, e.g. 250,00"),
+    .regex(/^\d+([.,]\d{1,2})?$/, "Informe um valor válido, ex.: 250,00"),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -67,11 +69,11 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
         ...data,
         value: data.value.replace(",", "."),
       });
-      toast.success("Order created successfully");
+      toast.success("Ordem criada com sucesso");
       onOpenChange(false);
       navigate(`/orders/${order.id}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
+      toast.error(err instanceof Error ? err.message : "Algo deu errado");
     }
   }
 
@@ -79,7 +81,10 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New order</DialogTitle>
+          <DialogTitle>Nova ordem de serviço</DialogTitle>
+          <DialogDescription>
+            Selecione o cliente e descreva o serviço a ser realizado.
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -88,7 +93,7 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
               name="clientId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Client</FormLabel>
+                  <FormLabel>Cliente</FormLabel>
                   <FormControl>
                     <ClientCombobox
                       value={field.value ?? null}
@@ -104,10 +109,10 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Descrição</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe the service…"
+                      placeholder="Descreva o serviço…"
                       rows={4}
                       {...field}
                     />
@@ -121,9 +126,9 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
               name="value"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Value (R$)</FormLabel>
+                  <FormLabel>Valor (R$)</FormLabel>
                   <FormControl>
-                    <Input placeholder="250.00" inputMode="decimal" {...field} />
+                    <Input placeholder="250,00" inputMode="decimal" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -136,10 +141,11 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
                 onClick={() => onOpenChange(false)}
                 disabled={isSubmitting}
               >
-                Cancel
+                Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Creating…" : "Create order"}
+                {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isSubmitting ? "Criando…" : "Criar ordem"}
               </Button>
             </div>
           </form>

@@ -6,10 +6,11 @@ const labels: Record<ClientType, string> = {
   PARTNER: "Parceiro",
 };
 
+const classes: Record<ClientType, string> = {
+  PARTNER: "bg-primary text-primary-foreground",
+  COUNTER: "border border-border bg-secondary text-secondary-foreground",
+};
+
 export function ClientTypeBadge({ type }: { type: ClientType }) {
-  return (
-    <Badge variant={type === "PARTNER" ? "default" : "secondary"}>
-      {labels[type]}
-    </Badge>
-  );
+  return <Badge className={classes[type]}>{labels[type]}</Badge>;
 }

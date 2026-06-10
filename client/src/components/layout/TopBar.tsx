@@ -1,4 +1,5 @@
-import { LogOut } from "lucide-react";
+import { LogOut, Menu, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/auth-context";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -9,12 +10,39 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function TopBar() {
+export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const { user, logout } = useAuth();
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
 
   return (
-    <header className="flex h-14 items-center justify-end border-b bg-card px-6 print:hidden">
+    <header className="flex h-14 items-center justify-between gap-1 border-b bg-card px-4 md:px-6 print:hidden">
+      <div className="flex items-center gap-2 md:hidden">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="min-h-11 min-w-11"
+          aria-label="Abrir menu"
+          onClick={onMenuClick}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <span className="text-base font-semibold tracking-tight">Velon</span>
+      </div>
+      <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="relative min-h-11 min-w-11"
+        aria-label={isDark ? "Ativar tema claro" : "Ativar tema escuro"}
+        title={isDark ? "Tema claro" : "Tema escuro"}
+        onClick={() => setTheme(isDark ? "light" : "dark")}
+      >
+        <Sun className="h-5 w-5 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
+        <Moon className="absolute h-5 w-5 scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0" />
+        <span className="sr-only">Alternar tema</span>
+      </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center gap-2 px-2">
@@ -27,10 +55,11 @@ export function TopBar() {
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => void logout()}>
             <LogOut className="mr-2 h-4 w-4" />
-            Sign out
+            Sair
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   );
 }

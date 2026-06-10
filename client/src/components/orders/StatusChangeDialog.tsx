@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import {
   changeOrderStatus,
   type OrderDetail,
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -61,12 +63,12 @@ export function StatusChangeDialog({
         status,
         note || undefined,
       );
-      toast.success("Status updated successfully");
+      toast.success("Status atualizado com sucesso");
       onUpdated(updated);
       onOpenChange(false);
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to update status",
+        err instanceof Error ? err.message : "Falha ao atualizar o status",
       );
     } finally {
       setSubmitting(false);
@@ -77,11 +79,14 @@ export function StatusChangeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Change status</DialogTitle>
+          <DialogTitle>Alterar status</DialogTitle>
+          <DialogDescription>
+            Selecione o novo status e, se quiser, registre uma observação.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>New status</Label>
+            <Label>Novo status</Label>
             <Select
               value={status}
               onValueChange={(v) => setStatus(v as OrderStatus)}
@@ -99,11 +104,11 @@ export function StatusChangeDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Note (optional)</Label>
+            <Label>Observação (opcional)</Label>
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Reason for the change…"
+              placeholder="Motivo da alteração…"
               rows={3}
             />
           </div>
@@ -113,13 +118,14 @@ export function StatusChangeDialog({
               onClick={() => onOpenChange(false)}
               disabled={submitting}
             >
-              Cancel
+              Cancelar
             </Button>
             <Button
               onClick={handleConfirm}
               disabled={submitting || status === currentStatus}
             >
-              {submitting ? "Saving…" : "Confirm"}
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {submitting ? "Salvando…" : "Confirmar"}
             </Button>
           </div>
         </div>

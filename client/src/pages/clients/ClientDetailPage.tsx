@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ClipboardList } from "lucide-react";
 import { getClient, type ClientDetail } from "@/api/clients";
 import { ClientTypeBadge } from "@/components/clients/ClientTypeBadge";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -15,6 +17,49 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+function BackButton() {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="min-h-11 min-w-11 shrink-0"
+      aria-label="Voltar para clientes"
+      asChild
+    >
+      <Link to="/clients">
+        <ArrowLeft className="h-4 w-4" />
+      </Link>
+    </Button>
+  );
+}
+
+function DetailSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-11 w-11 rounded-md" />
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+      </div>
+      <Card className="shadow-card">
+        <CardHeader>
+          <Skeleton className="h-5 w-32" />
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 export function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,23 +76,24 @@ export function ClientDetailPage() {
         setLoading(false);
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Failed to load client");
+        setError(
+          err instanceof Error ? err.message : "Falha ao carregar o cliente",
+        );
         setLoading(false);
       });
   }, [id]);
 
   if (loading) {
-    return (
-      <div className="flex h-40 items-center justify-center text-muted-foreground">
-        Loading…
-      </div>
-    );
+    return <DetailSkeleton />;
   }
 
   if (error || !client) {
     return (
-      <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-        {error ?? "Client not found."}
+      <div className="space-y-4">
+        <BackButton />
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          {error ?? "Cliente não encontrado."}
+        </div>
       </div>
     );
   }
@@ -55,65 +101,60 @@ export function ClientDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to="/clients">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
+        <BackButton />
         <div>
-          <h1 className="text-2xl font-semibold">{client.name}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {client.name}
+          </h1>
           <p className="text-sm text-muted-foreground">{client.document}</p>
         </div>
       </div>
 
-      <Card>
+      <Card className="shadow-card">
         <CardHeader>
-          <CardTitle className="text-base">Client info</CardTitle>
+          <CardTitle className="text-base">Dados do cliente</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
+        <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
           <div>
-            <p className="text-muted-foreground">Phone</p>
+            <p className="text-muted-foreground">Telefone</p>
             <p className="font-medium">{client.phone ?? "—"}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Type</p>
+            <p className="text-muted-foreground">Tipo</p>
             <p className="mt-1">
               <ClientTypeBadge type={client.clientType} />
             </p>
           </div>
           <div className="sm:col-span-2">
-            <p className="text-muted-foreground">Address</p>
+            <p className="text-muted-foreground">Endereço</p>
             <p className="font-medium">{client.address ?? "—"}</p>
           </div>
         </CardContent>
       </Card>
 
       <div>
-        <h2 className="mb-4 text-lg font-semibold">
-          Service orders ({client.orders.length})
+        <h2 className="mb-4 text-lg font-semibold tracking-tight">
+          Ordens de serviço ({client.orders.length})
         </h2>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order #</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Value</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {client.orders.length === 0 ? (
+        {client.orders.length === 0 ? (
+          <EmptyState
+            icon={ClipboardList}
+            title="Nenhuma ordem de serviço"
+            description="Este cliente ainda não possui ordens de serviço."
+          />
+        ) : (
+          <div className="overflow-x-auto rounded-md border bg-card shadow-card">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="h-24 text-center text-muted-foreground"
-                  >
-                    No service orders yet.
-                  </TableCell>
+                  <TableHead>Ordem</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
                 </TableRow>
-              ) : (
-                client.orders.map((order) => (
+              </TableHeader>
+              <TableBody>
+                {client.orders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell>
                       <Link
@@ -131,11 +172,11 @@ export function ClientDetailPage() {
                       {formatCurrency(order.value)}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
     </div>
   );

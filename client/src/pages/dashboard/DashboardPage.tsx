@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ElementType } from "react";
+import { Link } from "react-router-dom";
 import {
   ClipboardList,
   Clock,
@@ -10,24 +11,53 @@ import {
 } from "lucide-react";
 import { getOrdersSummary, type OrdersSummary } from "@/api/reports";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { cn } from "@/lib/utils";
 
 interface StatCardProps {
   title: string;
-  value: number | null;
+  value: number;
   description: string;
   icon: ElementType;
+  accent: string;
 }
 
-function StatCard({ title, value, description, icon: Icon }: StatCardProps) {
+function StatCard({ title, value, description, icon: Icon, accent }: StatCardProps) {
   return (
-    <Card>
+    <Card className="shadow-card">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
+        <span
+          className={cn(
+            "flex size-8 items-center justify-center rounded-md",
+            accent,
+          )}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value !== null ? value : "—"}</div>
+        <div className="text-2xl font-bold">{value}</div>
         <p className="text-xs text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StatCardSkeleton() {
+  return (
+    <Card className="shadow-card">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="size-8 rounded-md" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-8 w-12" />
+        <Skeleton className="mt-2 h-3 w-20" />
       </CardContent>
     </Card>
   );
@@ -41,9 +71,13 @@ export function DashboardPage() {
     getOrdersSummary()
       .then(setSummary)
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Failed to load summary");
+        setError(
+          err instanceof Error ? err.message : "Falha ao carregar o resumo",
+        );
       });
   }, []);
+
+  const isLoading = summary === null && error === null;
 
   const total =
     summary !== null
@@ -52,14 +86,61 @@ export function DashboardPage() {
         summary.AWAITING_CLIENT +
         summary.COMPLETED +
         summary.CANCELLED
-      : null;
+      : 0;
+
+  const stats: StatCardProps[] = summary
+    ? [
+        {
+          title: "Total de ordens",
+          value: total,
+          description: "Desde o início",
+          icon: ClipboardList,
+          accent: "bg-primary/10 text-primary",
+        },
+        {
+          title: "Pendentes",
+          value: summary.PENDING,
+          description: "Aguardando início",
+          icon: Clock,
+          accent: "bg-muted text-muted-foreground",
+        },
+        {
+          title: "Em andamento",
+          value: summary.IN_PROGRESS,
+          description: "Sendo executadas",
+          icon: Wrench,
+          accent: "bg-info/10 text-info",
+        },
+        {
+          title: "Aguardando cliente",
+          value: summary.AWAITING_CLIENT,
+          description: "Esperando retorno do cliente",
+          icon: HourglassIcon,
+          accent: "bg-warning/15 text-warning-foreground",
+        },
+        {
+          title: "Concluídas",
+          value: summary.COMPLETED,
+          description: "Desde o início",
+          icon: CheckCircle2,
+          accent: "bg-success/10 text-success",
+        },
+        {
+          title: "Canceladas",
+          value: summary.CANCELLED,
+          description: "Desde o início",
+          icon: XCircle,
+          accent: "bg-danger/10 text-danger",
+        },
+      ]
+    : [];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Painel</h1>
         <p className="text-sm text-muted-foreground">
-          Overview of all service orders
+          Visão geral das ordens de serviço
         </p>
       </div>
 
@@ -69,44 +150,34 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          title="Total Orders"
-          value={total}
-          description="All time"
+      {isLoading && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+      )}
+
+      {summary && total === 0 && (
+        <EmptyState
           icon={ClipboardList}
+          title="Nenhuma ordem de serviço ainda"
+          description="Crie a primeira ordem para acompanhar o andamento por aqui."
+          action={
+            <Button asChild>
+              <Link to="/orders">Ir para ordens</Link>
+            </Button>
+          }
         />
-        <StatCard
-          title="Pending"
-          value={summary?.PENDING ?? null}
-          description="Awaiting start"
-          icon={Clock}
-        />
-        <StatCard
-          title="In Progress"
-          value={summary?.IN_PROGRESS ?? null}
-          description="Currently being worked on"
-          icon={Wrench}
-        />
-        <StatCard
-          title="Awaiting Client"
-          value={summary?.AWAITING_CLIENT ?? null}
-          description="Waiting for client response"
-          icon={HourglassIcon}
-        />
-        <StatCard
-          title="Completed"
-          value={summary?.COMPLETED ?? null}
-          description="All time"
-          icon={CheckCircle2}
-        />
-        <StatCard
-          title="Cancelled"
-          value={summary?.CANCELLED ?? null}
-          description="All time"
-          icon={XCircle}
-        />
-      </div>
+      )}
+
+      {summary && total > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {stats.map((stat) => (
+            <StatCard key={stat.title} {...stat} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
