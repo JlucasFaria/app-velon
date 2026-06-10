@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, Plus, Search } from "lucide-react";
 import {
   getOrders,
-  type ListOrdersParams,
   type OrderStatus,
   type PaginatedOrders,
 } from "@/api/orders";
 import type { ClientType } from "@/api/clients";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { OrderForm } from "@/components/orders/OrderForm";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/order-status";
@@ -39,68 +39,18 @@ function formatCurrency(value: string) {
 export function OrdersPage() {
   const navigate = useNavigate();
 
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "">("");
   const [typeFilter, setTypeFilter] = useState<ClientType | "">("");
-  const [page, setPage] = useState(1);
-  const [data, setData] = useState<PaginatedOrders | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
 
-  function changePage(delta: number) {
-    setLoading(true);
-    setPage((p) => p + delta);
-  }
-
-  const applyFilter = useCallback(<T,>(setter: (v: T) => void, value: T) => {
-    setLoading(true);
-    setter(value);
-    setPage(1);
-  }, []);
-
-  // Debounce search input → committed search state. The guard skips the no-op
-  // run on mount so loading isn't left stuck on true.
-  useEffect(() => {
-    if (searchInput === search) return;
-    const t = setTimeout(() => {
-      setLoading(true);
-      setSearch(searchInput);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [searchInput, search]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const params: ListOrdersParams = {
-      search: search || undefined,
+  const { data, loading, error, searchInput, setSearchInput, changePage } =
+    usePaginatedList<
+      PaginatedOrders,
+      { status?: OrderStatus; clientType?: ClientType }
+    >(getOrders, {
       status: statusFilter || undefined,
       clientType: typeFilter || undefined,
-      page,
-      limit: 10,
-    };
-    getOrders(params)
-      .then((d) => {
-        if (!cancelled) {
-          setData(d);
-          setError(null);
-          setLoading(false);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load orders",
-          );
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [search, statusFilter, typeFilter, page]);
+    });
 
   const pagination = data?.pagination;
 
@@ -132,7 +82,7 @@ export function OrdersPage() {
         <Select
           value={statusFilter || "all"}
           onValueChange={(v) =>
-            applyFilter(setStatusFilter, v === "all" ? "" : (v as OrderStatus))
+            setStatusFilter(v === "all" ? "" : (v as OrderStatus))
           }
         >
           <SelectTrigger className="w-44">
@@ -150,7 +100,7 @@ export function OrdersPage() {
         <Select
           value={typeFilter || "all"}
           onValueChange={(v) =>
-            applyFilter(setTypeFilter, v === "all" ? "" : (v as ClientType))
+            setTypeFilter(v === "all" ? "" : (v as ClientType))
           }
         >
           <SelectTrigger className="w-40">

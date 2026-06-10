@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import {
   type ClientType,
   type PaginatedClients,
 } from "@/api/clients";
+import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { ClientForm } from "@/components/clients/ClientForm";
 import { ClientTypeBadge } from "@/components/clients/ClientTypeBadge";
 import { Button } from "@/components/ui/button";
@@ -40,69 +41,24 @@ import {
 export function ClientsPage() {
   const navigate = useNavigate();
 
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<ClientType | "">("");
-  const [page, setPage] = useState(1);
-  const [data, setData] = useState<PaginatedClients | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Client | undefined>(undefined);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  const refresh = useCallback(() => {
-    setLoading(true);
-    setRefreshKey((k) => k + 1);
-  }, []);
-
-  function changePage(delta: number) {
-    setLoading(true);
-    setPage((p) => p + delta);
-  }
-
-  // Debounce search input → committed search state. The guard skips the no-op
-  // run on mount (searchInput === search) so loading isn't left stuck on true.
-  useEffect(() => {
-    if (searchInput === search) return;
-    const t = setTimeout(() => {
-      setLoading(true);
-      setSearch(searchInput);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [searchInput, search]);
-
-  // Fetch clients
-  useEffect(() => {
-    let cancelled = false;
-    getClients({
-      search: search || undefined,
-      clientType: typeFilter || undefined,
-      page,
-      limit: 10,
-    })
-      .then((d) => {
-        if (!cancelled) {
-          setData(d);
-          setError(null);
-          setLoading(false);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load clients",
-          );
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [search, typeFilter, page, refreshKey]);
+  const {
+    data,
+    loading,
+    error,
+    searchInput,
+    setSearchInput,
+    changePage,
+    refresh,
+  } = usePaginatedList<PaginatedClients, { clientType?: ClientType }>(
+    getClients,
+    { clientType: typeFilter || undefined },
+  );
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -130,7 +86,12 @@ export function ClientsPage() {
           <h1 className="text-2xl font-semibold">Clients</h1>
           <p className="text-sm text-muted-foreground">Manage your clients</p>
         </div>
-        <Button onClick={() => { setEditTarget(undefined); setFormOpen(true); }}>
+        <Button
+          onClick={() => {
+            setEditTarget(undefined);
+            setFormOpen(true);
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" />
           New Client
         </Button>
@@ -148,11 +109,9 @@ export function ClientsPage() {
         </div>
         <Select
           value={typeFilter || "all"}
-          onValueChange={(v) => {
-            setLoading(true);
-            setTypeFilter(v === "all" ? "" : (v as ClientType));
-            setPage(1);
-          }}
+          onValueChange={(v) =>
+            setTypeFilter(v === "all" ? "" : (v as ClientType))
+          }
         >
           <SelectTrigger className="w-40">
             <SelectValue />
@@ -222,7 +181,10 @@ export function ClientsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => { setEditTarget(client); setFormOpen(true); }}
+                        onClick={() => {
+                          setEditTarget(client);
+                          setFormOpen(true);
+                        }}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
