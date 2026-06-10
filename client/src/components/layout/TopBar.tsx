@@ -14,7 +14,7 @@ export function TopBar() {
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
 
   return (
-    <header className="flex h-14 items-center justify-end border-b bg-card px-6">
+    <header className="flex h-14 items-center justify-end border-b bg-card px-6 print:hidden">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center gap-2 px-2">
