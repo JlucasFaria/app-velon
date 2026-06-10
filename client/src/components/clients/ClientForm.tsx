@@ -38,6 +38,14 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
+const EMPTY_VALUES: FormData = {
+  name: "",
+  document: "",
+  phone: "",
+  address: "",
+  clientType: "COUNTER",
+};
+
 interface ClientFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -55,16 +63,18 @@ export function ClientForm({
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      name: "",
-      document: "",
-      phone: "",
-      address: "",
-      clientType: "COUNTER",
-    },
+    defaultValues: EMPTY_VALUES,
   });
 
   const { isSubmitting } = form.formState;
+
+  const submitLabel = isEditing
+    ? isSubmitting
+      ? "Saving…"
+      : "Save changes"
+    : isSubmitting
+      ? "Creating…"
+      : "Create client";
 
   // Populate form when editing an existing client
   useEffect(() => {
@@ -78,7 +88,7 @@ export function ClientForm({
               address: client.address ?? "",
               clientType: client.clientType,
             }
-          : { name: "", document: "", phone: "", address: "", clientType: "COUNTER" },
+          : EMPTY_VALUES,
       );
     }
   }, [open, client, form]);
@@ -197,13 +207,7 @@ export function ClientForm({
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting
-                  ? isEditing
-                    ? "Saving…"
-                    : "Creating…"
-                  : isEditing
-                    ? "Save changes"
-                    : "Create client"}
+                {submitLabel}
               </Button>
             </div>
           </form>
