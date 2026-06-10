@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type Ref } from "react";
 import { getClients, type Client } from "@/api/clients";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,12 @@ interface ClientComboboxProps {
   value: number | null;
   onChange: (clientId: number | null) => void;
   placeholder?: string;
+  // Forwarded to the inner input so it can be wired by shadcn's FormControl
+  // (id/aria-* for label + error association, ref for focus management).
+  id?: string;
+  ref?: Ref<HTMLInputElement>;
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
 }
 
 /**
@@ -18,6 +24,10 @@ export function ClientCombobox({
   value,
   onChange,
   placeholder,
+  id,
+  ref,
+  "aria-describedby": ariaDescribedby,
+  "aria-invalid": ariaInvalid,
 }: ClientComboboxProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Client[]>([]);
@@ -62,6 +72,10 @@ export function ClientCombobox({
   return (
     <div className="relative">
       <Input
+        ref={ref}
+        id={id}
+        aria-describedby={ariaDescribedby}
+        aria-invalid={ariaInvalid}
         value={query}
         placeholder={placeholder ?? "Search client by name or document…"}
         onFocus={() => setOpen(true)}

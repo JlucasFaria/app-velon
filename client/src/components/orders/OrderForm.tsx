@@ -32,9 +32,10 @@ const schema = z.object({
   description: z
     .string()
     .min(3, "Description must be at least 3 characters"),
+  // Accept both "250.00" and the Brazilian "250,00"; normalized before submit.
   value: z
     .string()
-    .regex(/^\d+(\.\d{1,2})?$/, "Enter a valid amount, e.g. 250.00"),
+    .regex(/^\d+([.,]\d{1,2})?$/, "Enter a valid amount, e.g. 250,00"),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -62,7 +63,10 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
 
   async function onSubmit(data: FormData) {
     try {
-      const order = await createOrder(data);
+      const order = await createOrder({
+        ...data,
+        value: data.value.replace(",", "."),
+      });
       toast.success("Order created successfully");
       onOpenChange(false);
       navigate(`/orders/${order.id}`);
@@ -85,10 +89,12 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Client</FormLabel>
-                  <ClientCombobox
-                    value={field.value ?? null}
-                    onChange={(id) => field.onChange(id ?? undefined)}
-                  />
+                  <FormControl>
+                    <ClientCombobox
+                      value={field.value ?? null}
+                      onChange={(id) => field.onChange(id ?? undefined)}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
