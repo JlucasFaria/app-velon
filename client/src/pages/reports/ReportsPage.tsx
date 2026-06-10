@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { CheckCircle2, FileBarChart, Wallet } from "lucide-react";
 import { getMonthlyBilling, type MonthlyBilling } from "@/api/reports";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -45,7 +49,9 @@ export function ReportsPage() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load report");
+          setError(
+            err instanceof Error ? err.message : "Falha ao carregar o relatório",
+          );
           setLoading(false);
         }
       });
@@ -57,11 +63,13 @@ export function ReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Reports</h1>
-        <p className="text-sm text-muted-foreground">Monthly billing overview</p>
+        <h1 className="text-2xl font-semibold tracking-tight">Relatórios</h1>
+        <p className="text-sm text-muted-foreground">
+          Faturamento mensal das ordens concluídas
+        </p>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <Select
           value={String(month)}
           onValueChange={(v) => {
@@ -69,12 +77,19 @@ export function ReportsPage() {
             setMonth(Number(v));
           }}
         >
-          <SelectTrigger className="w-40 capitalize">
+          <SelectTrigger
+            className="w-full capitalize sm:w-40"
+            aria-label="Selecionar mês"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {MONTHS.map((m) => (
-              <SelectItem key={m.value} value={String(m.value)} className="capitalize">
+              <SelectItem
+                key={m.value}
+                value={String(m.value)}
+                className="capitalize"
+              >
                 {m.label}
               </SelectItem>
             ))}
@@ -87,7 +102,7 @@ export function ReportsPage() {
             setYear(Number(v));
           }}
         >
-          <SelectTrigger className="w-28">
+          <SelectTrigger className="w-full sm:w-28" aria-label="Selecionar ano">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -107,74 +122,104 @@ export function ReportsPage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total revenue</CardTitle>
+        <Card className="shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Faturamento total
+            </CardTitle>
+            <span className="flex size-8 items-center justify-center rounded-md bg-success/10 text-success">
+              <Wallet className="h-4 w-4" />
+            </span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {data ? formatCurrency(data.totalRevenue) : "—"}
-            </div>
-            <p className="text-xs text-muted-foreground">Completed orders only</p>
+            {loading ? (
+              <Skeleton className="h-8 w-32" />
+            ) : (
+              <div className="text-2xl font-bold">
+                {formatCurrency(data?.totalRevenue ?? 0)}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Apenas ordens concluídas
+            </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Completed orders</CardTitle>
+        <Card className="shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Ordens concluídas
+            </CardTitle>
+            <span className="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <CheckCircle2 className="h-4 w-4" />
+            </span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data ? data.orderCount : "—"}</div>
-            <p className="text-xs text-muted-foreground">This month</p>
+            {loading ? (
+              <Skeleton className="h-8 w-12" />
+            ) : (
+              <div className="text-2xl font-bold">{data?.orderCount ?? 0}</div>
+            )}
+            <p className="text-xs text-muted-foreground">No mês selecionado</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Order #</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Completed</TableHead>
-              <TableHead className="text-right">Value</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
+      {!loading && data && data.orders.length === 0 ? (
+        <EmptyState
+          icon={FileBarChart}
+          title="Nenhuma ordem concluída"
+          description="Não há ordens concluídas no período selecionado."
+        />
+      ) : (
+        <div className="overflow-x-auto rounded-md border bg-card shadow-card">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  Loading…
-                </TableCell>
+                <TableHead>Ordem</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Concluída em</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
               </TableRow>
-            ) : data?.orders.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No completed orders this month.
-                </TableCell>
-              </TableRow>
-            ) : (
-              data?.orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">
-                    {order.orderNumber}
-                  </TableCell>
-                  <TableCell>{order.client.name}</TableCell>
-                  <TableCell>{formatDate(order.completedAt)}</TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(order.value)}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {loading
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        <Skeleton className="h-4 w-20" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-24" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="ml-auto h-4 w-16" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                : data?.orders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">
+                        <Link
+                          to={`/orders/${order.id}`}
+                          className="text-primary hover:underline"
+                        >
+                          {order.orderNumber}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{order.client.name}</TableCell>
+                      <TableCell>{formatDate(order.completedAt)}</TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(order.value)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }
