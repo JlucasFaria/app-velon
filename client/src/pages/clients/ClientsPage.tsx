@@ -53,16 +53,27 @@ export function ClientsPage() {
   const [editTarget, setEditTarget] = useState<Client | undefined>(undefined);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setRefreshKey((k) => k + 1);
+  }, []);
 
-  // Debounce search input → committed search state
+  function changePage(delta: number) {
+    setLoading(true);
+    setPage((p) => p + delta);
+  }
+
+  // Debounce search input → committed search state. The guard skips the no-op
+  // run on mount (searchInput === search) so loading isn't left stuck on true.
   useEffect(() => {
+    if (searchInput === search) return;
     const t = setTimeout(() => {
+      setLoading(true);
       setSearch(searchInput);
       setPage(1);
     }, 300);
     return () => clearTimeout(t);
-  }, [searchInput]);
+  }, [searchInput, search]);
 
   // Fetch clients
   useEffect(() => {
@@ -138,6 +149,7 @@ export function ClientsPage() {
         <Select
           value={typeFilter || "all"}
           onValueChange={(v) => {
+            setLoading(true);
             setTypeFilter(v === "all" ? "" : (v as ClientType));
             setPage(1);
           }}
@@ -243,7 +255,7 @@ export function ClientsPage() {
                 variant="outline"
                 size="sm"
                 disabled={!pagination.hasPrev}
-                onClick={() => setPage((p) => p - 1)}
+                onClick={() => changePage(-1)}
               >
                 Previous
               </Button>
@@ -251,7 +263,7 @@ export function ClientsPage() {
                 variant="outline"
                 size="sm"
                 disabled={!pagination.hasNext}
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => changePage(1)}
               >
                 Next
               </Button>
