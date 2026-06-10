@@ -5,6 +5,7 @@ import {
   Users,
   ClipboardList,
   BarChart2,
+  Building2,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ const navItems: NavItem[] = [
   { to: "/clients", label: "Clientes", icon: Users },
   { to: "/orders", label: "Ordens de Serviço", icon: ClipboardList },
   { to: "/reports", label: "Relatórios", icon: BarChart2 },
+  { to: "/profile", label: "Perfil", icon: Building2 },
 ];
 
 function Brand() {
