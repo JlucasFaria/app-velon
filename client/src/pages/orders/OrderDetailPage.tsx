@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { getOrder, type OrderDetail } from "@/api/orders";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
+import { StatusChangeDialog } from "@/components/orders/StatusChangeDialog";
 import { StatusTimeline } from "@/components/orders/StatusTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ export function OrderDetailPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -66,7 +68,12 @@ export function OrderDetailPage() {
               {new Date(order.createdAt).toLocaleDateString("pt-BR")}
             </p>
           </div>
-          <OrderStatusBadge status={order.status} />
+          <div className="flex items-center gap-3">
+            <OrderStatusBadge status={order.status} />
+            <Button variant="outline" onClick={() => setStatusDialogOpen(true)}>
+              Change status
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -107,6 +114,14 @@ export function OrderDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <StatusChangeDialog
+        open={statusDialogOpen}
+        onOpenChange={setStatusDialogOpen}
+        orderId={order.id}
+        currentStatus={order.status}
+        onUpdated={setOrder}
+      />
     </div>
   );
 }
