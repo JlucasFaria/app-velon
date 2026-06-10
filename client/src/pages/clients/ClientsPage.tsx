@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Eye, MoreHorizontal, Pencil, Plus, Search, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
   getClients,
@@ -21,6 +21,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -29,6 +35,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -65,46 +73,52 @@ export function ClientsPage() {
     setDeleting(true);
     try {
       await deleteClient(deleteTarget.id);
-      toast.success("Client deleted successfully");
+      toast.success("Cliente excluído com sucesso");
       setDeleteTarget(null);
       refresh();
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to delete client",
+        err instanceof Error ? err.message : "Falha ao excluir o cliente",
       );
     } finally {
       setDeleting(false);
     }
   }
 
+  function openCreate() {
+    setEditTarget(undefined);
+    setFormOpen(true);
+  }
+
   const pagination = data?.pagination;
+  const total = pagination?.total ?? 0;
+  const hasFilters = searchInput.trim() !== "" || typeFilter !== "";
+  const isEmpty = !loading && data !== null && data.clients.length === 0;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Clients</h1>
-          <p className="text-sm text-muted-foreground">Manage your clients</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
+          <p className="text-sm text-muted-foreground">
+            Gerencie os clientes do seu negócio
+          </p>
         </div>
-        <Button
-          onClick={() => {
-            setEditTarget(undefined);
-            setFormOpen(true);
-          }}
-        >
+        <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" />
-          New Client
+          Novo cliente
         </Button>
       </div>
 
-      <div className="flex gap-3">
-        <div className="relative max-w-sm flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1 sm:max-w-sm">
+          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by name or document…"
+            placeholder="Buscar por nome ou documento…"
             className="pl-9"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
+            aria-label="Buscar clientes"
           />
         </div>
         <Select
@@ -113,11 +127,11 @@ export function ClientsPage() {
             setTypeFilter(v === "all" ? "" : (v as ClientType))
           }
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full sm:w-40" aria-label="Filtrar por tipo">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
+            <SelectItem value="all">Todos os tipos</SelectItem>
             <SelectItem value="COUNTER">Balcão</SelectItem>
             <SelectItem value="PARTNER">Parceiro</SelectItem>
           </SelectContent>
@@ -130,86 +144,120 @@ export function ClientsPage() {
         </div>
       )}
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Document</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="w-28">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
+      {isEmpty ? (
+        <EmptyState
+          icon={Users}
+          title={
+            hasFilters
+              ? "Nenhum cliente encontrado"
+              : "Nenhum cliente cadastrado"
+          }
+          description={
+            hasFilters
+              ? "Ajuste a busca ou o filtro para ver outros resultados."
+              : "Cadastre o primeiro cliente para começar."
+          }
+          action={
+            hasFilters ? undefined : (
+              <Button onClick={openCreate}>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo cliente
+              </Button>
+            )
+          }
+        />
+      ) : (
+        <div className="overflow-x-auto rounded-md border bg-card shadow-card">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  Loading…
-                </TableCell>
+                <TableHead>Nome</TableHead>
+                <TableHead>Documento</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead className="w-16 text-right">Ações</TableHead>
               </TableRow>
-            ) : data?.clients.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No clients found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              data?.clients.map((client) => (
-                <TableRow key={client.id}>
-                  <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.document}</TableCell>
-                  <TableCell>{client.phone ?? "—"}</TableCell>
-                  <TableCell>
-                    <ClientTypeBadge type={client.clientType} />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigate(`/clients/${client.id}`)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditTarget(client);
-                          setFormOpen(true);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setDeleteTarget(client)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {loading
+                ? Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-28" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-24" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="ml-auto h-8 w-8" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                : data?.clients.map((client) => (
+                    <TableRow key={client.id}>
+                      <TableCell className="font-medium">
+                        {client.name}
+                      </TableCell>
+                      <TableCell>{client.document}</TableCell>
+                      <TableCell>{client.phone ?? "—"}</TableCell>
+                      <TableCell>
+                        <ClientTypeBadge type={client.clientType} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="min-h-11 min-w-11"
+                              aria-label={`Ações para ${client.name}`}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => navigate(`/clients/${client.id}`)}
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              Ver detalhes
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditTarget(client);
+                                setFormOpen(true);
+                              }}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteTarget(client)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
-      {data && (
+      {data && !isEmpty && (
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
-            {pagination?.total ?? 0} client
-            {pagination?.total !== 1 ? "s" : ""}
+            {total} {total === 1 ? "cliente" : "clientes"}
           </span>
           {pagination && pagination.totalPages > 1 && (
             <div className="flex gap-2">
@@ -219,7 +267,7 @@ export function ClientsPage() {
                 disabled={!pagination.hasPrev}
                 onClick={() => changePage(-1)}
               >
-                Previous
+                Anterior
               </Button>
               <Button
                 variant="outline"
@@ -227,7 +275,7 @@ export function ClientsPage() {
                 disabled={!pagination.hasNext}
                 onClick={() => changePage(1)}
               >
-                Next
+                Próxima
               </Button>
             </div>
           )}
@@ -249,11 +297,11 @@ export function ClientsPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete client</DialogTitle>
+            <DialogTitle>Excluir cliente</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete{" "}
-              <strong>{deleteTarget?.name}</strong>? This action cannot be
-              undone.
+              Tem certeza que deseja excluir{" "}
+              <strong>{deleteTarget?.name}</strong>? Esta ação não pode ser
+              desfeita.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -262,14 +310,14 @@ export function ClientsPage() {
               onClick={() => setDeleteTarget(null)}
               disabled={deleting}
             >
-              Cancel
+              Cancelar
             </Button>
             <Button
               variant="destructive"
               onClick={handleDelete}
               disabled={deleting}
             >
-              {deleting ? "Deleting…" : "Delete"}
+              {deleting ? "Excluindo…" : "Excluir"}
             </Button>
           </DialogFooter>
         </DialogContent>
