@@ -8,6 +8,7 @@ import {
   type PaginatedOrders,
 } from "@/api/orders";
 import type { ClientType } from "@/api/clients";
+import { OrderForm } from "@/components/orders/OrderForm";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/order-status";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ export function OrdersPage() {
   const [data, setData] = useState<PaginatedOrders | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
 
   function changePage(delta: number) {
     setLoading(true);
@@ -111,7 +113,7 @@ export function OrdersPage() {
             Manage your service orders
           </p>
         </div>
-        <Button onClick={() => navigate("/orders/new")}>
+        <Button onClick={() => setFormOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           New Order
         </Button>
@@ -259,6 +261,8 @@ export function OrdersPage() {
           )}
         </div>
       )}
+
+      <OrderForm open={formOpen} onOpenChange={setFormOpen} />
     </div>
   );
 }
