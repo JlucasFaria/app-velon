@@ -1,25 +1,18 @@
-import { describe, it, expect, beforeAll, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import app from "../../../../src/index";
 import prisma from "../../../db/client";
-import { sign } from "hono/jwt";
-import { env } from "../../../config/env";
+import { signTestToken, createTestCompany } from "../../../test-utils/company";
 
 describe("Client Routes", () => {
   let token: string;
-
-  beforeAll(async () => {
-    const payload = {
-      id: 1,
-      email: "test@example.com",
-      exp: Math.floor(Date.now() / 1000) + 60 * 60,
-    };
-    token = await sign(payload, env.JWT_SECRET);
-  });
+  let companyId: number;
 
   beforeEach(async () => {
     // Delete in FK-safe order: orders reference clients.
     await prisma.serviceOrder.deleteMany();
     await prisma.client.deleteMany();
+    companyId = await createTestCompany();
+    token = await signTestToken(1, "test@example.com", companyId, "ADMIN");
   });
 
   const basePayload = {
@@ -328,6 +321,7 @@ describe("Client Routes", () => {
           description: "linked order",
           value: "10.00",
           clientId: created.data.id,
+          companyId,
         },
       });
 

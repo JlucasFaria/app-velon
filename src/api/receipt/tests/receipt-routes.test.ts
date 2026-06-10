@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import app from "../../../../src/index";
 import prisma from "../../../db/client";
-import { sign } from "hono/jwt";
-import { env } from "../../../config/env";
+import { signTestToken, createTestCompany } from "../../../test-utils/company";
 
 describe("Receipt Routes", () => {
   let token: string;
   let testUserId: number;
   let testClientId: number;
+  let companyId: number;
 
   // Unique IP to isolate rate-limit bucket from other test files
   const IP = "127.0.0.13";
@@ -15,6 +15,8 @@ describe("Receipt Routes", () => {
   beforeEach(async () => {
     await prisma.receipt.deleteMany();
     await prisma.serviceOrder.deleteMany();
+
+    companyId = await createTestCompany("Receipt Routes Company");
 
     const user = await prisma.user.upsert({
       where: { email: "receipt-routes-test@example.com" },
@@ -27,25 +29,17 @@ describe("Receipt Routes", () => {
     });
     testUserId = user.id;
 
-    const client = await prisma.client.upsert({
-      where: { document: "receipt-routes-doc-unique" },
-      update: {},
-      create: {
+    const client = await prisma.client.create({
+      data: {
         name: "Receipt Routes Client",
         document: "receipt-routes-doc-unique",
         clientType: "COUNTER",
+        companyId,
       },
     });
     testClientId = client.id;
 
-    token = await sign(
-      {
-        id: testUserId,
-        email: user.email,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60,
-      },
-      env.JWT_SECRET,
-    );
+    token = await signTestToken(testUserId, user.email, companyId, "ADMIN");
   });
 
   const h = (extra?: Record<string, string>) => ({

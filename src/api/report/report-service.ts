@@ -4,18 +4,19 @@ import type { PrismaClient } from "../../../generated/prisma";
 export class ReportService {
   constructor(private prisma: PrismaClient = prismaClient) {}
 
-  async getMonthlyBilling(month: number, year: number) {
+  async getMonthlyBilling(companyId: number, month: number, year: number) {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);
 
     // Filter by the actual completion event (StatusHistory) rather than
     // updatedAt, which changes on any later edit. The order must still be
-    // COMPLETED to exclude ones reverted/cancelled afterwards.
+    // COMPLETED to exclude ones reverted/cancelled afterwards, and belong to
+    // the requesting company.
     const histories = await this.prisma.statusHistory.findMany({
       where: {
         toStatus: "COMPLETED",
         changedAt: { gte: startDate, lt: endDate },
-        order: { status: "COMPLETED" },
+        order: { status: "COMPLETED", companyId },
       },
       select: {
         changedAt: true,
@@ -56,9 +57,10 @@ export class ReportService {
     };
   }
 
-  async getOrdersSummary() {
+  async getOrdersSummary(companyId: number) {
     const groups = await this.prisma.serviceOrder.groupBy({
       by: ["status"],
+      where: { companyId },
       _count: { status: true },
     });
 

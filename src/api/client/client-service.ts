@@ -30,14 +30,15 @@ const ORDER_SELECT = {
 export class ClientService {
   constructor(private prisma: PrismaClient = prismaClient) {}
 
-  async create(data: CreateClientInput) {
+  async create(data: CreateClientInput, companyId: number) {
     return await this.prisma.client.create({
-      data,
+      data: { ...data, companyId },
       select: CLIENT_SELECT,
     });
   }
 
   async getAll(
+    companyId: number,
     page?: string | number,
     limit?: string | number,
     clientType?: ClientType,
@@ -46,6 +47,7 @@ export class ClientService {
     const params = getPaginationParams(page, limit);
 
     const where = {
+      companyId,
       ...(clientType ? { clientType } : {}),
       ...(search
         ? {
@@ -73,9 +75,9 @@ export class ClientService {
     return { clients, pagination };
   }
 
-  async findById(id: number) {
-    return await this.prisma.client.findUnique({
-      where: { id },
+  async findById(id: number, companyId: number) {
+    return await this.prisma.client.findFirst({
+      where: { id, companyId },
       select: {
         ...CLIENT_SELECT,
         orders: {
@@ -86,7 +88,15 @@ export class ClientService {
     });
   }
 
-  async update(id: number, data: UpdateClientInput) {
+  // Returns null when the client does not exist or belongs to another company,
+  // so the route can answer 404 without leaking cross-tenant existence.
+  async update(id: number, companyId: number, data: UpdateClientInput) {
+    const owned = await this.prisma.client.findFirst({
+      where: { id, companyId },
+      select: { id: true },
+    });
+    if (!owned) return null;
+
     return await this.prisma.client.update({
       where: { id },
       data,
@@ -94,7 +104,13 @@ export class ClientService {
     });
   }
 
-  async delete(id: number) {
+  async delete(id: number, companyId: number) {
+    const owned = await this.prisma.client.findFirst({
+      where: { id, companyId },
+      select: { id: true },
+    });
+    if (!owned) return null;
+
     return await this.prisma.client.delete({
       where: { id },
     });

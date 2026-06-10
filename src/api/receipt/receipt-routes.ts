@@ -1,6 +1,10 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { z } from "@hono/zod-openapi";
-import { authMiddleware, type AuthVariables } from "../../middlewares/auth";
+import {
+  authMiddleware,
+  getCompanyContext,
+  type AuthVariables,
+} from "../../middlewares/auth";
 import { successResponse, errorResponse } from "../../utils/response";
 import { errorResponseSchema } from "../../schemas/response";
 import { ReceiptService } from "./receipt-service";
@@ -81,8 +85,9 @@ export function createReceiptRoutes(
 
   receiptRoutes.openapi(generateReceiptRoute, async (c) => {
     const { id } = c.req.valid("param");
+    const { companyId } = getCompanyContext(c);
 
-    if (!(await receiptService.orderExists(id))) {
+    if (!(await receiptService.orderExists(id, companyId))) {
       return errorResponse(c, "Order not found", 404);
     }
 
@@ -92,8 +97,9 @@ export function createReceiptRoutes(
 
   receiptRoutes.openapi(getReceiptRoute, async (c) => {
     const { id } = c.req.valid("param");
+    const { companyId } = getCompanyContext(c);
 
-    const receipt = await receiptService.getByOrderId(id);
+    const receipt = await receiptService.getByOrderId(id, companyId);
 
     if (!receipt) {
       return errorResponse(c, "Receipt not found", 404);

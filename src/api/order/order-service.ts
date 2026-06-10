@@ -72,8 +72,12 @@ const ORDER_DETAIL_SELECT = {
 export class OrderService {
   constructor(private prisma: PrismaClient = prismaClient) {}
 
-  private async generateOrderNumber(): Promise<string> {
+  // Order numbers are sequential per company, so the company starts its own
+  // OS-0001 series. The @@unique([companyId, orderNumber]) constraint guards
+  // integrity under concurrent creates.
+  private async generateOrderNumber(companyId: number): Promise<string> {
     const last = await this.prisma.serviceOrder.findFirst({
+      where: { companyId },
       orderBy: { id: "desc" },
       select: { orderNumber: true },
     });
@@ -84,9 +88,9 @@ export class OrderService {
     return `OS-${String(num + 1).padStart(4, "0")}`;
   }
 
-  async clientExists(id: number): Promise<boolean> {
-    const client = await this.prisma.client.findUnique({
-      where: { id },
+  async clientExists(id: number, companyId: number): Promise<boolean> {
+    const client = await this.prisma.client.findFirst({
+      where: { id, companyId },
       select: { id: true },
     });
     return client !== null;
@@ -100,8 +104,8 @@ export class OrderService {
     return user !== null;
   }
 
-  async create(data: CreateOrderInput, createdById: number) {
-    const orderNumber = await this.generateOrderNumber();
+  async create(data: CreateOrderInput, createdById: number, companyId: number) {
+    const orderNumber = await this.generateOrderNumber(companyId);
 
     return await this.prisma.serviceOrder.create({
       data: {
@@ -109,6 +113,7 @@ export class OrderService {
         description: data.description,
         value: data.value,
         clientId: data.clientId,
+        companyId,
         assignedUserId: data.assignedUserId ?? null,
         statusHistory: {
           create: {
@@ -122,6 +127,7 @@ export class OrderService {
   }
 
   async getAll(
+    companyId: number,
     page?: string | number,
     limit?: string | number,
     status?: OrderStatus,
@@ -131,6 +137,7 @@ export class OrderService {
     const params = getPaginationParams(page, limit);
 
     const where = {
+      companyId,
       ...(status ? { status } : {}),
       ...(clientType ? { client: { clientType } } : {}),
       ...(search
@@ -168,9 +175,9 @@ export class OrderService {
     return { orders, pagination };
   }
 
-  async findById(id: number) {
-    return await this.prisma.serviceOrder.findUnique({
-      where: { id },
+  async findById(id: number, companyId: number) {
+    return await this.prisma.serviceOrder.findFirst({
+      where: { id, companyId },
       select: ORDER_DETAIL_SELECT,
     });
   }
@@ -179,9 +186,10 @@ export class OrderService {
     id: number,
     data: ChangeOrderStatusInput,
     changedById: number,
+    companyId: number,
   ) {
-    const current = await this.prisma.serviceOrder.findUnique({
-      where: { id },
+    const current = await this.prisma.serviceOrder.findFirst({
+      where: { id, companyId },
       select: { status: true },
     });
 
@@ -209,7 +217,13 @@ export class OrderService {
     });
   }
 
-  async update(id: number, data: UpdateOrderInput) {
+  async update(id: number, companyId: number, data: UpdateOrderInput) {
+    const owned = await this.prisma.serviceOrder.findFirst({
+      where: { id, companyId },
+      select: { id: true },
+    });
+    if (!owned) return null;
+
     return await this.prisma.serviceOrder.update({
       where: { id },
       data: {
@@ -225,7 +239,13 @@ export class OrderService {
     });
   }
 
-  async delete(id: number) {
+  async delete(id: number, companyId: number) {
+    const owned = await this.prisma.serviceOrder.findFirst({
+      where: { id, companyId },
+      select: { id: true },
+    });
+    if (!owned) return null;
+
     return await this.prisma.serviceOrder.delete({
       where: { id },
     });

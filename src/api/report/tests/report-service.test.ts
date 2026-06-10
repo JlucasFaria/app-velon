@@ -1,17 +1,21 @@
 import { describe, it, expect, beforeEach, beforeAll } from "bun:test";
 import { ReportService } from "../report-service";
 import prisma from "../../../db/client";
+import { createTestCompany } from "../../../test-utils/company";
 
 const reportService = new ReportService();
 
 let testUserId: number;
 let testClientId: number;
+let companyId: number;
 
 // Fixed reference dates for deterministic filtering
 const JUNE_2026 = new Date(2026, 5, 15); // June 15
 const MAY_2026 = new Date(2026, 4, 10); // May 10
 
 beforeAll(async () => {
+  companyId = await createTestCompany("Report Service Company");
+
   const user = await prisma.user.upsert({
     where: { email: "report-svc-test@example.com" },
     update: {},
@@ -23,13 +27,12 @@ beforeAll(async () => {
   });
   testUserId = user.id;
 
-  const client = await prisma.client.upsert({
-    where: { document: "report-svc-doc-unique" },
-    update: {},
-    create: {
+  const client = await prisma.client.create({
+    data: {
       name: "Report Test Client",
       document: "report-svc-doc-unique",
       clientType: "COUNTER",
+      companyId,
     },
   });
   testClientId = client.id;
@@ -63,6 +66,7 @@ const createOrder = async (
       description: overrides.description ?? "Test service",
       value: overrides.value ?? "100.00",
       clientId: testClientId,
+      companyId,
       status,
       statusHistory: {
         create:
@@ -85,7 +89,7 @@ const createOrder = async (
 describe("ReportService", () => {
   describe("getMonthlyBilling", () => {
     it("should return empty result when no COMPLETED orders exist for the month", async () => {
-      const result = await reportService.getMonthlyBilling(6, 2026);
+      const result = await reportService.getMonthlyBilling(companyId, 6, 2026);
 
       expect(result.month).toBe(6);
       expect(result.year).toBe(2026);
@@ -103,7 +107,7 @@ describe("ReportService", () => {
       await createOrder({ status: "PENDING", value: "200.00" });
       await createOrder({ status: "IN_PROGRESS", value: "300.00" });
 
-      const result = await reportService.getMonthlyBilling(6, 2026);
+      const result = await reportService.getMonthlyBilling(companyId, 6, 2026);
 
       expect(result.orderCount).toBe(1);
       expect(result.totalRevenue).toBe("100.00");
@@ -121,7 +125,7 @@ describe("ReportService", () => {
         completedAt: MAY_2026,
       });
 
-      const result = await reportService.getMonthlyBilling(6, 2026);
+      const result = await reportService.getMonthlyBilling(companyId, 6, 2026);
 
       expect(result.orderCount).toBe(1);
       expect(result.totalRevenue).toBe("100.00");
@@ -144,7 +148,7 @@ describe("ReportService", () => {
         completedAt: JUNE_2026,
       });
 
-      const result = await reportService.getMonthlyBilling(6, 2026);
+      const result = await reportService.getMonthlyBilling(companyId, 6, 2026);
 
       expect(result.orderCount).toBe(3);
       expect(result.totalRevenue).toBe("400.00");
@@ -158,7 +162,7 @@ describe("ReportService", () => {
         completedAt: JUNE_2026,
       });
 
-      const result = await reportService.getMonthlyBilling(6, 2026);
+      const result = await reportService.getMonthlyBilling(companyId, 6, 2026);
       const order = result.orders[0]!;
 
       expect(order.description).toBe("Screen fix");
@@ -180,7 +184,7 @@ describe("ReportService", () => {
         data: { status: "CANCELLED" },
       });
 
-      const result = await reportService.getMonthlyBilling(6, 2026);
+      const result = await reportService.getMonthlyBilling(companyId, 6, 2026);
 
       expect(result.orderCount).toBe(0);
       expect(result.totalRevenue).toBe("0.00");
@@ -189,7 +193,7 @@ describe("ReportService", () => {
 
   describe("getOrdersSummary", () => {
     it("should return zero counts for all statuses when no orders exist", async () => {
-      const summary = await reportService.getOrdersSummary();
+      const summary = await reportService.getOrdersSummary(companyId);
 
       expect(summary.PENDING).toBe(0);
       expect(summary.IN_PROGRESS).toBe(0);
@@ -204,7 +208,7 @@ describe("ReportService", () => {
       await createOrder({ status: "IN_PROGRESS" });
       await createOrder({ status: "COMPLETED" });
 
-      const summary = await reportService.getOrdersSummary();
+      const summary = await reportService.getOrdersSummary(companyId);
 
       expect(summary.PENDING).toBe(2);
       expect(summary.IN_PROGRESS).toBe(1);
@@ -216,7 +220,7 @@ describe("ReportService", () => {
     it("should return all 5 status keys regardless of which are present", async () => {
       await createOrder({ status: "CANCELLED" });
 
-      const summary = await reportService.getOrdersSummary();
+      const summary = await reportService.getOrdersSummary(companyId);
 
       expect(Object.keys(summary)).toHaveLength(5);
       expect(summary.CANCELLED).toBe(1);
