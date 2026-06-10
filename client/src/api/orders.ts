@@ -50,8 +50,17 @@ export interface OrderInput {
   assignedUserId?: number;
 }
 
+// List rows embed the client's id + name (see backend ORDER_LIST_SELECT) so the
+// orders table can show the client without an extra fetch per row.
+export interface OrderListItem extends Order {
+  client: {
+    id: number;
+    name: string;
+  };
+}
+
 export interface PaginatedOrders {
-  orders: Order[];
+  orders: OrderListItem[];
   pagination: Pagination;
 }
 

@@ -26,6 +26,18 @@ const ORDER_SELECT = {
   updatedAt: true,
 } as const;
 
+// List rows embed the client name so the orders table can display it without
+// an extra round-trip per row.
+const ORDER_LIST_SELECT = {
+  ...ORDER_SELECT,
+  client: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+} as const;
+
 const STATUS_HISTORY_SELECT = {
   id: true,
   fromStatus: true,
@@ -146,7 +158,7 @@ export class OrderService {
         skip: params.skip,
         take: params.limit,
         orderBy: { id: "desc" },
-        select: ORDER_SELECT,
+        select: ORDER_LIST_SELECT,
       }),
       this.prisma.serviceOrder.count({ where }),
     ]);
