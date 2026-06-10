@@ -11,6 +11,7 @@ import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { OrderForm } from "@/components/orders/OrderForm";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/order-status";
+import { formatCurrency, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,13 +29,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-function formatCurrency(value: string) {
-  return Number(value).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
 
 export function OrdersPage() {
   const navigate = useNavigate();
@@ -164,9 +158,7 @@ export function OrdersPage() {
                   <TableCell className="text-right">
                     {formatCurrency(order.value)}
                   </TableCell>
-                  <TableCell>
-                    {new Date(order.createdAt).toLocaleDateString("pt-BR")}
-                  </TableCell>
+                  <TableCell>{formatDate(order.createdAt)}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"

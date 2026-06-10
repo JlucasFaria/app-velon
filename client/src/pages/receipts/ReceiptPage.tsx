@@ -3,20 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Printer } from "lucide-react";
 import { getReceipt, type Receipt } from "@/api/receipts";
 import { Button } from "@/components/ui/button";
-
-function formatCurrency(value: string) {
-  return Number(value).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
-function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString("pt-BR", {
-    dateStyle: "long",
-    timeStyle: "short",
-  });
-}
+import { formatCurrency, formatDateTime } from "@/lib/format";
 
 export function ReceiptPage() {
   const { id } = useParams<{ id: string }>();

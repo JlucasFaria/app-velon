@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getMonthlyBilling, type MonthlyBilling } from "@/api/reports";
+import { formatCurrency, formatDate } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -24,13 +25,6 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => ({
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
-
-function formatCurrency(value: string) {
-  return Number(value).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
 
 export function ReportsPage() {
   const [month, setMonth] = useState(() => new Date().getMonth() + 1);
@@ -171,9 +165,7 @@ export function ReportsPage() {
                     {order.orderNumber}
                   </TableCell>
                   <TableCell>{order.client.name}</TableCell>
-                  <TableCell>
-                    {new Date(order.completedAt).toLocaleDateString("pt-BR")}
-                  </TableCell>
+                  <TableCell>{formatDate(order.completedAt)}</TableCell>
                   <TableCell className="text-right">
                     {formatCurrency(order.value)}
                   </TableCell>
