@@ -6,6 +6,7 @@ import { structuredLogger } from "./utils/logger";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 import { bodyLimit } from "hono/body-limit";
+import { serveStatic } from "hono/bun";
 import { createUserRoutes } from "./api/user/user-routes";
 import { createAuthRoutes } from "./api/auth/auth-routes";
 import { createHealthRoutes } from "./api/health/health-routes";
@@ -27,6 +28,10 @@ import {
   RATE_LIMIT_MAX_REQUESTS,
   RATE_LIMIT_WINDOW_MS,
   BODY_LIMIT_BYTES,
+  LOGO_MAX_BYTES,
+  LOGO_UPLOAD_PATH,
+  UPLOADS_DIR,
+  UPLOADS_URL_PREFIX,
 } from "./config/constants";
 
 const app = new OpenAPIHono();
@@ -58,7 +63,24 @@ app.use(
   "/api/*",
   rateLimitMiddleware(RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MS),
 );
-app.use("/api/*", bodyLimit({ maxSize: BODY_LIMIT_BYTES }));
+// Body limit: 1 MB by default, raised to 2 MB only for the company logo upload.
+app.use("/api/*", (c, next) => {
+  const maxSize =
+    c.req.path === LOGO_UPLOAD_PATH ? LOGO_MAX_BYTES : BODY_LIMIT_BYTES;
+  return bodyLimit({ maxSize })(c, next);
+});
+
+// Serve user-uploaded files (e.g. company logos) under /api/uploads/* so they
+// resolve through the same origin/proxy as the API. Public by design — logos
+// are embedded in <img> tags and printed on PDFs.
+app.use(
+  `${UPLOADS_URL_PREFIX}/*`,
+  serveStatic({
+    root: `./${UPLOADS_DIR}`,
+    rewriteRequestPath: (path) =>
+      path.replace(new RegExp(`^${UPLOADS_URL_PREFIX}`), ""),
+  }),
+);
 
 // OpenAPI documentation
 app.doc("/doc", {

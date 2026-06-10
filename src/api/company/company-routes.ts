@@ -1,3 +1,4 @@
+import { mkdir } from "fs/promises";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import {
   authMiddleware,
@@ -9,6 +10,12 @@ import {
   errorResponseSchema,
   validationErrorResponseSchema,
 } from "../../schemas/response";
+import {
+  LOGO_ALLOWED_TYPES,
+  LOGO_MAX_BYTES,
+  UPLOADS_DIR,
+  UPLOADS_URL_PREFIX,
+} from "../../config/constants";
 import { CompanyService } from "./company-service";
 import {
   updateCompanySchema,
@@ -105,6 +112,38 @@ export function createCompanyRoutes(
     const body = c.req.valid("json");
     const company = await companyService.update(companyId, body);
     return successResponse(c, company, 200, "Company updated successfully");
+  });
+
+  // Logo upload (multipart/form-data, field "logo"). Defined as a plain route
+  // rather than via createRoute because binary multipart bodies don't map
+  // cleanly onto the zod-openapi document. The 2 MB cap is enforced both by
+  // the path-aware body limit in index.ts and re-checked here.
+  companyRoutes.post("/logo", async (c) => {
+    const { companyId } = getCompanyContext(c);
+
+    const body = await c.req.parseBody();
+    const file = body["logo"];
+
+    if (!(file instanceof File)) {
+      return errorResponse(c, "No file uploaded (expected field 'logo')", 400);
+    }
+
+    const ext = LOGO_ALLOWED_TYPES[file.type];
+    if (!ext) {
+      return errorResponse(c, "Invalid file format. Use PNG or JPG.", 400);
+    }
+    if (file.size > LOGO_MAX_BYTES) {
+      return errorResponse(c, "File too large (max 2 MB).", 400);
+    }
+
+    const dir = `${UPLOADS_DIR}/logos`;
+    await mkdir(dir, { recursive: true });
+    const filename = `company-${companyId}-${Date.now()}.${ext}`;
+    await Bun.write(`${dir}/${filename}`, file);
+
+    const logoUrl = `${UPLOADS_URL_PREFIX}/logos/${filename}`;
+    const company = await companyService.updateLogo(companyId, logoUrl);
+    return successResponse(c, company, 200, "Logo updated successfully");
   });
 
   return companyRoutes;
