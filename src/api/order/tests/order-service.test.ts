@@ -13,9 +13,13 @@ const baseOrder = () => ({
   clientId: testClientId,
 });
 
+// Upsert (not create) so the suite stays idempotent across runs even if a
+// previous run was interrupted before cleaning up these fixture rows.
 beforeAll(async () => {
-  const user = await prisma.user.create({
-    data: {
+  const user = await prisma.user.upsert({
+    where: { email: "order-svc-test@example.com" },
+    update: {},
+    create: {
       email: "order-svc-test@example.com",
       password: "hashed",
       name: "Test User",
@@ -23,8 +27,10 @@ beforeAll(async () => {
   });
   testUserId = user.id;
 
-  const client = await prisma.client.create({
-    data: {
+  const client = await prisma.client.upsert({
+    where: { document: "order-svc-doc-unique" },
+    update: {},
+    create: {
       name: "Test Client",
       document: "order-svc-doc-unique",
       clientType: "COUNTER",

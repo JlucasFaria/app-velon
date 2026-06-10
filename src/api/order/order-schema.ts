@@ -63,6 +63,16 @@ export const orderDetailResponseSchema = orderResponseSchema
   })
   .openapi("ServiceOrderDetail");
 
+// List rows embed only the client's id and name — enough for the orders table.
+export const orderListItemSchema = orderResponseSchema
+  .extend({
+    client: z.object({
+      id: z.number().openapi({ example: 1 }),
+      name: z.string().openapi({ example: "João Silva" }),
+    }),
+  })
+  .openapi("ServiceOrderListItem");
+
 export const createOrderSchema = z
   .object({
     description: z.string().min(3).openapi({
@@ -130,7 +140,7 @@ export const orderDetailWithHistoryResponseSchema = successResponseSchema(
 
 export const paginatedOrdersResponseSchema = successResponseSchema(
   z.object({
-    orders: orderResponseSchema.array(),
+    orders: orderListItemSchema.array(),
     pagination: paginationMetaSchema,
   }),
   "PaginatedOrdersResponse",
