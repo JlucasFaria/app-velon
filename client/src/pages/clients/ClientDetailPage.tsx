@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { getClient, type ClientDetail } from "@/api/clients";
 import { ClientTypeBadge } from "@/components/clients/ClientTypeBadge";
-import { Badge } from "@/components/ui/badge";
+import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -14,24 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: "Pending",
-  IN_PROGRESS: "In Progress",
-  AWAITING_CLIENT: "Awaiting Client",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-};
-
-type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
-
-const STATUS_VARIANTS: Record<string, BadgeVariant> = {
-  PENDING: "secondary",
-  IN_PROGRESS: "default",
-  AWAITING_CLIENT: "outline",
-  COMPLETED: "default",
-  CANCELLED: "destructive",
-};
 
 export function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -144,11 +126,7 @@ export function ClientDetailPage() {
                       {new Date(order.createdAt).toLocaleDateString("pt-BR")}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={STATUS_VARIANTS[order.status] ?? "secondary"}
-                      >
-                        {STATUS_LABELS[order.status] ?? order.status}
-                      </Badge>
+                      <OrderStatusBadge status={order.status} />
                     </TableCell>
                     <TableCell className="text-right">
                       {Number(order.value).toLocaleString("pt-BR", {
