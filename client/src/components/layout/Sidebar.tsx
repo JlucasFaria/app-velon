@@ -19,7 +19,7 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r bg-card">
+    <aside className="flex w-60 shrink-0 flex-col border-r bg-card print:hidden">
       <div className="flex h-14 items-center border-b px-6">
         <span className="text-lg font-semibold tracking-tight">Velon</span>
       </div>

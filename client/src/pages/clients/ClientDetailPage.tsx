@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { getClient, type ClientDetail } from "@/api/clients";
 import { ClientTypeBadge } from "@/components/clients/ClientTypeBadge";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
+import { formatCurrency, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -122,17 +123,12 @@ export function ClientDetailPage() {
                         {order.orderNumber}
                       </Link>
                     </TableCell>
-                    <TableCell>
-                      {new Date(order.createdAt).toLocaleDateString("pt-BR")}
-                    </TableCell>
+                    <TableCell>{formatDate(order.createdAt)}</TableCell>
                     <TableCell>
                       <OrderStatusBadge status={order.status} />
                     </TableCell>
                     <TableCell className="text-right">
-                      {Number(order.value).toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })}
+                      {formatCurrency(order.value)}
                     </TableCell>
                   </TableRow>
                 ))

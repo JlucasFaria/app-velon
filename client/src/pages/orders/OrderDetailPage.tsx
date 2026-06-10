@@ -1,40 +1,85 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 import { getOrder, type OrderDetail } from "@/api/orders";
+import { generateReceipt, getReceipt, type Receipt } from "@/api/receipts";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { StatusChangeDialog } from "@/components/orders/StatusChangeDialog";
 import { StatusTimeline } from "@/components/orders/StatusTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { formatCurrency, formatDate } from "@/lib/format";
 
-function formatCurrency(value: string) {
-  return Number(value).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
+// Receipts can only be issued once work has progressed past the initial state.
+const RECEIPT_BLOCKED_STATUSES = ["PENDING", "CANCELLED"];
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [receiptLoading, setReceiptLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
+    let cancelled = false;
     getOrder(Number(id))
       .then((data) => {
+        if (cancelled) return;
         setOrder(data);
         setError(null);
         setLoading(false);
       })
       .catch((err: unknown) => {
+        if (cancelled) return;
         setError(err instanceof Error ? err.message : "Failed to load order");
         setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    // A 404 here just means no receipt has been issued yet.
+    getReceipt(Number(id))
+      .then((r) => {
+        if (cancelled) return;
+        setReceipt(r);
+        setReceiptLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setReceipt(null);
+        setReceiptLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  async function handleGenerateReceipt() {
+    if (!id) return;
+    setGenerating(true);
+    try {
+      const generated = await generateReceipt(Number(id));
+      setReceipt(generated);
+      navigate(`/orders/${id}/receipt`);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to generate receipt",
+      );
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -64,8 +109,7 @@ export function OrderDetailPage() {
           <div>
             <h1 className="text-2xl font-semibold">{order.orderNumber}</h1>
             <p className="text-sm text-muted-foreground">
-              Created{" "}
-              {new Date(order.createdAt).toLocaleDateString("pt-BR")}
+              Created {formatDate(order.createdAt)}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -73,6 +117,23 @@ export function OrderDetailPage() {
             <Button variant="outline" onClick={() => setStatusDialogOpen(true)}>
               Change status
             </Button>
+            {receiptLoading ? (
+              <Button disabled>Receipt</Button>
+            ) : receipt ? (
+              <Button onClick={() => navigate(`/orders/${order.id}/receipt`)}>
+                View Receipt
+              </Button>
+            ) : (
+              <Button
+                onClick={handleGenerateReceipt}
+                disabled={
+                  generating ||
+                  RECEIPT_BLOCKED_STATUSES.includes(order.status)
+                }
+              >
+                {generating ? "Generating…" : "Generate Receipt"}
+              </Button>
+            )}
           </div>
         </div>
       </div>

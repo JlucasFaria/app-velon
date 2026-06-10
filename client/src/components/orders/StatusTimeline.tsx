@@ -1,12 +1,6 @@
 import type { StatusHistoryEntry } from "@/api/orders";
+import { formatDateTime } from "@/lib/format";
 import { OrderStatusBadge } from "./OrderStatusBadge";
-
-function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
-}
 
 export function StatusTimeline({
   entries,
