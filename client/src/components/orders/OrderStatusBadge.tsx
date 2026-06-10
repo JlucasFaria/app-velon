@@ -1,27 +1,12 @@
+import type { OrderStatus } from "@/api/orders";
+import { ORDER_STATUS_LABELS, ORDER_STATUS_VARIANTS } from "@/lib/order-status";
 import { Badge } from "@/components/ui/badge";
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: "Pending",
-  IN_PROGRESS: "In Progress",
-  AWAITING_CLIENT: "Awaiting Client",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-};
-
-type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
-
-const STATUS_VARIANTS: Record<string, BadgeVariant> = {
-  PENDING: "secondary",
-  IN_PROGRESS: "default",
-  AWAITING_CLIENT: "outline",
-  COMPLETED: "default",
-  CANCELLED: "destructive",
-};
-
 export function OrderStatusBadge({ status }: { status: string }) {
+  const key = status as OrderStatus;
   return (
-    <Badge variant={STATUS_VARIANTS[status] ?? "secondary"}>
-      {STATUS_LABELS[status] ?? status}
+    <Badge variant={ORDER_STATUS_VARIANTS[key] ?? "secondary"}>
+      {ORDER_STATUS_LABELS[key] ?? status}
     </Badge>
   );
 }
