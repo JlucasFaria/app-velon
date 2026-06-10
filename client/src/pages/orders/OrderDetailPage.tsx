@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2, Receipt as ReceiptIcon, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { getOrder, type OrderDetail } from "@/api/orders";
 import { generateReceipt, getReceipt, type Receipt } from "@/api/receipts";
@@ -9,10 +9,45 @@ import { StatusChangeDialog } from "@/components/orders/StatusChangeDialog";
 import { StatusTimeline } from "@/components/orders/StatusTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDate } from "@/lib/format";
 
 // Receipts can only be issued once work has progressed past the initial state.
 const RECEIPT_BLOCKED_STATUSES = ["PENDING", "CANCELLED"];
+
+function BackButton() {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="min-h-11 min-w-11 shrink-0"
+      aria-label="Voltar para ordens"
+      asChild
+    >
+      <Link to="/orders">
+        <ArrowLeft className="h-4 w-4" />
+      </Link>
+    </Button>
+  );
+}
+
+function DetailSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-11 w-11 rounded-md" />
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-40" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Skeleton className="h-48 lg:col-span-2" />
+        <Skeleton className="h-48" />
+      </div>
+    </div>
+  );
+}
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -37,7 +72,9 @@ export function OrderDetailPage() {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Failed to load order");
+        setError(
+          err instanceof Error ? err.message : "Falha ao carregar a ordem",
+        );
         setLoading(false);
       });
     return () => {
@@ -74,7 +111,7 @@ export function OrderDetailPage() {
       navigate(`/orders/${id}/receipt`);
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to generate receipt",
+        err instanceof Error ? err.message : "Falha ao gerar o recibo",
       );
     } finally {
       setGenerating(false);
@@ -82,56 +119,62 @@ export function OrderDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex h-40 items-center justify-center text-muted-foreground">
-        Loading…
-      </div>
-    );
+    return <DetailSkeleton />;
   }
 
   if (error || !order) {
     return (
-      <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-        {error ?? "Order not found."}
+      <div className="space-y-4">
+        <BackButton />
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          {error ?? "Ordem não encontrada."}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to="/orders">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div className="flex flex-1 items-center justify-between">
+      <div className="flex items-start gap-3">
+        <BackButton />
+        <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">{order.orderNumber}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {order.orderNumber}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              Created {formatDate(order.createdAt)}
+              Criada em {formatDate(order.createdAt)}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <OrderStatusBadge status={order.status} />
             <Button variant="outline" onClick={() => setStatusDialogOpen(true)}>
-              Change status
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Alterar status
             </Button>
             {receiptLoading ? (
-              <Button disabled>Receipt</Button>
+              <Button disabled>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Recibo
+              </Button>
             ) : receipt ? (
               <Button onClick={() => navigate(`/orders/${order.id}/receipt`)}>
-                View Receipt
+                <ReceiptIcon className="mr-2 h-4 w-4" />
+                Ver recibo
               </Button>
             ) : (
               <Button
                 onClick={handleGenerateReceipt}
                 disabled={
-                  generating ||
-                  RECEIPT_BLOCKED_STATUSES.includes(order.status)
+                  generating || RECEIPT_BLOCKED_STATUSES.includes(order.status)
                 }
               >
-                {generating ? "Generating…" : "Generate Receipt"}
+                {generating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <ReceiptIcon className="mr-2 h-4 w-4" />
+                )}
+                {generating ? "Gerando…" : "Gerar recibo"}
               </Button>
             )}
           </div>
@@ -139,13 +182,13 @@ export function OrderDetailPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="shadow-card lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-base">Order info</CardTitle>
+            <CardTitle className="text-base">Informações da ordem</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
             <div>
-              <p className="text-muted-foreground">Client</p>
+              <p className="text-muted-foreground">Cliente</p>
               <Link
                 to={`/clients/${order.client.id}`}
                 className="font-medium text-primary hover:underline"
@@ -154,11 +197,11 @@ export function OrderDetailPage() {
               </Link>
             </div>
             <div>
-              <p className="text-muted-foreground">Value</p>
+              <p className="text-muted-foreground">Valor</p>
               <p className="font-medium">{formatCurrency(order.value)}</p>
             </div>
             <div className="sm:col-span-2">
-              <p className="text-muted-foreground">Description</p>
+              <p className="text-muted-foreground">Descrição</p>
               <p className="font-medium whitespace-pre-wrap">
                 {order.description}
               </p>
@@ -166,9 +209,9 @@ export function OrderDetailPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-card">
           <CardHeader>
-            <CardTitle className="text-base">Status history</CardTitle>
+            <CardTitle className="text-base">Histórico de status</CardTitle>
           </CardHeader>
           <CardContent>
             <StatusTimeline entries={order.statusHistory} />
