@@ -45,9 +45,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAuth } from "@/contexts/auth-context";
 
 export function ClientsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canWrite = user?.role !== "VIEWER";
 
   const [typeFilter, setTypeFilter] = useState<ClientType | "">("");
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
@@ -104,10 +107,12 @@ export function ClientsPage() {
             Gerencie os clientes do seu negócio
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo cliente
-        </Button>
+        {canWrite && (
+          <Button onClick={openCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo cliente
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -158,7 +163,7 @@ export function ClientsPage() {
               : "Cadastre o primeiro cliente para começar."
           }
           action={
-            hasFilters ? undefined : (
+            hasFilters || !canWrite ? undefined : (
               <Button onClick={openCreate}>
                 <Plus className="mr-2 h-4 w-4" />
                 Novo cliente
@@ -228,22 +233,26 @@ export function ClientsPage() {
                               <Eye className="mr-2 h-4 w-4" />
                               Ver detalhes
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setEditTarget(client);
-                                setFormOpen(true);
-                              }}
-                            >
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => setDeleteTarget(client)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir
-                            </DropdownMenuItem>
+                            {canWrite && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setEditTarget(client);
+                                    setFormOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => setDeleteTarget(client)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
