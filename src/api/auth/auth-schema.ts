@@ -47,3 +47,38 @@ export const logoutResponseSchema = successResponseSchema(
   messageSchema,
   "LogoutResponse",
 );
+
+export const registerSchema = z
+  .object({
+    name: z.string().min(1, "Nome é obrigatório").openapi({
+      example: "João Silva",
+      description: "Full name of the user",
+    }),
+    email: z.string().email("E-mail inválido").openapi({
+      example: "joao@example.com",
+      description: "Unique email address",
+    }),
+    password: z
+      .string()
+      .min(8, "A senha deve ter no mínimo 8 caracteres")
+      .regex(/[a-zA-Z]/, "A senha deve conter ao menos uma letra")
+      .regex(/[0-9]/, "A senha deve conter ao menos um número")
+      .openapi({
+        description: "Password — at least 8 chars, 1 letter and 1 number",
+        example: "senha123",
+      }),
+    passwordConfirmation: z
+      .string()
+      .min(1, "Confirmação de senha é obrigatória")
+      .openapi({ description: "Must match password", example: "senha123" }),
+  })
+  .refine((d) => d.password === d.passwordConfirmation, {
+    message: "As senhas não coincidem",
+    path: ["passwordConfirmation"],
+  })
+  .openapi("RegisterInput");
+
+export const registerResponseSchema = successResponseSchema(
+  loginResponseSchema,
+  "RegisterResponse",
+);

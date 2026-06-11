@@ -31,6 +31,14 @@ export class UserService {
     });
   }
 
+  async registerUser(data: { email: string; name: string; password: string }) {
+    const hashedPassword = await Bun.password.hash(data.password);
+    return await this.prisma.user.create({
+      data: { email: data.email, name: data.name, password: hashedPassword },
+      select: { id: true, email: true },
+    });
+  }
+
   async getAll(page?: string | number, limit?: string | number) {
     const params = getPaginationParams(page, limit);
 

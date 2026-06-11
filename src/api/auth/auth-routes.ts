@@ -12,6 +12,8 @@ import {
   authResponseSchema,
   refreshTokenSchema,
   logoutResponseSchema,
+  registerSchema,
+  registerResponseSchema,
 } from "./auth-schema";
 import {
   errorResponseSchema,
@@ -32,6 +34,11 @@ export interface IUserAuthRepository {
   getActiveMembership(
     userId: number,
   ): Promise<{ companyId: number; role: Role } | null>;
+  registerUser(data: {
+    email: string;
+    name: string;
+    password: string;
+  }): Promise<{ id: number; email: string }>;
 }
 
 // === Factory function ===
@@ -58,6 +65,33 @@ export function createAuthRoutes(
   }
 
   // === Route Definitions ===
+
+  const registerRoute = createRoute({
+    method: "post",
+    path: "/register",
+    tags: ["Auth"],
+    request: {
+      body: {
+        content: { "application/json": { schema: registerSchema } },
+      },
+    },
+    responses: {
+      201: {
+        content: { "application/json": { schema: registerResponseSchema } },
+        description: "User registered and logged in",
+      },
+      400: {
+        content: {
+          "application/json": { schema: validationErrorResponseSchema },
+        },
+        description: "Validation error",
+      },
+      409: {
+        content: { "application/json": { schema: errorResponseSchema } },
+        description: "Email already registered",
+      },
+    },
+  });
 
   const loginRoute = createRoute({
     method: "post",
@@ -134,6 +168,34 @@ export function createAuthRoutes(
         description: "Validation error",
       },
     },
+  });
+
+  // === Register Handler ===
+  authRoutes.openapi(registerRoute, async (c) => {
+    const { name, email, password } = c.req.valid("json");
+
+    let user: { id: number; email: string };
+    try {
+      user = await userRepo.registerUser({ name, email, password });
+    } catch (err) {
+      if (
+        err instanceof PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      ) {
+        return errorResponse(c, "Este e-mail já está cadastrado", 409);
+      }
+      throw err;
+    }
+
+    const refreshToken = await authService.generateRefreshToken(user.id);
+    const accessToken = await generateAccessToken(user, null);
+
+    return successResponse(
+      c,
+      { token: accessToken, refreshToken },
+      201,
+      "Conta criada com sucesso",
+    );
   });
 
   // === Login Handler ===
