@@ -1,6 +1,7 @@
 import { existsSync } from "fs";
 import { describe, it, expect } from "bun:test";
 import app from "../../../../src/index";
+import prisma from "../../../db/client";
 import {
   createTestAuthContext,
   signTestToken,
@@ -213,6 +214,111 @@ describe("Company Routes", () => {
       });
 
       expect(res.status).toBe(400);
+    });
+  });
+
+  // ─── POST /api/company/setup ──────────────────────────────────────
+
+  describe("POST /api/company/setup", () => {
+    it("should return 201 and create company + ADMIN membership for a user without a company", async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: `setup-${crypto.randomUUID()}@test.com`,
+          password: "hashed",
+        },
+      });
+      const token = await signTestToken(user.id, user.email, null, null);
+
+      const res = await app.request("/api/company/setup", {
+        method: "POST",
+        body: JSON.stringify({ name: "Minha Empresa" }),
+        headers: json(token),
+      });
+      const body = (await res.json()) as { data: { id: number; name: string } };
+
+      expect(res.status).toBe(201);
+      expect(body.data.name).toBe("Minha Empresa");
+
+      const membership = await prisma.membership.findFirst({
+        where: { userId: user.id, status: "ACTIVE", role: "ADMIN" },
+      });
+      expect(membership).not.toBeNull();
+      expect(membership!.companyId).toBe(body.data.id);
+    });
+
+    it("should return 409 when user already has a company in the JWT", async () => {
+      const { token } = await createTestAuthContext();
+
+      const res = await app.request("/api/company/setup", {
+        method: "POST",
+        body: JSON.stringify({ name: "Segunda Empresa" }),
+        headers: json(token),
+      });
+
+      expect(res.status).toBe(409);
+    });
+
+    it("should return 409 on a second setup with a stale (companyId: null) token, without creating a second company", async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: `setup-stale-${crypto.randomUUID()}@test.com`,
+          password: "hashed",
+        },
+      });
+      // Token still carries companyId: null — simulates a user who completed
+      // setup but never refreshed their access token.
+      const token = await signTestToken(user.id, user.email, null, null);
+
+      const first = await app.request("/api/company/setup", {
+        method: "POST",
+        body: JSON.stringify({ name: "Primeira Empresa" }),
+        headers: json(token),
+      });
+      expect(first.status).toBe(201);
+
+      const second = await app.request("/api/company/setup", {
+        method: "POST",
+        body: JSON.stringify({ name: "Segunda Empresa" }),
+        headers: json(token),
+      });
+      const body = (await second.json()) as { error: string };
+
+      expect(second.status).toBe(409);
+      expect(body.error).toBe("Empresa já configurada para este usuário");
+
+      // The DB guard must have prevented a second company + membership.
+      const memberships = await prisma.membership.count({
+        where: { userId: user.id },
+      });
+      expect(memberships).toBe(1);
+    });
+
+    it("should return 400 when name is missing", async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: `setup-${crypto.randomUUID()}@test.com`,
+          password: "hashed",
+        },
+      });
+      const token = await signTestToken(user.id, user.email, null, null);
+
+      const res = await app.request("/api/company/setup", {
+        method: "POST",
+        body: JSON.stringify({}),
+        headers: json(token),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 401 without a token", async () => {
+      const res = await app.request("/api/company/setup", {
+        method: "POST",
+        body: JSON.stringify({ name: "Test" }),
+        headers: { "X-Forwarded-For": IP, "Content-Type": "application/json" },
+      });
+
+      expect(res.status).toBe(401);
     });
   });
 });

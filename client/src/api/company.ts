@@ -23,6 +23,18 @@ export interface CompanyInput {
   footerNote?: string | null;
 }
 
+export interface SetupCompanyInput {
+  name: string;
+  document?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+}
+
+export function setupCompany(input: SetupCompanyInput) {
+  return apiRequest<Company>("/company/setup", { method: "POST", body: input });
+}
+
 export function getCompany() {
   return apiRequest<Company>("/company");
 }

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import * as authApi from "@/api/auth";
 import {
   Form,
   FormControl,
@@ -24,31 +25,55 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const schema = z.object({
-  email: z.string().email("E-mail inválido"),
-  password: z.string().min(1, "Informe a senha"),
-});
+const schema = z
+  .object({
+    name: z.string().min(1, "Nome é obrigatório"),
+    email: z.string().email("E-mail inválido"),
+    password: z
+      .string()
+      .min(8, "Mínimo 8 caracteres")
+      .regex(/[a-zA-Z]/, "Precisa ter ao menos uma letra")
+      .regex(/[0-9]/, "Precisa ter ao menos um número"),
+    passwordConfirmation: z.string().min(1, "Confirme a senha"),
+  })
+  .refine((d) => d.password === d.passwordConfirmation, {
+    message: "As senhas não coincidem",
+    path: ["passwordConfirmation"],
+  });
 
 type FormData = z.infer<typeof schema>;
 
-export function LoginPage() {
-  const { login } = useAuth();
+export function RegisterPage() {
+  const { setSession } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      passwordConfirmation: "",
+    },
   });
 
   const { isSubmitting } = form.formState;
 
   async function onSubmit(data: FormData) {
     try {
-      await login(data.email, data.password);
-      navigate("/", { replace: true });
+      const { token, refreshToken } = await authApi.register(data);
+      setSession(token, refreshToken);
+      navigate("/onboarding", { replace: true });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao entrar");
+      const message =
+        err instanceof Error ? err.message : "Falha ao criar conta";
+      if (message.includes("já está cadastrado")) {
+        form.setError("email", { message });
+      } else {
+        toast.error(message);
+      }
     }
   }
 
@@ -60,13 +85,31 @@ export function LoginPage() {
             V
           </div>
           <div className="space-y-1">
-            <CardTitle className="text-2xl tracking-tight">Velon</CardTitle>
-            <CardDescription>Acesse o painel de gestão</CardDescription>
+            <CardTitle className="text-2xl tracking-tight">Criar conta</CardTitle>
+            <CardDescription>Cadastre-se para começar</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Seu nome"
+                        autoComplete="name"
+                        autoFocus
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="email"
@@ -78,7 +121,6 @@ export function LoginPage() {
                         type="email"
                         placeholder="voce@exemplo.com"
                         autoComplete="email"
-                        autoFocus
                         {...field}
                       />
                     </FormControl>
@@ -96,7 +138,7 @@ export function LoginPage() {
                       <FormControl>
                         <Input
                           type={showPassword ? "text" : "password"}
-                          autoComplete="current-password"
+                          autoComplete="new-password"
                           className="pr-10"
                           {...field}
                         />
@@ -122,17 +164,53 @@ export function LoginPage() {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="passwordConfirmation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirmar senha</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          type={showConfirmation ? "text" : "password"}
+                          autoComplete="new-password"
+                          className="pr-10"
+                          {...field}
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1/2 right-1 size-8 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label={
+                          showConfirmation ? "Ocultar senha" : "Mostrar senha"
+                        }
+                        onClick={() => setShowConfirmation((v) => !v)}
+                      >
+                        {showConfirmation ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isSubmitting ? "Entrando…" : "Entrar"}
+                {isSubmitting ? "Criando conta…" : "Criar conta"}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
-                Não tem uma conta?{" "}
+                Já tem uma conta?{" "}
                 <Link
-                  to="/register"
+                  to="/login"
                   className="font-medium text-primary underline-offset-4 hover:underline"
                 >
-                  Criar conta
+                  Entrar
                 </Link>
               </p>
             </form>

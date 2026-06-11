@@ -3,6 +3,7 @@ import { createContext, useContext } from "react";
 export interface AuthUser {
   id: number;
   email: string;
+  companyId: number | null;
 }
 
 export interface AuthContextValue {
@@ -10,6 +11,10 @@ export interface AuthContextValue {
   accessToken: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Stores a token pair received from register or refresh without re-calling the API. */
+  setSession: (token: string, refreshToken: string) => void;
+  /** Rotates the refresh token and updates the stored session (used after onboarding). */
+  refreshSession: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

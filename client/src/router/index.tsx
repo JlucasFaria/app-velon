@@ -7,6 +7,8 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoginPage } from "@/pages/auth/LoginPage";
+import { RegisterPage } from "@/pages/auth/RegisterPage";
+import { OnboardingPage } from "@/pages/onboarding/OnboardingPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
 import { ClientsPage } from "@/pages/clients/ClientsPage";
 import { ClientDetailPage } from "@/pages/clients/ClientDetailPage";
@@ -16,10 +18,14 @@ import { ReceiptPage } from "@/pages/receipts/ReceiptPage";
 import { ReportsPage } from "@/pages/reports/ReportsPage";
 import { ProfilePage } from "@/pages/profile/ProfilePage";
 
+/** Requires auth + company. No company → /onboarding. Not logged in → /login. */
 function ProtectedRoute() {
-  const { accessToken } = useAuth();
-  if (!accessToken) {
+  const { user } = useAuth();
+  if (!user) {
     return <Navigate to="/login" replace />;
+  }
+  if (user.companyId === null) {
+    return <Navigate to="/onboarding" replace />;
   }
   return (
     <AppShell>
@@ -28,10 +34,26 @@ function ProtectedRoute() {
   );
 }
 
+/** Requires auth only. Not logged in → /login. Already onboarded → /. */
+function OnboardingGuard() {
+  const { user } = useAuth();
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  if (user.companyId !== null) {
+    return <Navigate to="/" replace />;
+  }
+  return <Outlet />;
+}
+
 const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
+  { path: "/register", element: <RegisterPage /> },
   {
-    // Authenticated area
+    element: <OnboardingGuard />,
+    children: [{ path: "/onboarding", element: <OnboardingPage /> }],
+  },
+  {
     element: <ProtectedRoute />,
     children: [
       { path: "/", element: <DashboardPage /> },

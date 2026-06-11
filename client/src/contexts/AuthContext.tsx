@@ -15,6 +15,7 @@ function decodeUser(token: string): AuthUser | null {
     const payload = JSON.parse(atob(base64)) as {
       id?: unknown;
       email?: unknown;
+      companyId?: unknown;
       exp?: unknown;
     };
 
@@ -22,7 +23,12 @@ function decodeUser(token: string): AuthUser | null {
       return null; // expired
     }
     if (typeof payload.id === "number" && typeof payload.email === "string") {
-      return { id: payload.id, email: payload.email };
+      return {
+        id: payload.id,
+        email: payload.email,
+        companyId:
+          typeof payload.companyId === "number" ? payload.companyId : null,
+      };
     }
     return null;
   } catch {
@@ -42,13 +48,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initialUser ? localStorage.getItem(ACCESS_TOKEN_KEY) : null,
   );
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { token, refreshToken } = await authApi.login(email, password);
+  const setSession = useCallback((token: string, refreshToken: string) => {
     localStorage.setItem(ACCESS_TOKEN_KEY, token);
     localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
     setAccessToken(token);
     setUser(decodeUser(token));
   }, []);
+
+  const login = useCallback(async (email: string, password: string) => {
+    const { token, refreshToken } = await authApi.login(email, password);
+    setSession(token, refreshToken);
+  }, [setSession]);
+
+  const refreshSession = useCallback(async () => {
+    const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    if (!storedRefreshToken) throw new Error("No refresh token");
+    const { token, refreshToken } = await authApi.refresh(storedRefreshToken);
+    setSession(token, refreshToken);
+  }, [setSession]);
 
   const logout = useCallback(async () => {
     const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
@@ -66,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, accessToken, login, logout }}>
+    <AuthContext.Provider value={{ user, accessToken, login, logout, setSession, refreshSession }}>
       {children}
     </AuthContext.Provider>
   );
