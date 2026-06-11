@@ -100,14 +100,17 @@ export function ProfilePage() {
   }, [form]);
 
   async function onSubmit(data: FormData) {
-    // Send only filled fields: the backend rejects empty values for validated
-    // fields (e.g. document length, email format) and update is partial.
-    const payload: CompanyInput = { name: data.name.trim() };
-    if (data.document?.trim()) payload.document = data.document.trim();
-    if (data.phone?.trim()) payload.phone = data.phone.trim();
-    if (data.email?.trim()) payload.email = data.email.trim();
-    if (data.address?.trim()) payload.address = data.address.trim();
-    if (data.footerNote?.trim()) payload.footerNote = data.footerNote.trim();
+    // A filled field sends its trimmed value; a cleared one sends null so the
+    // backend nulls the column (rather than keeping the old value).
+    const orNull = (v?: string) => (v?.trim() ? v.trim() : null);
+    const payload: CompanyInput = {
+      name: data.name.trim(),
+      document: orNull(data.document),
+      phone: orNull(data.phone),
+      email: orNull(data.email),
+      address: orNull(data.address),
+      footerNote: orNull(data.footerNote),
+    };
 
     try {
       const updated = await updateCompany(payload);

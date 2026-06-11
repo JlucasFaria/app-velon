@@ -31,6 +31,13 @@ beforeAll(async () => {
   });
   testUserId = user.id;
 
+  // Active membership so the user is assignable to orders in this company.
+  await prisma.membership.upsert({
+    where: { userId_companyId: { userId: user.id, companyId } },
+    update: { role: "ADMIN", status: "ACTIVE" },
+    create: { userId: user.id, companyId, role: "ADMIN", status: "ACTIVE" },
+  });
+
   const client = await prisma.client.create({
     data: {
       name: "Test Client",
@@ -455,12 +462,19 @@ describe("OrderService", () => {
   });
 
   describe("userExists", () => {
-    it("should return true for an existing user", async () => {
-      expect(await orderService.userExists(testUserId)).toBe(true);
+    it("should return true for an active member of the company", async () => {
+      expect(await orderService.userExists(testUserId, companyId)).toBe(true);
     });
 
     it("should return false for a non-existent user", async () => {
-      expect(await orderService.userExists(999999)).toBe(false);
+      expect(await orderService.userExists(999999, companyId)).toBe(false);
+    });
+
+    it("should return false for a user who is not a member of the company", async () => {
+      const otherCompanyId = await createTestCompany("Other Member Company");
+      expect(await orderService.userExists(testUserId, otherCompanyId)).toBe(
+        false,
+      );
     });
   });
 });

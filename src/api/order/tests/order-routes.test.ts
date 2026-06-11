@@ -31,6 +31,13 @@ describe("Order Routes", () => {
     });
     testUserId = user.id;
 
+    // Active membership so the user is assignable to orders in this company.
+    await prisma.membership.upsert({
+      where: { userId_companyId: { userId: user.id, companyId } },
+      update: { role: "ADMIN", status: "ACTIVE" },
+      create: { userId: user.id, companyId, role: "ADMIN", status: "ACTIVE" },
+    });
+
     const client = await prisma.client.create({
       data: {
         name: "Routes Test Client",
@@ -159,6 +166,16 @@ describe("Order Routes", () => {
 
       expect(res.status).toBe(404);
       expect(body.error).toBe("Assigned user not found");
+    });
+
+    it("should create an order assigned to a company member", async () => {
+      const res = await post({ ...basePayload(), assignedUserId: testUserId });
+      const body = (await res.json()) as {
+        data: { assignedUserId: number };
+      };
+
+      expect(res.status).toBe(201);
+      expect(body.data.assignedUserId).toBe(testUserId);
     });
   });
 

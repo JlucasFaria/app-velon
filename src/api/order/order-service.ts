@@ -96,12 +96,15 @@ export class OrderService {
     return client !== null;
   }
 
-  async userExists(id: number): Promise<boolean> {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
+  // An order can only be assigned to an active member of its company, so this
+  // checks membership rather than mere user existence — preventing assignment
+  // to users outside the tenant.
+  async userExists(id: number, companyId: number): Promise<boolean> {
+    const membership = await this.prisma.membership.findFirst({
+      where: { userId: id, companyId, status: "ACTIVE" },
       select: { id: true },
     });
-    return user !== null;
+    return membership !== null;
   }
 
   async create(data: CreateOrderInput, createdById: number, companyId: number) {

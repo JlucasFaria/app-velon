@@ -268,7 +268,7 @@ export function createOrderRoutes(
     }
     if (
       typeof body.assignedUserId === "number" &&
-      !(await orderService.userExists(body.assignedUserId))
+      !(await orderService.userExists(body.assignedUserId, companyId))
     ) {
       return errorResponse(c, "Assigned user not found", 404);
     }
@@ -296,7 +296,7 @@ export function createOrderRoutes(
 
     if (
       typeof body.assignedUserId === "number" &&
-      !(await orderService.userExists(body.assignedUserId))
+      !(await orderService.userExists(body.assignedUserId, companyId))
     ) {
       return errorResponse(c, "Assigned user not found", 404);
     }

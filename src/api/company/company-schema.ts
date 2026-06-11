@@ -34,16 +34,26 @@ export const updateCompanySchema = z
       description: "Company name (shown on the service order PDF header)",
       example: "Despachante Silva",
     }),
-    document: z.string().min(11).max(18).optional().openapi({
+    // Nullable so the client can clear an optional field (send null) — distinct
+    // from omitting it (leave unchanged).
+    document: z.string().min(11).max(18).nullable().optional().openapi({
       description: "CNPJ or the responsible person's CPF",
       example: "12.345.678/0001-90",
     }),
-    phone: z.string().optional().openapi({ example: "(11) 3333-4444" }),
-    email: z.email().optional().openapi({ example: "contato@silva.com" }),
-    address: z.string().optional().openapi({
+    phone: z
+      .string()
+      .nullable()
+      .optional()
+      .openapi({ example: "(11) 3333-4444" }),
+    email: z
+      .email()
+      .nullable()
+      .optional()
+      .openapi({ example: "contato@silva.com" }),
+    address: z.string().nullable().optional().openapi({
       example: "Av. Central, 1000 - Centro",
     }),
-    footerNote: z.string().optional().openapi({
+    footerNote: z.string().nullable().optional().openapi({
       description: "Optional note printed at the bottom of the PDF",
       example: "Garantia de 90 dias para todos os serviços.",
     }),

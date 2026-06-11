@@ -15,11 +15,12 @@ export interface Company {
 
 export interface CompanyInput {
   name?: string;
-  document?: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  footerNote?: string;
+  // null clears the field; undefined leaves it unchanged.
+  document?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  footerNote?: string | null;
 }
 
 export function getCompany() {

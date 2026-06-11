@@ -107,6 +107,26 @@ describe("Company Routes", () => {
 
       expect(body.data.name).toBe("Company B");
     });
+
+    it("should clear an optional field when sent as null", async () => {
+      const { token } = await createTestAuthContext();
+
+      await app.request("/api/company", {
+        method: "PATCH",
+        body: JSON.stringify({ phone: "(11) 9999-0000" }),
+        headers: json(token),
+      });
+
+      const res = await app.request("/api/company", {
+        method: "PATCH",
+        body: JSON.stringify({ phone: null }),
+        headers: json(token),
+      });
+      const body = (await res.json()) as { data: { phone: string | null } };
+
+      expect(res.status).toBe(200);
+      expect(body.data.phone).toBeNull();
+    });
   });
 
   // ─── POST /api/company/logo ───────────────────────────────────────
