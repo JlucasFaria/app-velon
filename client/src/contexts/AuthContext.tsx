@@ -1,6 +1,6 @@
 import { useState, useCallback, type ReactNode } from "react";
 import * as authApi from "@/api/auth";
-import { AuthContext, type AuthUser } from "./auth-context";
+import { AuthContext, type AuthUser, type UserRole } from "./auth-context";
 
 const ACCESS_TOKEN_KEY = "accessToken";
 const REFRESH_TOKEN_KEY = "refreshToken";
@@ -16,6 +16,7 @@ function decodeUser(token: string): AuthUser | null {
       id?: unknown;
       email?: unknown;
       companyId?: unknown;
+      role?: unknown;
       exp?: unknown;
     };
 
@@ -23,11 +24,17 @@ function decodeUser(token: string): AuthUser | null {
       return null; // expired
     }
     if (typeof payload.id === "number" && typeof payload.email === "string") {
+      const validRoles: UserRole[] = ["ADMIN", "OPERATOR", "VIEWER"];
       return {
         id: payload.id,
         email: payload.email,
         companyId:
           typeof payload.companyId === "number" ? payload.companyId : null,
+        role:
+          typeof payload.role === "string" &&
+          validRoles.includes(payload.role as UserRole)
+            ? (payload.role as UserRole)
+            : null,
       };
     }
     return null;
