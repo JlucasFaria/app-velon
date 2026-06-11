@@ -33,6 +33,12 @@ export const memberInviteResponseSchema = successResponseSchema(
       inviteExpiresAt: z.string().datetime().nullable().openapi({
         description: "When the invite link expires (ISO 8601)",
       }),
+      // Returned only outside production so the UI can offer a "copy link"
+      // fallback; in production the link is delivered by email only.
+      inviteUrl: z.string().optional().openapi({
+        description: "Accept-invite link (non-production only)",
+        example: "http://localhost:5173/invites/abc123",
+      }),
     })
     .openapi("MemberInvite"),
   "MemberInviteResponse",

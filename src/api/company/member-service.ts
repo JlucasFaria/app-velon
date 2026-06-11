@@ -3,6 +3,8 @@ import { HTTPException } from "hono/http-exception";
 import prismaClient from "../../db/client";
 import type { PrismaClient, Role } from "../../../generated/prisma";
 import { INVITE_TOKEN_TTL_MS } from "../../config/constants";
+import { env } from "../../config/env";
+import { emailTransport, type EmailTransport } from "../../utils/email";
 
 const INVITE_SELECT = {
   id: true,
@@ -12,11 +14,29 @@ const INVITE_SELECT = {
   inviteExpiresAt: true,
 } as const;
 
-export class MemberService {
-  constructor(private prisma: PrismaClient = prismaClient) {}
+// Frontend route that handles the accept-invite flow (see Group 3 Task 9).
+function buildInviteUrl(token: string): string {
+  const base = env.APP_URL.replace(/\/$/, "");
+  return `${base}/invites/${token}`;
+}
 
-  // Creates a PENDING invite (a Membership with no user yet) for an email.
-  // The raw token is stored on the row; Task 3 builds the accept link from it.
+function buildInviteEmailHtml(inviteUrl: string): string {
+  return [
+    "<p>Você foi convidado para participar de uma empresa no Velon.</p>",
+    `<p><a href="${inviteUrl}">Clique aqui para aceitar o convite</a></p>`,
+    "<p>Este link expira em 7 dias.</p>",
+  ].join("");
+}
+
+export class MemberService {
+  constructor(
+    private prisma: PrismaClient = prismaClient,
+    private email: EmailTransport = emailTransport,
+  ) {}
+
+  // Creates a PENDING invite (a Membership with no user yet) for an email and
+  // sends the accept link via the configured transport. Returns the invite
+  // metadata plus the link so the caller can optionally surface it (dev).
   async inviteMember(companyId: number, email: string, role: Role) {
     const invitedEmail = email.trim().toLowerCase();
 
@@ -45,7 +65,7 @@ export class MemberService {
     const inviteToken = crypto.randomBytes(32).toString("hex");
     const inviteExpiresAt = new Date(Date.now() + INVITE_TOKEN_TTL_MS);
 
-    return await this.prisma.membership.create({
+    const invite = await this.prisma.membership.create({
       data: {
         companyId,
         invitedEmail,
@@ -56,5 +76,14 @@ export class MemberService {
       },
       select: INVITE_SELECT,
     });
+
+    const inviteUrl = buildInviteUrl(inviteToken);
+    await this.email.send({
+      to: invitedEmail,
+      subject: "Você foi convidado para o Velon",
+      html: buildInviteEmailHtml(inviteUrl),
+    });
+
+    return { ...invite, inviteUrl };
   }
 }

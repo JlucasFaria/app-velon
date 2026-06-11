@@ -1,6 +1,7 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { getCompanyContext, type AuthVariables } from "../../middlewares/auth";
+import { env } from "../../config/env";
 import { successResponse } from "../../utils/response";
 import {
   errorResponseSchema,
@@ -72,7 +73,14 @@ export function createMemberRoutes(
       invitedRole,
     );
 
-    return successResponse(c, invite, 201, "Convite criado com sucesso");
+    // The link is emailed in all environments; echo it in the response only
+    // outside production so the UI can offer a "copy link" fallback.
+    const data =
+      env.NODE_ENV === "production"
+        ? { ...invite, inviteUrl: undefined }
+        : invite;
+
+    return successResponse(c, data, 201, "Convite criado com sucesso");
   });
 
   return memberRoutes;
