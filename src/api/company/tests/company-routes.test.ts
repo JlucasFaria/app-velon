@@ -1,9 +1,14 @@
+import { existsSync } from "fs";
 import { describe, it, expect } from "bun:test";
 import app from "../../../../src/index";
 import {
   createTestAuthContext,
   signTestToken,
 } from "../../../test-utils/company";
+
+// Valid file signatures (magic bytes) for the upload tests.
+const PNG_BYTES = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+const JPG_BYTES = [0xff, 0xd8, 0xff, 0xe0];
 
 // Unique IP to isolate the rate-limit bucket from other test files.
 const IP = "127.0.0.20";
@@ -132,24 +137,25 @@ describe("Company Routes", () => {
   // ─── POST /api/company/logo ───────────────────────────────────────
 
   describe("POST /api/company/logo", () => {
-    it("should accept a PNG and store its url", async () => {
-      const { token } = await createTestAuthContext();
-
+    const uploadLogo = (
+      token: string,
+      bytes: number[],
+      name: string,
+      type: string,
+    ) => {
       const form = new FormData();
-      const png = new File(
-        [new Uint8Array([0x89, 0x50, 0x4e, 0x47])],
-        "logo.png",
-        {
-          type: "image/png",
-        },
-      );
-      form.append("logo", png);
-
-      const res = await app.request("/api/company/logo", {
+      form.append("logo", new File([new Uint8Array(bytes)], name, { type }));
+      return app.request("/api/company/logo", {
         method: "POST",
         body: form,
         headers: h(token),
       });
+    };
+
+    it("should accept a PNG and store its url", async () => {
+      const { token } = await createTestAuthContext();
+
+      const res = await uploadLogo(token, PNG_BYTES, "logo.png", "image/png");
       const body = (await res.json()) as { data: { logoUrl: string } };
 
       expect(res.status).toBe(200);
@@ -161,21 +167,37 @@ describe("Company Routes", () => {
     it("should return 400 for an unsupported format", async () => {
       const { token } = await createTestAuthContext();
 
-      const form = new FormData();
-      form.append(
-        "logo",
-        new File([new Uint8Array([1, 2, 3])], "logo.gif", {
-          type: "image/gif",
-        }),
-      );
-
-      const res = await app.request("/api/company/logo", {
-        method: "POST",
-        body: form,
-        headers: h(token),
-      });
+      const res = await uploadLogo(token, [1, 2, 3], "logo.gif", "image/gif");
 
       expect(res.status).toBe(400);
+    });
+
+    it("should reject a non-image whose Content-Type claims to be PNG", async () => {
+      const { token } = await createTestAuthContext();
+
+      // Spoofed type: header says image/png but the bytes are not a PNG.
+      const res = await uploadLogo(
+        token,
+        [1, 2, 3, 4],
+        "fake.png",
+        "image/png",
+      );
+
+      expect(res.status).toBe(400);
+    });
+
+    it("should delete the previous logo file when replaced", async () => {
+      const { token } = await createTestAuthContext();
+
+      const first = (await (
+        await uploadLogo(token, PNG_BYTES, "a.png", "image/png")
+      ).json()) as { data: { logoUrl: string } };
+      const firstPath = `uploads/${first.data.logoUrl.split("/uploads/")[1]}`;
+      expect(existsSync(firstPath)).toBe(true);
+
+      await uploadLogo(token, JPG_BYTES, "b.jpg", "image/jpeg");
+
+      expect(existsSync(firstPath)).toBe(false);
     });
 
     it("should return 400 when no file field is present", async () => {
