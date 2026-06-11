@@ -2,11 +2,16 @@ import { verify } from "hono/jwt";
 import { HTTPException } from "hono/http-exception";
 import { env } from "../config/env";
 import type { Context, MiddlewareHandler } from "hono";
+import type { Role } from "../../generated/prisma";
 
 export type AuthVariables = {
   jwtPayload: {
     id: number;
     email: string;
+    // Active company + role for the logged-in user. Null while a freshly
+    // registered user has not completed onboarding (see onboarding flow).
+    companyId: number | null;
+    role: Role | null;
     exp: number;
   };
 };
@@ -59,4 +64,25 @@ export const authMiddleware: MiddlewareHandler<{
 // Helper to extract the JWT payload in a type-safe way
 export function getAuthPayload(c: Context<{ Variables: AuthVariables }>) {
   return c.get("jwtPayload");
+}
+
+// Company-scoped context for tenant-aware routes. Throws 403 when the user has
+// no active company (e.g. registered but onboarding not completed), so scoped
+// endpoints never run an unscoped query.
+export function getCompanyContext(c: Context<{ Variables: AuthVariables }>): {
+  userId: number;
+  companyId: number;
+  role: Role;
+} {
+  const payload = getAuthPayload(c);
+  if (payload.companyId == null || payload.role == null) {
+    throw new HTTPException(403, {
+      message: "No company configured for this user",
+    });
+  }
+  return {
+    userId: payload.id,
+    companyId: payload.companyId,
+    role: payload.role,
+  };
 }

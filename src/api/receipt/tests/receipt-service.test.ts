@@ -1,16 +1,22 @@
 import { describe, it, expect, beforeEach, beforeAll } from "bun:test";
 import { ReceiptService } from "../receipt-service";
 import prisma from "../../../db/client";
+import { createTestCompany } from "../../../test-utils/company";
 
 const receiptService = new ReceiptService();
 
 let testUserId: number;
 let testClientId: number;
 let testOrderId: number;
+let companyId: number;
 
 beforeAll(async () => {
-  const user = await prisma.user.create({
-    data: {
+  companyId = await createTestCompany("Receipt Service Company");
+
+  const user = await prisma.user.upsert({
+    where: { email: "receipt-svc-test@example.com" },
+    update: {},
+    create: {
       email: "receipt-svc-test@example.com",
       password: "hashed",
       name: "Receipt Test User",
@@ -23,6 +29,7 @@ beforeAll(async () => {
       name: "Receipt Test Client",
       document: "receipt-svc-doc-unique",
       clientType: "COUNTER",
+      companyId,
     },
   });
   testClientId = client.id;
@@ -38,6 +45,7 @@ beforeEach(async () => {
       description: "Screen replacement",
       value: "250.00",
       clientId: testClientId,
+      companyId,
       statusHistory: {
         create: { toStatus: "PENDING", changedById: testUserId },
       },
@@ -91,14 +99,26 @@ describe("ReceiptService", () => {
   describe("getByOrderId", () => {
     it("should return the receipt after it has been generated", async () => {
       await receiptService.generate(testOrderId);
-      const receipt = await receiptService.getByOrderId(testOrderId);
+      const receipt = await receiptService.getByOrderId(testOrderId, companyId);
 
       expect(receipt).not.toBeNull();
       expect(receipt!.order.id).toBe(testOrderId);
     });
 
     it("should return null when no receipt exists for the order", async () => {
-      const receipt = await receiptService.getByOrderId(testOrderId);
+      const receipt = await receiptService.getByOrderId(testOrderId, companyId);
+
+      expect(receipt).toBeNull();
+    });
+
+    it("should return null for a receipt owned by another company", async () => {
+      await receiptService.generate(testOrderId);
+      const otherCompanyId = await createTestCompany("Other Receipt Company");
+
+      const receipt = await receiptService.getByOrderId(
+        testOrderId,
+        otherCompanyId,
+      );
 
       expect(receipt).toBeNull();
     });
@@ -106,11 +126,20 @@ describe("ReceiptService", () => {
 
   describe("orderExists", () => {
     it("should return true for an existing order", async () => {
-      expect(await receiptService.orderExists(testOrderId)).toBe(true);
+      expect(await receiptService.orderExists(testOrderId, companyId)).toBe(
+        true,
+      );
     });
 
     it("should return false for a non-existent order", async () => {
-      expect(await receiptService.orderExists(999999)).toBe(false);
+      expect(await receiptService.orderExists(999999, companyId)).toBe(false);
+    });
+
+    it("should return false for an order in another company", async () => {
+      const otherCompanyId = await createTestCompany("Other Exists Company");
+      expect(
+        await receiptService.orderExists(testOrderId, otherCompanyId),
+      ).toBe(false);
     });
   });
 });

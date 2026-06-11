@@ -2,7 +2,7 @@ import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { z } from "@hono/zod-openapi";
 import {
   authMiddleware,
-  getAuthPayload,
+  getCompanyContext,
   type AuthVariables,
 } from "../../middlewares/auth";
 import { successResponse, errorResponse } from "../../utils/response";
@@ -247,7 +247,9 @@ export function createOrderRoutes(
 
   orderRoutes.openapi(listOrdersRoute, async (c) => {
     const { page, limit, status, clientType, search } = c.req.valid("query");
+    const { companyId } = getCompanyContext(c);
     const result = await orderService.getAll(
+      companyId,
       page,
       limit,
       status,
@@ -259,25 +261,26 @@ export function createOrderRoutes(
 
   orderRoutes.openapi(createOrderRoute, async (c) => {
     const body = c.req.valid("json");
-    const { id: createdById } = getAuthPayload(c);
+    const { userId: createdById, companyId } = getCompanyContext(c);
 
-    if (!(await orderService.clientExists(body.clientId))) {
+    if (!(await orderService.clientExists(body.clientId, companyId))) {
       return errorResponse(c, "Client not found", 404);
     }
     if (
       typeof body.assignedUserId === "number" &&
-      !(await orderService.userExists(body.assignedUserId))
+      !(await orderService.userExists(body.assignedUserId, companyId))
     ) {
       return errorResponse(c, "Assigned user not found", 404);
     }
 
-    const order = await orderService.create(body, createdById);
+    const order = await orderService.create(body, createdById, companyId);
     return successResponse(c, order, 201, "Order created successfully");
   });
 
   orderRoutes.openapi(getOrderRoute, async (c) => {
     const { id } = c.req.valid("param");
-    const order = await orderService.findById(id);
+    const { companyId } = getCompanyContext(c);
+    const order = await orderService.findById(id, companyId);
 
     if (!order) {
       return errorResponse(c, "Order not found", 404);
@@ -289,24 +292,35 @@ export function createOrderRoutes(
   orderRoutes.openapi(updateOrderRoute, async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
+    const { companyId } = getCompanyContext(c);
 
     if (
       typeof body.assignedUserId === "number" &&
-      !(await orderService.userExists(body.assignedUserId))
+      !(await orderService.userExists(body.assignedUserId, companyId))
     ) {
       return errorResponse(c, "Assigned user not found", 404);
     }
 
-    const order = await orderService.update(id, body);
+    const order = await orderService.update(id, companyId, body);
+
+    if (!order) {
+      return errorResponse(c, "Order not found", 404);
+    }
+
     return successResponse(c, order, 200, "Order updated successfully");
   });
 
   orderRoutes.openapi(changeStatusRoute, async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
-    const { id: changedById } = getAuthPayload(c);
+    const { userId: changedById, companyId } = getCompanyContext(c);
 
-    const order = await orderService.updateStatus(id, body, changedById);
+    const order = await orderService.updateStatus(
+      id,
+      body,
+      changedById,
+      companyId,
+    );
 
     if (!order) {
       return errorResponse(c, "Order not found", 404);
@@ -317,7 +331,13 @@ export function createOrderRoutes(
 
   orderRoutes.openapi(deleteOrderRoute, async (c) => {
     const { id } = c.req.valid("param");
-    await orderService.delete(id);
+    const { companyId } = getCompanyContext(c);
+    const deleted = await orderService.delete(id, companyId);
+
+    if (!deleted) {
+      return errorResponse(c, "Order not found", 404);
+    }
+
     return c.json(
       { success: true as const, message: "Order deleted successfully" },
       200,

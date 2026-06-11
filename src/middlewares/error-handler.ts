@@ -35,8 +35,20 @@ export const errorHandler: ErrorHandler = (err, c) => {
   // Prisma known request errors (P2002, P2025, etc.)
   if (err instanceof PrismaClientKnownRequestError) {
     if (err.code === "P2002") {
-      const meta = err.meta as { target?: string[] } | undefined;
-      const field = meta?.target?.[0] ?? "Field";
+      const meta = err.meta as
+        | {
+            target?: string[];
+            driverAdapterError?: {
+              cause?: { constraint?: { fields?: string[] } };
+            };
+          }
+        | undefined;
+      // With the pg driver adapter, `meta.target` is undefined and the columns
+      // live under driverAdapterError. For a composite unique we report the last
+      // column (e.g. "document" / "orderNumber"), which is the meaningful one.
+      const fields =
+        meta?.target ?? meta?.driverAdapterError?.cause?.constraint?.fields;
+      const field = fields?.[fields.length - 1]?.replace(/"/g, "") ?? "Field";
       return c.json({ success: false, error: `${field} already in use` }, 409);
     }
 

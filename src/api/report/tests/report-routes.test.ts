@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import app from "../../../../src/index";
 import prisma from "../../../db/client";
-import { sign } from "hono/jwt";
-import { env } from "../../../config/env";
+import { signTestToken, createTestCompany } from "../../../test-utils/company";
 
 describe("Report Routes", () => {
   let token: string;
   let testUserId: number;
   let testClientId: number;
+  let companyId: number;
 
   // Unique IP to isolate rate-limit bucket from other test files
   const IP = "127.0.0.14";
@@ -20,6 +20,8 @@ describe("Report Routes", () => {
     await prisma.receipt.deleteMany();
     await prisma.serviceOrder.deleteMany();
 
+    companyId = await createTestCompany("Report Routes Company");
+
     const user = await prisma.user.upsert({
       where: { email: "report-routes-test@example.com" },
       update: {},
@@ -31,25 +33,17 @@ describe("Report Routes", () => {
     });
     testUserId = user.id;
 
-    const client = await prisma.client.upsert({
-      where: { document: "report-routes-doc-unique" },
-      update: {},
-      create: {
+    const client = await prisma.client.create({
+      data: {
         name: "Report Routes Client",
         document: "report-routes-doc-unique",
         clientType: "COUNTER",
+        companyId,
       },
     });
     testClientId = client.id;
 
-    token = await sign(
-      {
-        id: testUserId,
-        email: user.email,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60,
-      },
-      env.JWT_SECRET,
-    );
+    token = await signTestToken(testUserId, user.email, companyId, "ADMIN");
   });
 
   const h = (extra?: Record<string, string>) => ({
@@ -78,6 +72,7 @@ describe("Report Routes", () => {
         description: "Test service",
         value: overrides.value ?? "100.00",
         clientId: testClientId,
+        companyId,
         status: overrides.status,
         statusHistory: {
           create:

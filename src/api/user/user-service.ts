@@ -64,4 +64,14 @@ export class UserService {
       where: { email },
     });
   }
+
+  // Active company membership used by auth to scope the access token.
+  // Returns the first active membership (single-company per user for now).
+  async getActiveMembership(userId: number) {
+    return await this.prisma.membership.findFirst({
+      where: { userId, status: "ACTIVE" },
+      orderBy: { id: "asc" },
+      select: { companyId: true, role: true },
+    });
+  }
 }

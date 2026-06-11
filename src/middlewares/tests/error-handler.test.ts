@@ -103,6 +103,29 @@ describe("errorHandler", () => {
     expect(body.error).toBe("email already in use");
   });
 
+  it("should derive the field from driverAdapterError when target is absent", async () => {
+    // The pg driver adapter leaves meta.target undefined and exposes the
+    // composite unique's columns under driverAdapterError instead.
+    const app = makeApp(
+      () =>
+        new PrismaClientKnownRequestError("Unique constraint failed", {
+          code: "P2002",
+          clientVersion: "5.0.0",
+          meta: {
+            driverAdapterError: {
+              cause: { constraint: { fields: ['"companyId"', "document"] } },
+            },
+          },
+        }),
+    );
+    const body = (await (await app.request("/")).json()) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(body.error).toBe("document already in use");
+  });
+
   // ─── Prisma P2025 (record not found) ─────────────────────────────
 
   it("should return 404 for a Prisma P2025 error", async () => {

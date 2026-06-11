@@ -16,6 +16,12 @@ export const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 // Body size
 export const BODY_LIMIT_BYTES = 1 * 1024 * 1024; // 1 MB
 
+// Company logo upload (PNG/JPG only — validated by magic bytes in the route)
+export const LOGO_MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+export const LOGO_UPLOAD_PATH = "/api/company/logo";
+export const UPLOADS_DIR = "uploads";
+export const UPLOADS_URL_PREFIX = "/api/uploads";
+
 // Pagination
 export const PAGINATION_DEFAULT_PAGE = 1;
 export const PAGINATION_DEFAULT_LIMIT = 10;

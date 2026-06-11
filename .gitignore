@@ -36,3 +36,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 /generated/prisma
 project.md
 Tasks.md
+
+# user-uploaded files (company logos, etc.)
+uploads

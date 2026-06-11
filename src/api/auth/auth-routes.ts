@@ -2,6 +2,7 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { sign, verify } from "hono/jwt";
 import { PrismaClientKnownRequestError } from "../../../generated/prisma/runtime/client";
+import type { Role } from "../../../generated/prisma";
 import { env } from "../../config/env";
 import { blacklistToken } from "../../middlewares/auth";
 import { ACCESS_TOKEN_TTL_SECONDS } from "../../config/constants";
@@ -26,6 +27,11 @@ export interface IUserAuthRepository {
     email: string,
   ): Promise<{ id: number; email: string; password: string } | null>;
   verifyPassword(hash: string, password: string): Promise<boolean>;
+  // Active company membership used to scope the access token. Null when the
+  // user has not yet joined/created a company (pre-onboarding).
+  getActiveMembership(
+    userId: number,
+  ): Promise<{ companyId: number; role: Role } | null>;
 }
 
 // === Factory function ===
@@ -37,10 +43,15 @@ export function createAuthRoutes(
 ) {
   const authRoutes = new OpenAPIHono();
 
-  async function generateAccessToken(user: { id: number; email: string }) {
+  async function generateAccessToken(
+    user: { id: number; email: string },
+    membership: { companyId: number; role: Role } | null,
+  ) {
     const payload = {
       id: user.id,
       email: user.email,
+      companyId: membership?.companyId ?? null,
+      role: membership?.role ?? null,
       exp: Math.floor(Date.now() / 1000) + ACCESS_TOKEN_TTL_SECONDS,
     };
     return await sign(payload, env.JWT_SECRET);
@@ -141,7 +152,8 @@ export function createAuthRoutes(
       return errorResponse(c, "Invalid credentials", 401);
     }
 
-    const accessToken = await generateAccessToken(user);
+    const membership = await userRepo.getActiveMembership(user.id);
+    const accessToken = await generateAccessToken(user, membership);
     const refreshToken = await authService.generateRefreshToken(user.id);
 
     return successResponse(
@@ -166,7 +178,8 @@ export function createAuthRoutes(
       refreshToken,
       storedToken.userId,
     );
-    const accessToken = await generateAccessToken(storedToken.user);
+    const membership = await userRepo.getActiveMembership(storedToken.userId);
+    const accessToken = await generateAccessToken(storedToken.user, membership);
 
     return successResponse(
       c,

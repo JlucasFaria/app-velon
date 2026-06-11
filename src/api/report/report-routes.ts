@@ -1,5 +1,9 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
-import { authMiddleware, type AuthVariables } from "../../middlewares/auth";
+import {
+  authMiddleware,
+  getCompanyContext,
+  type AuthVariables,
+} from "../../middlewares/auth";
 import { successResponse } from "../../utils/response";
 import { errorResponseSchema } from "../../schemas/response";
 import { ReportService } from "./report-service";
@@ -67,7 +71,12 @@ export function createReportRoutes(
 
   reportRoutes.openapi(monthlyBillingRoute, async (c) => {
     const { month, year } = c.req.valid("query");
-    const result = await reportService.getMonthlyBilling(month, year);
+    const { companyId } = getCompanyContext(c);
+    const result = await reportService.getMonthlyBilling(
+      companyId,
+      month,
+      year,
+    );
     return successResponse(
       c,
       result,
@@ -77,7 +86,8 @@ export function createReportRoutes(
   });
 
   reportRoutes.openapi(ordersSummaryRoute, async (c) => {
-    const summary = await reportService.getOrdersSummary();
+    const { companyId } = getCompanyContext(c);
+    const summary = await reportService.getOrdersSummary(companyId);
     return successResponse(
       c,
       summary,

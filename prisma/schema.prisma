@@ -12,12 +12,54 @@ enum ClientType {
   PARTNER
 }
 
+enum Role {
+  ADMIN
+  OPERATOR
+  VIEWER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  PENDING
+  REVOKED
+}
+
 enum OrderStatus {
   PENDING
   IN_PROGRESS
   AWAITING_CLIENT
   COMPLETED
   CANCELLED
+}
+
+model Company {
+  id          Int            @id @default(autoincrement())
+  name        String
+  document    String?
+  phone       String?
+  email       String?
+  address     String?
+  logoUrl     String?
+  footerNote  String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  memberships Membership[]
+  clients     Client[]
+  orders      ServiceOrder[]
+}
+
+model Membership {
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId Int
+  company   Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  role      Role             @default(OPERATOR)
+  status    MembershipStatus @default(ACTIVE)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([userId, companyId])
 }
 
 model User {
@@ -30,34 +72,43 @@ model User {
   refreshTokens  RefreshToken[]
   assignedOrders ServiceOrder[]
   statusChanges  StatusHistory[]
+  memberships    Membership[]
 }
 
 model Client {
   id         Int            @id @default(autoincrement())
   name       String
-  document   String         @unique
+  document   String
   phone      String?
   address    String?
   clientType ClientType
+  companyId  Int
+  company    Company        @relation(fields: [companyId], references: [id])
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
   orders     ServiceOrder[]
+
+  @@unique([companyId, document])
 }
 
 model ServiceOrder {
   id             Int             @id @default(autoincrement())
-  orderNumber    String          @unique
+  orderNumber    String
   description    String
   value          Decimal         @db.Decimal(10, 2)
   status         OrderStatus     @default(PENDING)
   clientId       Int
   client         Client          @relation(fields: [clientId], references: [id])
+  companyId      Int
+  company        Company         @relation(fields: [companyId], references: [id])
   assignedUserId Int?
   assignedUser   User?           @relation(fields: [assignedUserId], references: [id])
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   statusHistory  StatusHistory[]
   receipt        Receipt?
+
+  @@unique([companyId, orderNumber])
 }
 
 model Receipt {

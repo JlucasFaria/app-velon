@@ -71,6 +71,49 @@ export async function apiRequest<T>(
   return (json?.data ?? json) as T;
 }
 
+/**
+ * Multipart upload (e.g. company logo). Unlike apiRequest it must NOT set a
+ * Content-Type header so the browser can add the multipart boundary itself.
+ */
+export async function apiUpload<T>(
+  path: string,
+  formData: FormData,
+): Promise<T> {
+  const token = localStorage.getItem("accessToken");
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+
+  const text = await res.text();
+  let json: { data?: unknown; error?: unknown } | null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    json = null;
+  }
+
+  if (!res.ok) {
+    const message =
+      (json && typeof json.error === "string" && json.error) ||
+      `Request failed (${res.status})`;
+
+    if (res.status === 401 && token) {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+
+    throw new ApiError(message, res.status);
+  }
+
+  return (json?.data ?? json) as T;
+}
+
 /** Builds a query string (with leading "?") from defined params, or "". */
 export function buildQuery(
   params: Record<string, string | number | undefined>,

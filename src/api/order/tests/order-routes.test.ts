@@ -1,22 +1,24 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import app from "../../../../src/index";
 import prisma from "../../../db/client";
-import { sign } from "hono/jwt";
-import { env } from "../../../config/env";
+import { signTestToken, createTestCompany } from "../../../test-utils/company";
 
 describe("Order Routes", () => {
   let token: string;
   let testUserId: number;
   let testClientId: number;
+  let companyId: number;
 
   // Unique IP so this file's requests use their own rate-limit bucket,
-  // isolated from other test files running in parallel.
+  // isolated from other test files.
   const IP = "127.0.0.12";
 
-  // Upsert user and client before each test so they always exist,
-  // even if user-routes.test.ts runs deleteMany() in parallel.
+  // Fresh company + client before each test; the user is upserted so it always
+  // exists even if user-routes.test.ts runs deleteMany().
   beforeEach(async () => {
     await prisma.serviceOrder.deleteMany();
+
+    companyId = await createTestCompany("Order Routes Company");
 
     const user = await prisma.user.upsert({
       where: { email: "order-routes-test@example.com" },
@@ -29,25 +31,24 @@ describe("Order Routes", () => {
     });
     testUserId = user.id;
 
-    const client = await prisma.client.upsert({
-      where: { document: "order-routes-doc-unique" },
-      update: {},
-      create: {
+    // Active membership so the user is assignable to orders in this company.
+    await prisma.membership.upsert({
+      where: { userId_companyId: { userId: user.id, companyId } },
+      update: { role: "ADMIN", status: "ACTIVE" },
+      create: { userId: user.id, companyId, role: "ADMIN", status: "ACTIVE" },
+    });
+
+    const client = await prisma.client.create({
+      data: {
         name: "Routes Test Client",
         document: "order-routes-doc-unique",
         clientType: "COUNTER",
+        companyId,
       },
     });
     testClientId = client.id;
 
-    token = await sign(
-      {
-        id: testUserId,
-        email: user.email,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60,
-      },
-      env.JWT_SECRET,
-    );
+    token = await signTestToken(testUserId, user.email, companyId, "ADMIN");
   });
 
   const basePayload = () => ({
@@ -165,6 +166,16 @@ describe("Order Routes", () => {
 
       expect(res.status).toBe(404);
       expect(body.error).toBe("Assigned user not found");
+    });
+
+    it("should create an order assigned to a company member", async () => {
+      const res = await post({ ...basePayload(), assignedUserId: testUserId });
+      const body = (await res.json()) as {
+        data: { assignedUserId: number };
+      };
+
+      expect(res.status).toBe(201);
+      expect(body.data.assignedUserId).toBe(testUserId);
     });
   });
 

@@ -25,9 +25,9 @@ const RECEIPT_SELECT = {
 export class ReceiptService {
   constructor(private prisma: PrismaClient = prismaClient) {}
 
-  async orderExists(id: number): Promise<boolean> {
-    const order = await this.prisma.serviceOrder.findUnique({
-      where: { id },
+  async orderExists(id: number, companyId: number): Promise<boolean> {
+    const order = await this.prisma.serviceOrder.findFirst({
+      where: { id, companyId },
       select: { id: true },
     });
     return order !== null;
@@ -47,9 +47,10 @@ export class ReceiptService {
     });
   }
 
-  async getByOrderId(orderId: number) {
-    return await this.prisma.receipt.findUnique({
-      where: { orderId },
+  // Scoped by the order's company so a receipt can't be read across tenants.
+  async getByOrderId(orderId: number, companyId: number) {
+    return await this.prisma.receipt.findFirst({
+      where: { orderId, order: { companyId } },
       select: RECEIPT_SELECT,
     });
   }

@@ -1,6 +1,10 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { z } from "@hono/zod-openapi";
-import { authMiddleware, type AuthVariables } from "../../middlewares/auth";
+import {
+  authMiddleware,
+  getCompanyContext,
+  type AuthVariables,
+} from "../../middlewares/auth";
 import { successResponse, errorResponse } from "../../utils/response";
 import { paginationQuerySchema } from "../../schemas/pagination";
 import {
@@ -200,19 +204,28 @@ export function createClientRoutes(
 
   clientRoutes.openapi(listClientsRoute, async (c) => {
     const { page, limit, clientType, search } = c.req.valid("query");
-    const result = await clientService.getAll(page, limit, clientType, search);
+    const { companyId } = getCompanyContext(c);
+    const result = await clientService.getAll(
+      companyId,
+      page,
+      limit,
+      clientType,
+      search,
+    );
     return successResponse(c, result, 200, "Clients retrieved successfully");
   });
 
   clientRoutes.openapi(createClientRoute, async (c) => {
     const body = c.req.valid("json");
-    const client = await clientService.create(body);
+    const { companyId } = getCompanyContext(c);
+    const client = await clientService.create(body, companyId);
     return successResponse(c, client, 201, "Client created successfully");
   });
 
   clientRoutes.openapi(getClientRoute, async (c) => {
     const { id } = c.req.valid("param");
-    const client = await clientService.findById(id);
+    const { companyId } = getCompanyContext(c);
+    const client = await clientService.findById(id, companyId);
 
     if (!client) {
       return errorResponse(c, "Client not found", 404);
@@ -224,13 +237,25 @@ export function createClientRoutes(
   clientRoutes.openapi(updateClientRoute, async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
-    const client = await clientService.update(id, body);
+    const { companyId } = getCompanyContext(c);
+    const client = await clientService.update(id, companyId, body);
+
+    if (!client) {
+      return errorResponse(c, "Client not found", 404);
+    }
+
     return successResponse(c, client, 200, "Client updated successfully");
   });
 
   clientRoutes.openapi(deleteClientRoute, async (c) => {
     const { id } = c.req.valid("param");
-    await clientService.delete(id);
+    const { companyId } = getCompanyContext(c);
+    const deleted = await clientService.delete(id, companyId);
+
+    if (!deleted) {
+      return errorResponse(c, "Client not found", 404);
+    }
+
     return c.json(
       { success: true as const, message: "Client deleted successfully" },
       200,
