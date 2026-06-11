@@ -1,6 +1,6 @@
 import prismaClient from "../../db/client";
 import type { PrismaClient } from "../../../generated/prisma";
-import type { UpdateCompanyInput } from "./company-schema";
+import type { UpdateCompanyInput, CreateCompanyInput } from "./company-schema";
 
 const COMPANY_SELECT = {
   id: true,
@@ -30,6 +30,26 @@ export class CompanyService {
       where: { id: companyId },
       data,
       select: COMPANY_SELECT,
+    });
+  }
+
+  // Creates a company and assigns the requesting user as ADMIN/ACTIVE owner.
+  // Runs inside a transaction so partial writes never occur.
+  async createWithOwner(userId: number, data: CreateCompanyInput) {
+    return await this.prisma.$transaction(async (tx) => {
+      const company = await tx.company.create({
+        data,
+        select: COMPANY_SELECT,
+      });
+      await tx.membership.create({
+        data: {
+          userId,
+          companyId: company.id,
+          role: "ADMIN",
+          status: "ACTIVE",
+        },
+      });
+      return company;
     });
   }
 

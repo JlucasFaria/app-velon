@@ -2,6 +2,7 @@ import { mkdir, rm } from "fs/promises";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import {
   authMiddleware,
+  getAuthPayload,
   getCompanyContext,
   type AuthVariables,
 } from "../../middlewares/auth";
@@ -19,6 +20,7 @@ import { CompanyService } from "./company-service";
 import {
   updateCompanySchema,
   companyDetailResponseSchema,
+  createCompanySchema,
 } from "./company-schema";
 
 // Validate by file signature (magic bytes) rather than the client-supplied
@@ -52,6 +54,40 @@ export function createCompanyRoutes(
   const companyRoutes = new OpenAPIHono<{ Variables: AuthVariables }>();
 
   // ─── Route Definitions ──────────────────────────────────────────
+
+  const setupCompanyRoute = createRoute({
+    method: "post",
+    path: "/setup",
+    tags: ["Company"],
+    security: [{ bearerAuth: [] }],
+    request: {
+      body: {
+        content: { "application/json": { schema: createCompanySchema } },
+      },
+    },
+    responses: {
+      201: {
+        content: {
+          "application/json": { schema: companyDetailResponseSchema },
+        },
+        description: "Company created and owner membership set up",
+      },
+      400: {
+        content: {
+          "application/json": { schema: validationErrorResponseSchema },
+        },
+        description: "Validation error",
+      },
+      401: {
+        content: { "application/json": { schema: errorResponseSchema } },
+        description: "Missing or invalid authentication token",
+      },
+      409: {
+        content: { "application/json": { schema: errorResponseSchema } },
+        description: "User already has a company configured",
+      },
+    },
+  });
 
   const getCompanyRoute = createRoute({
     method: "get",
@@ -119,6 +155,16 @@ export function createCompanyRoutes(
   companyRoutes.use("/*", authMiddleware);
 
   // ─── Route Handlers ─────────────────────────────────────────────
+
+  companyRoutes.openapi(setupCompanyRoute, async (c) => {
+    const payload = getAuthPayload(c);
+    if (payload.companyId !== null) {
+      return errorResponse(c, "Empresa já configurada para este usuário", 409);
+    }
+    const data = c.req.valid("json");
+    const company = await companyService.createWithOwner(payload.id, data);
+    return successResponse(c, company, 201, "Empresa criada com sucesso");
+  });
 
   companyRoutes.openapi(getCompanyRoute, async (c) => {
     const { companyId } = getCompanyContext(c);
