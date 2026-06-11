@@ -82,3 +82,18 @@ export const registerResponseSchema = successResponseSchema(
   loginResponseSchema,
   "RegisterResponse",
 );
+
+export const meResponseSchema = successResponseSchema(
+  z
+    .object({
+      id: z.number().openapi({ example: 1 }),
+      email: z.string().openapi({ example: "joao@example.com" }),
+      name: z.string().nullable().openapi({ example: "João Silva" }),
+      hasCompany: z.boolean().openapi({
+        description: "True when the user has completed onboarding",
+        example: false,
+      }),
+    })
+    .openapi("MeData"),
+  "MeResponse",
+);

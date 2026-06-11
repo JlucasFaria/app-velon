@@ -4,7 +4,12 @@ import { sign, verify } from "hono/jwt";
 import { PrismaClientKnownRequestError } from "../../../generated/prisma/runtime/client";
 import type { Role } from "../../../generated/prisma";
 import { env } from "../../config/env";
-import { blacklistToken } from "../../middlewares/auth";
+import {
+  authMiddleware,
+  blacklistToken,
+  getAuthPayload,
+  type AuthVariables,
+} from "../../middlewares/auth";
 import { ACCESS_TOKEN_TTL_SECONDS } from "../../config/constants";
 import { AuthService } from "./auth-service";
 import {
@@ -14,6 +19,7 @@ import {
   logoutResponseSchema,
   registerSchema,
   registerResponseSchema,
+  meResponseSchema,
 } from "./auth-schema";
 import {
   errorResponseSchema,
@@ -39,6 +45,9 @@ export interface IUserAuthRepository {
     name: string;
     password: string;
   }): Promise<{ id: number; email: string }>;
+  findById(
+    id: number,
+  ): Promise<{ id: number; email: string; name: string | null } | null>;
 }
 
 // === Factory function ===
@@ -48,7 +57,7 @@ export function createAuthRoutes(
   userRepo: IUserAuthRepository,
   authService: AuthService = new AuthService(),
 ) {
-  const authRoutes = new OpenAPIHono();
+  const authRoutes = new OpenAPIHono<{ Variables: AuthVariables }>();
 
   async function generateAccessToken(
     user: { id: number; email: string },
@@ -65,6 +74,27 @@ export function createAuthRoutes(
   }
 
   // === Route Definitions ===
+
+  const meRoute = createRoute({
+    method: "get",
+    path: "/me",
+    tags: ["Auth"],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: {
+        content: { "application/json": { schema: meResponseSchema } },
+        description: "Authenticated user info with company status",
+      },
+      401: {
+        content: { "application/json": { schema: errorResponseSchema } },
+        description: "Missing or invalid authentication token",
+      },
+      404: {
+        content: { "application/json": { schema: errorResponseSchema } },
+        description: "User not found",
+      },
+    },
+  });
 
   const registerRoute = createRoute({
     method: "post",
@@ -168,6 +198,28 @@ export function createAuthRoutes(
         description: "Validation error",
       },
     },
+  });
+
+  // /me is the only auth route that requires a valid token
+  authRoutes.use("/me", authMiddleware);
+
+  // === Me Handler ===
+  authRoutes.openapi(meRoute, async (c) => {
+    const payload = getAuthPayload(c);
+    const user = await userRepo.findById(payload.id);
+    if (!user) {
+      return errorResponse(c, "User not found", 404);
+    }
+    return successResponse(
+      c,
+      {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        hasCompany: payload.companyId !== null,
+      },
+      200,
+    );
   });
 
   // === Register Handler ===
