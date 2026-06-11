@@ -7,6 +7,7 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoginPage } from "@/pages/auth/LoginPage";
+import { RegisterPage } from "@/pages/auth/RegisterPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
 import { ClientsPage } from "@/pages/clients/ClientsPage";
 import { ClientDetailPage } from "@/pages/clients/ClientDetailPage";
@@ -30,6 +31,7 @@ function ProtectedRoute() {
 
 const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
+  { path: "/register", element: <RegisterPage /> },
   {
     // Authenticated area
     element: <ProtectedRoute />,

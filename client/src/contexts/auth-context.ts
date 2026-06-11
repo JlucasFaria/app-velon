@@ -10,6 +10,8 @@ export interface AuthContextValue {
   accessToken: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Stores a token pair received from register or refresh without re-calling the API. */
+  setSession: (token: string, refreshToken: string) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

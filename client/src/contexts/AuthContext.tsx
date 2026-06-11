@@ -42,13 +42,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initialUser ? localStorage.getItem(ACCESS_TOKEN_KEY) : null,
   );
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { token, refreshToken } = await authApi.login(email, password);
+  const setSession = useCallback((token: string, refreshToken: string) => {
     localStorage.setItem(ACCESS_TOKEN_KEY, token);
     localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
     setAccessToken(token);
     setUser(decodeUser(token));
   }, []);
+
+  const login = useCallback(async (email: string, password: string) => {
+    const { token, refreshToken } = await authApi.login(email, password);
+    setSession(token, refreshToken);
+  }, [setSession]);
 
   const logout = useCallback(async () => {
     const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
@@ -66,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, accessToken, login, logout }}>
+    <AuthContext.Provider value={{ user, accessToken, login, logout, setSession }}>
       {children}
     </AuthContext.Provider>
   );
