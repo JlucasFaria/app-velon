@@ -258,6 +258,41 @@ describe("Company Routes", () => {
       expect(res.status).toBe(409);
     });
 
+    it("should return 409 on a second setup with a stale (companyId: null) token, without creating a second company", async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: `setup-stale-${crypto.randomUUID()}@test.com`,
+          password: "hashed",
+        },
+      });
+      // Token still carries companyId: null — simulates a user who completed
+      // setup but never refreshed their access token.
+      const token = await signTestToken(user.id, user.email, null, null);
+
+      const first = await app.request("/api/company/setup", {
+        method: "POST",
+        body: JSON.stringify({ name: "Primeira Empresa" }),
+        headers: json(token),
+      });
+      expect(first.status).toBe(201);
+
+      const second = await app.request("/api/company/setup", {
+        method: "POST",
+        body: JSON.stringify({ name: "Segunda Empresa" }),
+        headers: json(token),
+      });
+      const body = (await second.json()) as { error: string };
+
+      expect(second.status).toBe(409);
+      expect(body.error).toBe("Empresa já configurada para este usuário");
+
+      // The DB guard must have prevented a second company + membership.
+      const memberships = await prisma.membership.count({
+        where: { userId: user.id },
+      });
+      expect(memberships).toBe(1);
+    });
+
     it("should return 400 when name is missing", async () => {
       const user = await prisma.user.create({
         data: {

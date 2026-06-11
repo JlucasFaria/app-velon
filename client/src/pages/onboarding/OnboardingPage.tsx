@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import * as companyApi from "@/api/company";
+import { ApiError } from "@/api/client";
 import {
   Form,
   FormControl,
@@ -28,7 +29,8 @@ const schema = z.object({
   name: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
   document: z.string().optional(),
   phone: z.string().optional(),
-  email: z.string().optional(),
+  // Optional, but must be a valid email when provided (empty string = not set).
+  email: z.string().email("E-mail inválido").or(z.literal("")),
   address: z.string().optional(),
 });
 
@@ -58,13 +60,29 @@ export function OnboardingPage() {
         email: nullIfEmpty(data.email),
         address: nullIfEmpty(data.address),
       });
-      await refreshSession();
-      navigate("/", { replace: true });
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Falha ao configurar empresa",
-      );
+      // 409 means the company already exists for this user — likely a prior
+      // attempt that created it but failed to refresh the token. Treat it as
+      // done and fall through to refresh + navigate instead of erroring out.
+      if (!(err instanceof ApiError && err.status === 409)) {
+        toast.error(
+          err instanceof Error ? err.message : "Falha ao configurar empresa",
+        );
+        return;
+      }
     }
+
+    try {
+      // The setup token still carries companyId: null — refresh to get a token
+      // scoped to the new company before entering the dashboard.
+      await refreshSession();
+    } catch {
+      toast.error(
+        "Empresa criada, mas não foi possível atualizar a sessão. Faça login novamente.",
+      );
+      return;
+    }
+    navigate("/", { replace: true });
   }
 
   return (
