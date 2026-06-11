@@ -15,6 +15,7 @@ import { createOrderRoutes } from "./api/order/order-routes";
 import { createReceiptRoutes } from "./api/receipt/receipt-routes";
 import { createReportRoutes } from "./api/report/report-routes";
 import { createCompanyRoutes } from "./api/company/company-routes";
+import { createInviteRoutes } from "./api/invites/invite-routes";
 import { UserService } from "./api/user/user-service";
 import { errorHandler } from "./middlewares/error-handler";
 import { requestIdMiddleware } from "./middlewares/request-id";
@@ -106,6 +107,7 @@ app.route("/api/orders", createOrderRoutes());
 app.route("/api/orders", createReceiptRoutes());
 app.route("/api/reports", createReportRoutes());
 app.route("/api/company", createCompanyRoutes());
+app.route("/api/invites", createInviteRoutes());
 
 const port = env.PORT;
 console.log(`\n🚀 Server running at: http://localhost:${port}`);
