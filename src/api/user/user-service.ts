@@ -63,6 +63,41 @@ export class UserService {
     return { users, pagination };
   }
 
+  // Returns only users who have an active membership in the given company.
+  // Replaces getAll() for the GET /api/users endpoint to prevent cross-tenant data exposure.
+  async getAllByCompany(
+    companyId: number,
+    page?: string | number,
+    limit?: string | number,
+  ) {
+    const params = getPaginationParams(page, limit);
+    const companyFilter = {
+      memberships: { some: { companyId, status: "ACTIVE" as const } },
+    };
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where: companyFilter,
+        skip: params.skip,
+        take: params.limit,
+        orderBy: { id: "asc" },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      this.prisma.user.count({ where: companyFilter }),
+    ]);
+
+    return {
+      users,
+      pagination: createPaginationMeta(params.page, params.limit, total),
+    };
+  }
+
   async verifyPassword(hash: string, password: string) {
     return await Bun.password.verify(password, hash);
   }

@@ -6,7 +6,11 @@ import {
   paginatedUsersResponseSchema,
 } from "./user-schema";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
-import { authMiddleware, type AuthVariables } from "../../middlewares/auth";
+import {
+  authMiddleware,
+  getCompanyContext,
+  type AuthVariables,
+} from "../../middlewares/auth";
 import { successResponse } from "../../utils/response";
 import { paginationQuerySchema } from "../../schemas/pagination";
 import {
@@ -79,9 +83,10 @@ export function createUserRoutes(userService: UserService = new UserService()) {
   userRoutes.get("/*", authMiddleware);
 
   userRoutes.openapi(listUsersRoute, async (c) => {
+    const { companyId } = getCompanyContext(c);
     const page = c.req.query("page");
     const limit = c.req.query("limit");
-    const result = await userService.getAll(page, limit);
+    const result = await userService.getAllByCompany(companyId, page, limit);
     return successResponse(c, result, 200, "Users retrieved successfully");
   });
 
