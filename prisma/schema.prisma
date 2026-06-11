@@ -50,12 +50,19 @@ model Company {
 
 model Membership {
   id        Int              @id @default(autoincrement())
-  userId    Int
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Nullable: a PENDING invite to a not-yet-registered email has no user until
+  // it is accepted. Postgres treats NULLs as distinct, so multiple pending
+  // invites (userId = null) never collide on @@unique([userId, companyId]).
+  userId    Int?
+  user      User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
   companyId Int
   company   Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   role      Role             @default(OPERATOR)
   status    MembershipStatus @default(ACTIVE)
+  // Invite fields — populated while status is PENDING. Cleared on accept.
+  invitedEmail    String?
+  inviteToken     String?    @unique
+  inviteExpiresAt DateTime?
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
