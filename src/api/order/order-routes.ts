@@ -11,6 +11,7 @@ import {
   errorResponseSchema,
   validationErrorResponseSchema,
 } from "../../schemas/response";
+import { requireMinRole } from "../../middlewares/permissions";
 import { OrderService } from "./order-service";
 import {
   createOrderSchema,
@@ -242,6 +243,9 @@ export function createOrderRoutes(
   // ─── Middleware ─────────────────────────────────────────────────
 
   orderRoutes.use("/*", authMiddleware);
+  orderRoutes.on("POST", "/", requireMinRole("OPERATOR"));
+  orderRoutes.on(["PUT", "DELETE"], "/:id", requireMinRole("OPERATOR"));
+  orderRoutes.on("PATCH", "/:id/status", requireMinRole("OPERATOR"));
 
   // ─── Route Handlers ─────────────────────────────────────────────
 

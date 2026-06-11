@@ -1,6 +1,6 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
 import { getCompanyContext, type AuthVariables } from "../../middlewares/auth";
+import { requireMinRole } from "../../middlewares/permissions";
 import { env } from "../../config/env";
 import { successResponse } from "../../utils/response";
 import {
@@ -20,6 +20,10 @@ export function createMemberRoutes(
   memberService: MemberService = new MemberService(),
 ) {
   const memberRoutes = new OpenAPIHono<{ Variables: AuthVariables }>();
+
+  // All member management actions are admin-only.
+  // Inherits authMiddleware from the parent company router.
+  memberRoutes.use("/*", requireMinRole("ADMIN"));
 
   const inviteRoute = createRoute({
     method: "post",
@@ -58,14 +62,7 @@ export function createMemberRoutes(
   });
 
   memberRoutes.openapi(inviteRoute, async (c) => {
-    const { companyId, role } = getCompanyContext(c);
-    // Admin-only. Task 5 will replace this inline check with a role middleware.
-    if (role !== "ADMIN") {
-      throw new HTTPException(403, {
-        message: "Apenas administradores podem convidar membros",
-      });
-    }
-
+    const { companyId } = getCompanyContext(c);
     const { email, role: invitedRole } = c.req.valid("json");
     const invite = await memberService.inviteMember(
       companyId,

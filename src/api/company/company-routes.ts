@@ -16,6 +16,7 @@ import {
   UPLOADS_DIR,
   UPLOADS_URL_PREFIX,
 } from "../../config/constants";
+import { requireMinRole } from "../../middlewares/permissions";
 import { CompanyService } from "./company-service";
 import {
   updateCompanySchema,
@@ -154,6 +155,11 @@ export function createCompanyRoutes(
   // ─── Middleware ─────────────────────────────────────────────────
 
   companyRoutes.use("/*", authMiddleware);
+
+  // Company write operations restricted to admins.
+  // POST /setup is excluded — caller has no company yet (no role to check).
+  companyRoutes.on("PATCH", "/", requireMinRole("ADMIN"));
+  companyRoutes.on("POST", "/logo", requireMinRole("ADMIN"));
 
   // Member management lives under /members; the auth middleware above covers it.
   companyRoutes.route("/members", createMemberRoutes());
