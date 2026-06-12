@@ -10,6 +10,7 @@ import {
   getPartnerNameSuggestions,
   type Client,
 } from "@/api/clients";
+import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -146,7 +147,11 @@ export function ClientForm({
       onOpenChange(false);
       onSuccess();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Algo deu errado");
+      if (err instanceof ApiError && err.status === 409) {
+        form.setError("document", { message: err.message });
+      } else {
+        toast.error(err instanceof Error ? err.message : "Algo deu errado");
+      }
     }
   }
 
