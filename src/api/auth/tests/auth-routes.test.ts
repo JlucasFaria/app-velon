@@ -49,6 +49,32 @@ describe("Auth Routes", () => {
       expect(refreshToken.length).toBeGreaterThan(0);
     });
 
+    it("should log in with a different email casing than registration (emails normalized to lowercase)", async () => {
+      // Register with a mixed-case email — stored lowercase by the service.
+      await app.request("/api/users", {
+        method: "POST",
+        body: JSON.stringify({
+          email: "MixedCase@Example.com",
+          password: "Secret1234",
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      // Log in using a different casing; findByEmail normalizes the lookup.
+      const res = await app.request("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: "mixedcase@EXAMPLE.COM",
+          password: "Secret1234",
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const body = (await res.json()) as { data: { token: string } };
+      expect(res.status).toBe(200);
+      expect(typeof body.data.token).toBe("string");
+    });
+
     it("should return 401 when password is wrong", async () => {
       await app.request("/api/users", {
         method: "POST",
