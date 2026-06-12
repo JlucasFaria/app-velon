@@ -71,15 +71,26 @@ export interface InviteMemberInput {
   role: MemberRole;
 }
 
+// invite/resend return the pending membership plus the shareable accept link —
+// not a full Member (no linked user account yet).
+export interface InviteResult {
+  id: number;
+  role: MemberRole;
+  status: MemberStatus;
+  invitedEmail: string | null;
+  inviteExpiresAt: string | null;
+  inviteUrl?: string;
+}
+
 export function inviteMember(input: InviteMemberInput) {
-  return apiRequest<Member>("/company/members/invite", {
+  return apiRequest<InviteResult>("/company/members/invite", {
     method: "POST",
     body: input,
   });
 }
 
 export function resendInvite(memberId: number) {
-  return apiRequest<Member>(`/company/members/${memberId}/resend`, {
+  return apiRequest<InviteResult>(`/company/members/${memberId}/resend`, {
     method: "POST",
   });
 }

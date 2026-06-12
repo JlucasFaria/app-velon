@@ -75,8 +75,24 @@ export function MemberList({
 
   async function handleResend(member: Member) {
     try {
-      await resendInvite(member.id);
-      toast.success("Convite reenviado");
+      const result = await resendInvite(member.id);
+      if (result.inviteUrl) {
+        const link = result.inviteUrl;
+        toast.success("Convite reenviado", {
+          description: "Copie o link e envie ao convidado.",
+          action: {
+            label: "Copiar link",
+            onClick: () => {
+              navigator.clipboard.writeText(link).then(
+                () => toast.success("Link copiado"),
+                () => toast.error("Não foi possível copiar o link"),
+              );
+            },
+          },
+        });
+      } else {
+        toast.success("Convite reenviado");
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao reenviar convite");
     }

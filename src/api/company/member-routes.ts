@@ -1,7 +1,6 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { getCompanyContext, type AuthVariables } from "../../middlewares/auth";
 import { requireMinRole } from "../../middlewares/permissions";
-import { env } from "../../config/env";
 import { successResponse } from "../../utils/response";
 import {
   errorResponseSchema,
@@ -238,25 +237,17 @@ export function createMemberRoutes(
       invitedRole,
     );
 
-    // The link is emailed in all environments; echo it in the response only
-    // outside production so the UI can offer a "copy link" fallback.
-    const data =
-      env.NODE_ENV === "production"
-        ? { ...invite, inviteUrl: undefined }
-        : invite;
-
-    return successResponse(c, data, 201, "Convite criado com sucesso");
+    // Always echo the accept link in the response so the admin can copy and
+    // share it. (The configured email transport delivers it too; in this build
+    // that transport only logs, so the copy-link is the practical channel.)
+    return successResponse(c, invite, 201, "Convite criado com sucesso");
   });
 
   memberRoutes.openapi(resendInviteRoute, async (c) => {
     const { companyId } = getCompanyContext(c);
     const { id } = c.req.valid("param");
     const invite = await memberService.resendInvite(id, companyId);
-    const data =
-      env.NODE_ENV === "production"
-        ? { ...invite, inviteUrl: undefined }
-        : invite;
-    return successResponse(c, data, 200, "Convite reenviado com sucesso");
+    return successResponse(c, invite, 200, "Convite reenviado com sucesso");
   });
 
   memberRoutes.openapi(changeRoleRoute, async (c) => {
