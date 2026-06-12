@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,7 +6,9 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { createOrder } from "@/api/orders";
+import type { ClientInput } from "@/api/clients";
 import { ClientCombobox } from "@/components/clients/ClientCombobox";
+import { InlineClientForm } from "@/components/orders/InlineClientForm";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -34,7 +36,6 @@ const schema = z.object({
   description: z
     .string()
     .min(3, "A descrição deve ter ao menos 3 caracteres"),
-  // Accept both "250.00" and the Brazilian "250,00"; normalized before submit.
   value: z
     .string()
     .regex(/^\d+([.,]\d{1,2})?$/, "Informe um valor válido, ex.: 250,00"),
@@ -49,6 +50,10 @@ interface OrderFormProps {
 
 export function OrderForm({ open, onOpenChange }: OrderFormProps) {
   const navigate = useNavigate();
+  const [inlineClient, setInlineClient] = useState<{
+    active: boolean;
+    initialName: string;
+  }>({ active: false, initialName: "" });
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -60,8 +65,21 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
   useEffect(() => {
     if (open) {
       form.reset({ description: "", value: "" });
+      setInlineClient({ active: false, initialName: "" });
     }
   }, [open, form]);
+
+  function openInlineClient(query: string) {
+    setInlineClient({ active: true, initialName: query });
+  }
+
+  function cancelInlineClient() {
+    setInlineClient({ active: false, initialName: "" });
+  }
+
+  async function handleClientSave(_data: ClientInput) {
+    // Task 3: create client via API and auto-select it
+  }
 
   async function onSubmit(data: FormData) {
     try {
@@ -83,73 +101,89 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
         <DialogHeader>
           <DialogTitle>Nova ordem de serviço</DialogTitle>
           <DialogDescription>
-            Selecione o cliente e descreva o serviço a ser realizado.
+            {inlineClient.active
+              ? "Preencha os dados do novo cliente."
+              : "Selecione o cliente e descreva o serviço a ser realizado."}
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="clientId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cliente</FormLabel>
-                  <FormControl>
-                    <ClientCombobox
-                      value={field.value ?? null}
-                      onChange={(id) => field.onChange(id ?? undefined)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Descrição</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Descreva o serviço…"
-                      rows={4}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="value"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor (R$)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="250,00" inputMode="decimal" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isSubmitting ? "Criando…" : "Criar ordem"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+
+        {inlineClient.active ? (
+          <InlineClientForm
+            initialName={inlineClient.initialName}
+            onCancel={cancelInlineClient}
+            onSave={handleClientSave}
+          />
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="clientId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cliente</FormLabel>
+                    <FormControl>
+                      <ClientCombobox
+                        value={field.value ?? null}
+                        onChange={(id) => field.onChange(id ?? undefined)}
+                        onCreateNew={openInlineClient}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descrição</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Descreva o serviço…"
+                        rows={4}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="value"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor (R$)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="250,00"
+                        inputMode="decimal"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isSubmitting ? "Criando…" : "Criar ordem"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        )}
       </DialogContent>
     </Dialog>
   );

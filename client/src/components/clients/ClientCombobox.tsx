@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 interface ClientComboboxProps {
   value: number | null;
   onChange: (clientId: number | null) => void;
+  onCreateNew?: (query: string) => void;
   placeholder?: string;
   id?: string;
   ref?: Ref<HTMLInputElement>;
@@ -16,6 +17,7 @@ interface ClientComboboxProps {
 export function ClientCombobox({
   value,
   onChange,
+  onCreateNew,
   placeholder,
   id,
   ref,
@@ -92,29 +94,61 @@ export function ClientCombobox({
               Buscando…
             </div>
           ) : results.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-muted-foreground">
-              Nenhum cliente encontrado.
-            </div>
+            <>
+              <div className="px-3 py-2 text-sm text-muted-foreground">
+                Nenhum cliente encontrado.
+              </div>
+              {onCreateNew && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setOpen(false);
+                    onCreateNew(query);
+                  }}
+                  className="flex w-full items-center gap-1 border-t px-3 py-2 text-left text-sm font-medium text-primary hover:bg-accent"
+                >
+                  + Criar novo cliente:{" "}
+                  <span className="font-normal text-foreground">{query}</span>
+                </button>
+              )}
+            </>
           ) : (
-            results.map((client) => (
-              <button
-                key={client.id}
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  selectClient(client);
-                }}
-                className={cn(
-                  "flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-accent",
-                  value === client.id && "bg-accent",
-                )}
-              >
-                <span className="font-medium">{client.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {client.document}
-                </span>
-              </button>
-            ))
+            <>
+              {results.map((client) => (
+                <button
+                  key={client.id}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    selectClient(client);
+                  }}
+                  className={cn(
+                    "flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-accent",
+                    value === client.id && "bg-accent",
+                  )}
+                >
+                  <span className="font-medium">{client.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {client.document}
+                  </span>
+                </button>
+              ))}
+              {onCreateNew && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setOpen(false);
+                    onCreateNew(query);
+                  }}
+                  className="flex w-full items-center gap-1 border-t px-3 py-2 text-left text-sm font-medium text-primary hover:bg-accent"
+                >
+                  + Criar novo cliente:{" "}
+                  <span className="font-normal text-foreground">{query}</span>
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
