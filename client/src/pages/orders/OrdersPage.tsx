@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ClipboardList, Eye, Plus, Search } from "lucide-react";
 import {
   getOrders,
@@ -196,9 +196,21 @@ export function OrdersPage() {
                 : data?.orders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">
-                        {order.orderNumber}
+                        <Link
+                          to={`/orders/${order.id}`}
+                          className="hover:underline"
+                        >
+                          {order.orderNumber}
+                        </Link>
                       </TableCell>
-                      <TableCell>{order.client.name}</TableCell>
+                      <TableCell>
+                        <Link
+                          to={`/clients/${order.client.id}`}
+                          className="hover:underline"
+                        >
+                          {order.client.name}
+                        </Link>
+                      </TableCell>
                       <TableCell>
                         <OrderStatusBadge status={order.status} />
                       </TableCell>
