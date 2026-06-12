@@ -66,8 +66,9 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
 
   useEffect(() => {
     if (open) {
-      form.reset({ description: "", value: "" });
+      form.reset({ clientId: undefined, description: "", value: "" });
       setInlineClient({ active: false, initialName: "" });
+    } else {
       setSelectedClientName("");
       setSelectionKey(0);
     }

@@ -192,7 +192,6 @@ export function InlineClientForm({
                         placeholder="Nome do parceiro"
                         className="h-8 text-sm"
                         {...field}
-                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />

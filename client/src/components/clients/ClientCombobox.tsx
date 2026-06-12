@@ -41,7 +41,7 @@ export function ClientCombobox({
       searchClients(query)
         .then((data) => {
           if (!cancelled) {
-            setResults(data.slice(0, 5));
+            setResults(data);
             setLoading(false);
           }
         })
@@ -66,6 +66,21 @@ export function ClientCombobox({
     setQuery(client.name);
     setOpen(false);
   }
+
+  const createNewButton = onCreateNew ? (
+    <button
+      type="button"
+      onMouseDown={(e) => {
+        e.preventDefault();
+        setOpen(false);
+        onCreateNew(query);
+      }}
+      className="flex w-full items-center gap-1 border-t px-3 py-2 text-left text-sm font-medium text-primary hover:bg-accent"
+    >
+      + Criar novo cliente:{" "}
+      <span className="font-normal text-foreground">{query}</span>
+    </button>
+  ) : null;
 
   return (
     <div className="relative">
@@ -101,20 +116,7 @@ export function ClientCombobox({
               <div className="px-3 py-2 text-sm text-muted-foreground">
                 Nenhum cliente encontrado.
               </div>
-              {onCreateNew && (
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setOpen(false);
-                    onCreateNew(query);
-                  }}
-                  className="flex w-full items-center gap-1 border-t px-3 py-2 text-left text-sm font-medium text-primary hover:bg-accent"
-                >
-                  + Criar novo cliente:{" "}
-                  <span className="font-normal text-foreground">{query}</span>
-                </button>
-              )}
+              {createNewButton}
             </>
           ) : (
             <>
@@ -137,20 +139,7 @@ export function ClientCombobox({
                   </span>
                 </button>
               ))}
-              {onCreateNew && (
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setOpen(false);
-                    onCreateNew(query);
-                  }}
-                  className="flex w-full items-center gap-1 border-t px-3 py-2 text-left text-sm font-medium text-primary hover:bg-accent"
-                >
-                  + Criar novo cliente:{" "}
-                  <span className="font-normal text-foreground">{query}</span>
-                </button>
-              )}
+              {createNewButton}
             </>
           )}
         </div>
