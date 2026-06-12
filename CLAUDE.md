@@ -1,71 +1,42 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repository.
+
+---
 
 ## Git Workflow
 
-### Branch and commit rules
+### Rules
 
-- Always check which branch you are on before starting any task
-- Each group of tasks must have its own branch created from an updated `main`
-- Branch name format: `feature/group-name`
-- Each individual task = 1 commit on that branch
-- Commit format: `<type>: short description` — where `<type>` follows Conventional Commits (`feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `style`)
+- Check the current branch before starting any task.
+- Each task group gets its own branch off an updated `main`: `feature/group-name`.
+- Each task = 1 commit. Commit format: `<type>: short description` (Conventional Commits: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `style`). One-line subject only — **no body, no Co-Authored-By line**.
 
-### Mandatory work order
+### Mandatory order
 
-1. Ensure local `main` is up to date (`git pull origin main`)
-2. Create the group branch from `main`
-3. After each completed task:
-   - Run the tests and verify they all pass
-   - Only commit if tests are OK
-   - If any test fails, fix it before committing
-   - Mark the task as `[x]` in `Tasks.md`
-4. After completing all tasks in a group:
-   - Run the tests again
-   - Run linting and fix all errors/warnings
-   - **STOP and generate the Change Report (see section below)**
-   - Wait for explicit user approval
-5. After approval: the **user** handles `git push` and opening the PR on GitHub
-6. After the PR is merged: run `git checkout main && git pull origin main`, then delete the merged branch with `git branch -D feature/branch-name` (use `-D` because GitHub squash/rebase merges create new commit hashes, making `-d` think the branch is unmerged)
-7. Only then create the next group's branch
+1. Update local `main` (`git pull origin main`).
+2. Create the group branch from `main`.
+3. Per task: run tests → commit only if green (fix first if red) → mark `[x]` in `Tasks.md`.
+4. When all group tasks are done: run tests, run lint and fix all errors/warnings, then **STOP and produce the Change Report** and wait for explicit approval.
+5. After approval: the **user** handles `git push` and the PR.
+6. After merge: `git checkout main && git pull origin main`, delete the branch with `git branch -D feature/branch-name` (`-D` because squash/rebase merges rewrite hashes).
+7. Only then start the next group's branch.
 
-### Never do
+### Never
 
-- Do not commit without first running and verifying tests
-- Do not push — the user handles all `git push` commands
-- Do not create multiple branches simultaneously before merging previous ones
-- Do not commit directly to `main`
-- Do not start a new task group without running `git pull origin main` first
+- Commit without running/verifying tests. Push (the user does it). Commit to `main`.
+- Create multiple group branches before merging the previous one.
+- Start a new group without `git pull origin main` first.
 
 ---
 
 ## Tasks.md Workflow
 
-### When to create Tasks.md
+Create/update `Tasks.md` **before implementing** when the request has more than one step or touches functional code (features, bugfixes, refactors).
 
-Create or update `Tasks.md` **before starting any implementation** when:
-
-- The user describes a set of changes to make
-- There is more than 1 thing to implement/fix
-- The task involves functional code (features, bugfixes, refactors)
-
-### How to create Tasks.md
-
-When the user describes what they want, **before coding**:
-
-1. Analyze the request and decompose it into atomic tasks
-2. Order the groups by dependency before writing — follow this priority:
-   - **Infrastructure first** (DB migrations, Docker, env config) — no dependencies, everything else builds on top
-   - **Architecture second** (patterns, DI, factories, constants) — establishes the final shape of the code
-   - **Security/behavior changes third** (hardening, validations, error handling) — applied on top of clean architecture
-   - **Tests fourth** (unit + integration) — written against the final, stable code to avoid rewriting
-   - **Observability last** (logging, tracing) — depends on architecture and error handler being finalized
-   - Within each tier, order by: shared utilities before consumers, foundational changes before derived ones
-3. Write `Tasks.md` with the format below — **always in English**
-4. **Show Tasks.md to the user and wait for confirmation** before starting
-
-### Tasks.md format
+1. Decompose the request into atomic tasks.
+2. Order groups by dependency: **Infrastructure** (DB/Docker/env) → **Architecture** (patterns, DI, constants) → **Security/behavior** (hardening, validation, error handling) → **Tests** → **Observability** (logging, tracing). Within a tier: shared utilities before consumers.
+3. Write `Tasks.md` in **English**, show it to the user, and wait for confirmation before coding.
 
 ```markdown
 # Tasks — [group/feature name]
@@ -74,51 +45,38 @@ When the user describes what they want, **before coding**:
 
 ## Tasks
 
-- [ ] Task 1: clear and objective description
-- [ ] Task 2: clear and objective description
-- [ ] Task 3: clear and objective description
+- [ ] Task 1: clear, objective description
 
 ## Context
 
-[Summary of the overall goal in 2-3 lines]
+[2–3 lines on the overall goal]
 
 ## Expected files to modify
 
 - `src/...`
-- `tests/...`
 ```
 
-### How to keep Tasks.md updated
-
-- Mark `[x]` after each completed task (after tests pass)
-- If a new task arises during work, add it to the file before executing
-- When **all** tasks in a group are done AND the PR is merged:
-  - Delete that entire group block from `Tasks.md`
-  - The file should contain only groups with pending tasks
-- If `Tasks.md` becomes empty after cleanup, delete the file
+- Mark `[x]` after each task passes its tests. Add new tasks to the file before doing them.
+- When a group is fully done **and merged**, delete its block. If the file ends up empty, delete it.
 
 ---
 
 ## Change Report (pre-push)
 
-Before any `git push`, mandatorily generate this report and **wait for approval**:
+Before any push, produce this and **wait for approval**:
 
 ```
-## Change Report — [branch name]
+## Change Report — [branch]
 
 ### Completed tasks
-- [x] Task 1 — commit: `feat: description`
-- [x] Task 2 — commit: `fix: description`
+- [x] Task 1 — commit: `feat: ...`
 
 ### Modified files
 | File | Change type |
 |------|-------------|
-| src/foo.ts | Modified |
-| src/bar.ts | Created |
-| tests/foo.test.ts | Modified |
 
 ### Summary of changes
-[2-4 lines describing what was done and why]
+[2–4 lines: what and why]
 
 ### Tests
 - Total: X | Passing: X | Failing: 0
@@ -127,327 +85,158 @@ Before any `git push`, mandatorily generate this report and **wait for approval*
 - Status: no errors/warnings
 
 ### Next step
-Awaiting your approval. Once approved, you can run:
-`git push origin feature/group-name` and open the PR.
-
-Type "approve" to proceed or indicate adjustments.
+Awaiting approval. Once approved: `git push origin feature/group-name` and open the PR.
 ```
 
----
-
-## When to apply this workflow
-
-Full workflow (Tasks.md + Report + approval):
-
-- Multiple tasks to implement
-- Task involves functional code (features, bugfixes, refactors)
-
-Simplified workflow (no ceremony):
-
-- Trivial fix like typo, text adjustment, comment
-- User asks for something quick and pointed
-- An active branch already exists for that context
-
-When in doubt, ask before creating a branch or Tasks.md.
+**Skip the full ceremony** (Tasks.md + Report) only for trivial, pointed work (typo, comment, one-line fix) or when an active branch already covers the context. When in doubt, ask before creating a branch or Tasks.md.
 
 ---
 
 ## Project Overview
 
-**Velon** — internal web management system for local small businesses (service orders, client management, receipts, billing reports). College final project demonstrated at a real partner commerce.
+**Velon** — internal web management system for local small businesses (service orders, clients, receipts, billing reports). College final project, demonstrated at a real partner commerce. **Multi-tenant**: every user belongs to a `Company` via a `Membership` that carries a role; all business data is scoped by `companyId`.
 
-**Backend**: Hono (web framework) + Prisma 7 ORM (`@prisma/adapter-pg`) + Zod 4 validation + Bun runtime. Features OpenAPI/Swagger documentation, JWT authentication with refresh tokens, PostgreSQL via Docker.
+- **Backend** (repo root, `src/`): Hono + `@hono/zod-openapi` + Prisma 7 (`@prisma/adapter-pg`) + Zod 4, on Bun. JWT auth with refresh tokens, OpenAPI/Swagger, PostgreSQL via Docker.
+- **Frontend** (`/client`): React 19 + Vite + TypeScript + shadcn/ui + Tailwind v4. Vite proxies `/api` → `http://localhost:3000` in dev (no CORS config needed).
+- **Monorepo**: backend and `client/` each have their own `package.json`; Bun manages both.
 
-**Frontend**: React + Vite + TypeScript + shadcn/ui + Tailwind CSS — located in `/client`. Vite proxies `/api` to `http://localhost:3000` in development (no CORS configuration needed).
-
-**Structure**: Monorepo — backend at repo root (`src/`), frontend at `/client`. Each has its own `package.json`. Bun manages both.
+---
 
 ## Commands
 
 ```bash
-# Backend — Development
-bun run dev              # Start server with watch mode (bun --watch)
-bun run dev:all          # Start database container + dev server
-bun run start            # Start server without watch mode (production)
+# Backend
+bun run dev / dev:all      # watch server / + db container
+bun run start              # production server
+bun run test / test:watch  # bun test
+bun run lint / lint:fix
+bun run format / format:check
 
-# Backend — Database
-bun run db:up            # Start PostgreSQL container (docker compose up -d)
-bun run db:stop          # Stop container (preserves data)
-bun run db:down          # Stop and remove container
-bun run db:migrate       # Run Prisma migrations (bunx prisma migrate dev)
-bun run db:generate      # Generate Prisma client to generated/prisma/
-bun run db:seed          # Seed database with initial data (bun prisma/seed.ts)
-bun run db:studio        # Open Prisma Studio GUI
-bun run db:reset         # Full reset: destroy volume, recreate, migrate, seed
+# Database
+bun run db:up / db:stop / db:down   # docker compose lifecycle
+bun run db:migrate                  # prisma migrate dev
+bun run db:migrate:prod             # prisma migrate deploy
+bun run db:generate                 # prisma client → generated/prisma/
+bun run db:seed                     # default company + 3 admin users
+bun run db:studio
+bun run db:reset                    # destroy volume → recreate → migrate → seed
 
-# Backend — Testing
-bun run test             # Run all tests (bun test)
-bun run test:watch       # Run tests in watch mode
-
-# Backend — Code Quality
-bun run lint             # ESLint check
-bun run lint:fix         # ESLint auto-fix
-bun run format           # Prettier format (2 spaces, semicolons, double quotes)
-bun run format:check     # Prettier check only, no writes (used in CI)
-
-# Backend — Database (production)
-bun run db:migrate:prod  # Apply pending migrations non-interactively (prisma migrate deploy)
-
-# Frontend — run from /client directory
-bun run dev              # Start Vite dev server (http://localhost:5173)
-bun run build            # Production build (output: client/dist/)
-bun run preview          # Preview production build locally
-bun run lint             # ESLint check
-bun run lint:fix         # ESLint auto-fix
+# Frontend (from repo root, or `cd client && bun run <script>`)
+bun run client:dev         # Vite dev server (http://localhost:5173)
+bun run client:build       # production build → client/dist/
 ```
+
+Tests run against a **real database** — `db:up` + `db:migrate` first.
+
+---
 
 ## Architecture
 
-### Request Flow
+### Request flow
 
 ```
-Request → secureHeaders → requestIdMiddleware → logger → cors → rateLimitMiddleware → bodyLimit → Routes → Response
-                                                                                                        ↓
-                                                                                                errorHandler (onError)
+secureHeaders → requestId → structuredLogger → cors → rateLimit(/api/*) → bodyLimit(/api/*) → routes → errorHandler (onError)
 ```
 
-- Security headers: `secureHeaders()` from `hono/secure-headers` applied globally (covers `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`, `Permissions-Policy`)
-- Rate limiting: 100 requests per 60-second window per IP, applied to `/api/*` only (in-memory store)
-- Body limit: 1MB max, applied to `/api/*` only
-- `X-Forwarded-For` first IP (`.split(",")[0]`) is used for rate-limit key — can be spoofed; configure your reverse proxy to strip client-provided values in production. In dev (no proxy), all requests fall into the `"unknown"` bucket
-- Graceful shutdown: listens for `SIGINT`/`SIGTERM`, clears rate-limit and token-blacklist cleanup intervals, disconnects Prisma, then exits cleanly
+- `secureHeaders()` global. Rate limit: 100 req / 60s per IP, `/api/*` only, in-memory. Body limit: 1 MB on `/api/*`, raised to 2 MB for the logo upload path.
+- Rate-limit key uses the first `X-Forwarded-For` IP (spoofable — strip client-provided values at the proxy in prod). In dev all requests share the `"unknown"` bucket.
+- Uploaded files served at `/api/uploads/*` (static, public — logos are embedded in `<img>`/PDFs).
+- Graceful shutdown on SIGINT/SIGTERM: clears cleanup intervals, disconnects Prisma, exits.
 
-### Special Endpoints
+### Special endpoints
 
-- `GET /health` — returns `{ status, timestamp, database }`, 503 if DB unreachable
-- `GET /ui` — Swagger UI
-- `GET /doc` — OpenAPI JSON spec
+- `GET /health` — `{ status, timestamp, database }`, 503 if DB unreachable.
+- `GET /ui` — Swagger UI. `GET /doc` — OpenAPI JSON.
 
-### Directory Structure
+### Auth & multi-tenancy (core)
 
-```
-app-velon/                              # Monorepo root
-├── src/                               # Backend (Hono + Prisma)
-├── client/                            # Frontend (React + Vite)
-│   ├── src/
-│   │   ├── main.tsx
-│   │   ├── App.tsx
-│   │   ├── api/                       # Fetch layer — one file per domain
-│   │   │   ├── client.ts              # Base fetch (injects Authorization header, 401 → redirect)
-│   │   │   ├── auth.ts
-│   │   │   ├── clients.ts
-│   │   │   ├── orders.ts
-│   │   │   ├── receipts.ts
-│   │   │   └── reports.ts
-│   │   ├── components/
-│   │   │   ├── ui/                    # shadcn/ui generated components
-│   │   │   ├── layout/                # AppShell, Sidebar, TopBar
-│   │   │   ├── clients/               # ClientForm, ClientTypeBadge
-│   │   │   └── orders/                # OrderForm, StatusTimeline, StatusChangeDialog, OrderStatusBadge
-│   │   ├── contexts/
-│   │   │   └── AuthContext.tsx        # user, accessToken, login(), logout() — tokens in localStorage
-│   │   ├── pages/
-│   │   │   ├── auth/                  # LoginPage
-│   │   │   ├── dashboard/             # DashboardPage
-│   │   │   ├── clients/               # ClientsPage, ClientDetailPage
-│   │   │   ├── orders/                # OrdersPage, OrderDetailPage
-│   │   │   ├── receipts/              # ReceiptPage (print-friendly)
-│   │   │   └── reports/               # ReportsPage
-│   │   ├── router/
-│   │   │   └── index.tsx              # Route tree + ProtectedRoute wrapper
-│   │   └── lib/                       # Utility functions (cn, formatters)
-│   ├── package.json
-│   ├── vite.config.ts                 # Proxy: /api → http://localhost:3000
-│   ├── tailwind.config.ts
-│   └── components.json                # shadcn/ui config
-├── prisma/
-├── package.json                       # Backend
-└── CLAUDE.md
-```
+JWT payload: `{ id, email, companyId: number | null, role: Role | null, exp }`. `companyId`/`role` are `null` between registration and onboarding (no company yet).
 
-```
-src/
-├── index.ts                        # App entry, middleware registration, OpenAPI config
-├── config/
-│   ├── env.ts                      # Zod-validated environment variables
-│   └── constants.ts                # Single source of truth for tuneable values (rate limit, body limit, pagination, token TTLs)
-├── db/client.ts                    # Prisma client singleton (pg adapter + pool: max 10, idle 30s, connect timeout 5s)
-├── middlewares/
-│   ├── auth.ts                     # JWT middleware + getAuthPayload() + in-memory token blacklist
-│   ├── error-handler.ts            # Global: ZodError, HTTPException, Prisma errors
-│   ├── rate-limit.ts               # In-memory IP-based rate limiter; exports rateLimitCleanupInterval
-│   ├── request-id.ts               # X-Request-ID response header (crypto.randomBytes)
-│   └── tests/
-│       ├── error-handler.test.ts   # Unit tests for errorHandler (ZodError, HTTPException, P2002, P2025, generic)
-│       ├── rate-limit.test.ts      # Unit tests for rateLimitMiddleware
-│       └── request-id.test.ts      # Unit tests for requestIdMiddleware
-├── schemas/
-│   ├── response.ts                 # successResponseSchema(schema, name), errorResponseSchema
-│   └── pagination.ts               # paginationQuerySchema, paginationMetaSchema
-├── utils/
-│   ├── response.ts                 # successResponse(), errorResponse() helpers
-│   ├── pagination.ts               # getPaginationParams(), createPaginationMeta()
-│   └── logger.ts                   # structuredLogger middleware — JSON log per request (requestId, method, path, statusCode, duration)
-└── api/
-    ├── auth/
-    │   ├── auth-schema.ts          # login, refreshToken, message schemas
-    │   ├── auth-service.ts         # Refresh token: generate, validate, revoke
-    │   ├── auth-routes.ts          # POST /login, POST /refresh, POST /logout
-    │   └── tests/
-    │       ├── auth-routes.test.ts # Integration tests (login, refresh, logout flows)
-    │       └── auth-service.test.ts # Unit tests (generateRefreshToken, validateRefreshToken, revoke)
-    ├── client/
-    │   ├── client-schema.ts        # create/update/response schemas + detail with linked orders
-    │   ├── client-service.ts       # CRUD, getAll (paginated + filter by type + search), findById (with orders)
-    │   ├── client-routes.ts        # Protected CRUD at /api/clients
-    │   └── tests/
-    │       ├── client-routes.test.ts  # Integration tests (CRUD, filters, FK-conflict on delete)
-    │       └── client-service.test.ts # Unit tests (service layer)
-    ├── health/
-    │   ├── health-routes.ts        # GET /health handler; accepts optional PrismaClient for DI
-    │   └── tests/
-    │       └── health.test.ts      # Integration tests for GET /health (200 + 503 via DI)
-    ├── order/
-    │   ├── order-schema.ts         # create/update/status-change schemas + detail with client & statusHistory
-    │   ├── order-service.ts        # orderNumber generation, updateStatus (writes StatusHistory), clientExists/userExists
-    │   ├── order-routes.ts         # Protected CRUD + PATCH /:id/status at /api/orders
-    │   └── tests/
-    │       ├── order-routes.test.ts   # Integration tests (CRUD, status transitions, FK 404, auth guard)
-    │       └── order-service.test.ts  # Unit tests (orderNumber, updateStatus history, existence checks)
-    ├── receipt/
-    │   ├── receipt-schema.ts       # response schema (receiptNumber, issuedAt, order + client)
-    │   ├── receipt-service.ts      # generate (idempotent), getByOrderId, orderExists
-    │   ├── receipt-routes.ts       # Protected POST/GET /:id/receipt (mounted at /api/orders)
-    │   └── tests/
-    │       ├── receipt-routes.test.ts  # Integration tests (generate/idempotency, 404, auth guard)
-    │       └── receipt-service.test.ts # Unit tests (idempotency, getByOrderId, orderExists)
-    ├── report/
-    │   ├── report-schema.ts        # monthly-billing + orders-summary response schemas, billingQuerySchema
-    │   ├── report-service.ts       # getMonthlyBilling (via StatusHistory completion date), getOrdersSummary (groupBy)
-    │   ├── report-routes.ts        # Protected GET /billing?month=&year= + GET /summary at /api/reports
-    │   └── tests/
-    │       ├── report-routes.test.ts   # Integration tests (billing filters, summary counts, auth guard)
-    │       └── report-service.test.ts  # Unit tests (billing totals, completion-date filter, summary counts)
-    └── user/
-        ├── user-schema.ts          # UserSchema, createUserSchema, paginatedUsersResponseSchema
-        ├── user-service.ts         # CRUD, password hashing (Bun.password)
-        ├── user-routes.ts          # GET / (protected, paginated), POST / (public)
-        └── tests/
-            ├── user-routes.test.ts  # Integration tests (full app)
-            └── user-service.test.ts # Unit tests (service layer)
-```
+- **`authMiddleware`** (`src/middlewares/auth.ts`) verifies the JWT, checks the in-memory blacklist, sets `jwtPayload`.
+- **`getAuthPayload(c)`** → raw payload. **`getCompanyContext(c)`** → `{ userId, companyId, role }`, throwing **403** when the user has no active company — so tenant-scoped handlers never run an unscoped query.
+- **`requireMinRole(minRole)`** (`src/middlewares/permissions.ts`) → **403** when the caller's role ranks below `minRole`. `ROLE_HIERARCHY = { VIEWER: 0, OPERATOR: 1, ADMIN: 2 }`. Role is read **from the JWT, not the DB**: a role change or revocation only takes effect on the next token refresh (≤ access-token TTL, 1 h). Refresh re-reads the active membership, so a revoked user cannot refresh back into access.
 
-### Database Models (Prisma)
+**Auth flow**
 
-- **User**: id (autoincrement), email (unique), password (hashed), name?, createdAt, updatedAt
-- **RefreshToken**: id, token (unique, 40 random bytes), userId (FK → User, cascade delete), expiresAt, createdAt, lastUsedAt?
-- **Client**: id (autoincrement), name, document (CPF/CNPJ unique), phone?, address?, clientType (COUNTER|PARTNER), createdAt, updatedAt
-- **ServiceOrder**: id (autoincrement), orderNumber (unique, e.g. OS-0001), description, value (Decimal), status (PENDING|IN_PROGRESS|AWAITING_CLIENT|COMPLETED|CANCELLED), clientId (FK → Client), assignedUserId (FK → User nullable), createdAt, updatedAt
-- **StatusHistory**: id (autoincrement), orderId (FK → ServiceOrder cascade delete), fromStatus?, toStatus, changedById (FK → User), changedAt, note?
-- **Receipt**: id (autoincrement), receiptNumber (unique autoincrement), orderId (FK → ServiceOrder unique), issuedAt, createdAt
+- `POST /api/auth/register` → creates the user, returns a token pair with `companyId/role = null`.
+- `POST /api/company/setup` → onboarding: creates a company and the caller's owner (ADMIN) membership. Caller then refreshes to get a company-scoped token.
+- `POST /api/auth/login` → token pair scoped to the user's active membership (if any).
+- `POST /api/auth/refresh` → validates + rotates the refresh token (old revoked, new issued), re-reads membership, returns a new pair.
+- `POST /api/auth/logout` → revokes the refresh token (idempotent) and blacklists the access token (in-memory; cleared on restart — use Redis for persistence).
+- `GET /api/auth/me` → `{ id, email, name, hasCompany }`.
 
-### Key Patterns
+**Role policy per route** (read = any role with a company):
 
-**Auth Routes Factory**: `auth-routes.ts` exports `createAuthRoutes(userRepo: IUserAuthRepository)` instead of a default route instance. The `IUserAuthRepository` interface (defined in `auth-routes.ts`) exposes only `findByEmail` and `verifyPassword` — the two methods auth actually needs. `UserService` satisfies this interface via TypeScript's structural typing. Wiring happens at the composition root (`index.ts`): `app.route("/api/auth", createAuthRoutes(new UserService()))`. This keeps `auth` decoupled from the `user` implementation and testable in isolation.
+- `clients`, `orders`: writes (POST/PUT/DELETE, PATCH status) require **OPERATOR+**.
+- `receipts`: GET any; POST (generate) requires **OPERATOR+**.
+- `company`: GET any; PATCH + logo upload require **ADMIN**; `/setup` has no role check (pre-company).
+- `company/members/*` (all): **ADMIN**.
 
-**Domain Module Structure**: Each domain (`auth`, `user`, `client`, `order`, `receipt`, `report`) follows the pattern:
+**Member invites**
 
-- `{domain}-schema.ts` — Zod schemas with OpenAPI metadata
-- `{domain}-service.ts` — Business logic class with Prisma DI
-- `{domain}-routes.ts` — OpenAPI route definitions and handlers
-- `tests/` — Co-located test files
+- `POST /api/company/members/invite` (ADMIN) → creates a `PENDING` membership (`userId = null`), emails the accept link, and returns `inviteUrl` so the admin can copy/share it.
+- `GET /api/invites/:token` (public) → invite info + `userExists`; 404 unknown/used, 410 expired.
+- `POST /api/invites/:token/accept` (public) → existing user verifies password / new user registers (name required); activates the membership and clears the token (single-use); returns a token pair. Runs in a `$transaction` (re-validates inside; deletes a prior REVOKED membership to avoid the `@@unique([userId, companyId])` collision).
+- Resend / change-role / revoke / remove are ADMIN-only and protect the **last admin** (cannot demote/revoke/remove the only ADMIN, nor act on self where it would lock the account out).
+- **Email** goes through the `EmailTransport` interface (`src/utils/email.ts`). The default `ConsoleEmailTransport` logs the message; swap the exported singleton for a real provider in production.
 
-**OpenAPI Routes**: Uses `@hono/zod-openapi` with `createRoute()`:
+### Domain module pattern
 
-```typescript
-const route = createRoute({
-  method: "get",
-  path: "/",
-  security: [{ bearerAuth: [] }],
-  responses: { 200: { content: { "application/json": { schema } } } },
-});
-app.openapi(route, handler);
-```
+Each domain under `src/api/{domain}/` has `{domain}-schema.ts` (Zod + `.openapi()`), `{domain}-service.ts` (class with Prisma injected via constructor, default = singleton), `{domain}-routes.ts` (`createRoute()` + factory `create{Domain}Routes(service?)`), and co-located `tests/`. Domains: `auth`, `user`, `company` (+ `member-*`), `invites`, `client`, `order`, `receipt`, `report`, `health`. Routes are wired at the composition root (`src/index.ts`).
 
-**Standardized Responses**: All endpoints return consistent JSON via helpers in `src/utils/response.ts`:
+Shared: `config/` (`env.ts`, `constants.ts` — single source for tuneables), `db/client.ts` (Prisma singleton, pg adapter, pool max 10), `middlewares/`, `schemas/` (response + pagination), `utils/` (`response.ts`, `pagination.ts`, `logger.ts`, `email.ts`).
 
-```typescript
-return successResponse(c, data, 201, "Created successfully");
-// → { success: true, data: {...}, message: "Created successfully" }
+### Key patterns
 
-return errorResponse(c, "Not found", 404);
-// → { success: false, error: "Not found" }
-```
+- **Factories + DI**: route modules export `create{Domain}Routes(service = new Service())`; services take a Prisma client (default singleton). Auth uses a minimal `IUserAuthRepository` interface (structural typing) instead of importing `UserService`.
+- **Standard responses** (`src/utils/response.ts`): `successResponse(c, data, status, message)` → `{ success: true, data, message }`; `errorResponse(c, error, status)` → `{ success: false, error }`.
+- **Tenant scoping**: handlers read `companyId` from `getCompanyContext(c)` and scope every query by it. FKs (`clientId`, `assignedUserId`) are validated up front → **404** rather than letting a bad FK fall through to a generic conflict.
+- **Accountability**: `changedById`/`createdById` always come from the JWT, never the request body.
+- **Email normalization**: `UserService` lowercases/trims email on create, register, and lookup, so logins and invite checks are case-insensitive and can't yield duplicate accounts.
+- **Password hashing**: `Bun.password` (argon2id). Password is never selected/returned by any endpoint.
+- **Pagination**: `getPaginationParams(page, limit)` + `createPaginationMeta(...)` (`src/utils/pagination.ts`). Default page 1, limit 10, max 100; non-numeric falls back safely.
 
-**JWT Authentication**: Protect routes with `authMiddleware` from `src/middlewares/auth.ts`. JWT payload type: `{ id: number, email: string, exp: number }` via `AuthVariables`. Extract payload with `getAuthPayload(c)`.
+### Database models (Prisma)
 
-**Auth Flow**:
+- **Company**: id, name, document?, phone?, email?, address?, logoUrl?, footerNote?, timestamps.
+- **Membership**: id, userId? (null for a pending invite), companyId, role (`Role`, default OPERATOR), status (`MembershipStatus`, default ACTIVE), invitedEmail?, inviteToken? (unique), inviteExpiresAt?, timestamps. `@@unique([userId, companyId])` (Postgres treats NULL userIds as distinct, so multiple pending invites don't collide).
+- **Role**: ADMIN | OPERATOR | VIEWER. **MembershipStatus**: ACTIVE | PENDING | REVOKED.
+- **User**: id, email (unique, stored lowercase), password (hashed), name?, timestamps.
+- **RefreshToken**: token (unique, 40 random bytes), userId (cascade delete), expiresAt, lastUsedAt?.
+- **Client**: id, name, document, phone?, address?, clientType (COUNTER | PARTNER), companyId. `@@unique([companyId, document])`.
+- **ServiceOrder**: id, orderNumber (`OS-0001`, per company), description, value (Decimal 10,2), status (OrderStatus), clientId, companyId, assignedUserId?. `@@unique([companyId, orderNumber])`.
+- **OrderStatus**: PENDING | IN_PROGRESS | AWAITING_CLIENT | COMPLETED | CANCELLED.
+- **StatusHistory**: orderId (cascade), fromStatus?, toStatus, changedById, changedAt, note?. **Receipt**: receiptNumber (autoincrement unique), orderId (unique), issuedAt.
 
-- `POST /api/auth/login` → returns access token (1h) + refresh token (7d)
-- `POST /api/auth/refresh` → validates refresh token, rotates it (old revoked, new issued), returns new token pair
-- `POST /api/auth/logout` → revokes refresh token (idempotent — succeeds even if token not found) and blacklists the access token. Access token is added to an in-memory blacklist (checked by `authMiddleware`) so protected routes immediately return 401. Note: the blacklist is cleared on server restart — use Redis for persistent revocation across restarts/instances.
-- Refresh tokens are stored in DB (can be individually revoked); cascade-deleted when user is deleted
+Business invariants worth knowing: orders record an initial `StatusHistory` on create and write history on every status change (atomic `$transaction`); receipt `generate` is idempotent (unique `orderId`); monthly billing filters on the actual `COMPLETED` `StatusHistory.changedAt` (not `updatedAt`) and sums in integer cents.
 
-**Password Hashing**: Uses `Bun.password.hash()` (argon2id) and `Bun.password.verify()` in `UserService`. Password is never returned from any API endpoint (enforced via Prisma `select`).
+### Error handling (`src/middlewares/error-handler.ts`)
 
-**Client & Order Routes**: Both expose factories — `createClientRoutes(clientService?)` and `createOrderRoutes(orderService?)` — that default to a real service instance and accept an injected one for testing. Wired at the composition root: `app.route("/api/clients", createClientRoutes())` and `app.route("/api/orders", createOrderRoutes())`. All routes are protected by `authMiddleware` (`use("/*", authMiddleware)`).
+- `ZodError` → 400 with field details. `HTTPException` → its status.
+- Prisma `P2002` → 409 (`` `${field} already in use` ``), `P2025` → 404, `P2003` → 409 (FK, e.g. deleting a parent with children — inserts/updates validate FKs up front → 404 instead).
+- Unknown → 500 (message hidden in prod, logged with `requestId` + stack).
 
-**Order Business Logic** (`OrderService`):
-
-- `create` generates a human-readable `orderNumber` (`OS-0001`, `OS-0002`, … zero-padded to 4 digits) by reading the last order's number and incrementing. The `@unique` constraint guards integrity under concurrent creates (a collision surfaces as P2002 → 409).
-- `create` also records the initial `StatusHistory` entry (`toStatus: PENDING`, `changedById` from JWT) in the same nested write.
-- `updateStatus` runs an atomic `$transaction`: writes a `StatusHistory` entry (`fromStatus` → `toStatus`, `changedById`, optional `note`) and updates the order's `status`. Returns the full detail (client + ordered history). Returns `null` if the order does not exist (route → 404).
-- Status changes record accountability automatically: `changedById`/`createdById` always come from `getAuthPayload(c)`, never from the request body.
-- `findById` embeds `client` (id, name, document, clientType) and `statusHistory` (ascending, each with `changedBy` user info — never the password).
-
-**Foreign-key validation**: Order create/update validate referenced records up front via `orderService.clientExists(id)` / `userExists(id)` and return **404** (`"Client not found"` / `"Assigned user not found"`) instead of letting an invalid FK fall through to the generic P2003 → 409 handler (whose message is tailored to the delete-with-children case).
-
-**Receipt Routes** (`createReceiptRoutes(receiptService?)`): mounted at `/api/orders` so paths resolve to `POST /api/orders/:id/receipt` (generate or retrieve) and `GET /api/orders/:id/receipt` (retrieve). All protected by `authMiddleware`.
-
-**Receipt Business Logic** (`ReceiptService`):
-
-- `generate(orderId)` is **idempotent**: returns the existing receipt if the order already has one, otherwise creates it. The `@unique` constraint on `orderId` guards integrity under concurrent creates (collision → P2002 → 409).
-- `POST` validates the order exists up front via `orderService.orderExists(id)` → **404** `"Order not found"` (prevents a misleading P2003 → 409). `GET` skips this check: it returns the receipt or **404** `"Receipt not found"` in a single query (the only realistic caller already has the order loaded).
-- Response embeds the order (orderNumber, description, value) and its client (id, name, document) — everything the frontend needs to render/print, no extra fetches.
-
-**Report Routes** (`createReportRoutes(reportService?)`): mounted at `/api/reports` — `GET /billing?month=&year=` and `GET /summary`. Both protected by `authMiddleware`. `month` (1–12) and `year` (≥2000) are validated/coerced by `billingQuerySchema` (Zod) → invalid/missing params return 400.
-
-**Report Business Logic** (`ReportService`):
-
-- `getMonthlyBilling(month, year)` filters on the **actual completion event** — `StatusHistory` entries with `toStatus: COMPLETED` and `changedAt` within the month, requiring `order.status` to still be `COMPLETED` (so orders later reverted/cancelled are excluded). Filtering on `updatedAt` was intentionally avoided because it shifts on any later edit. `completedAt` in the response is the history `changedAt`. Totals are summed in integer cents to avoid float drift; all monetary strings (`value`, `totalRevenue`) are returned with 2 decimals — display formatting (`R$ 100,00`, pt-BR) is the frontend's responsibility.
-- `getOrdersSummary()` uses a single Prisma `groupBy` over `status`; the result is mapped onto an object with all five statuses defaulting to 0.
-
-**Pagination**: Use `getPaginationParams(page, limit)` and `createPaginationMeta(page, limit, total)` from `src/utils/pagination.ts`. Default: page 1, limit 10, max 100. Non-numeric values fall back to defaults safely.
-
-**Error Handling**: Global handler in `src/middlewares/error-handler.ts`:
-
-- `ZodError` → 400 with field-level details
-- `HTTPException` → corresponding status code
-- Prisma `P2002` → 409 conflict with dynamic message: `` `${field} already in use` `` (field extracted from `err.meta.target`)
-- Prisma `P2025` → 404 not found (update/delete on non-existent record)
-- Prisma `P2003` → 409 conflict (foreign-key constraint, e.g. deleting a client that still has linked orders). Note: for FK violations on _insert/update_ (a bad `clientId`/`assignedUserId`), domains validate up front and return 404 instead — see "Foreign-key validation" above.
-- Unknown errors → 500 (message hidden in production, logged server-side)
+---
 
 ## Environment Variables
 
-Required in `.env` (see `.env.example`):
+Validated at startup by Zod (`src/config/env.ts`); the app crashes on invalid config.
 
-| Variable            | Description                                            |
-| ------------------- | ------------------------------------------------------ |
-| `DATABASE_URL`      | PostgreSQL connection string (validated as URL)        |
-| `JWT_SECRET`        | Signing key, minimum 32 characters                     |
-| `PORT`              | Server port (default: 3000)                            |
-| `NODE_ENV`          | `development` \| `test` \| `production`                |
-| `CORS_ORIGIN`       | Allowed CORS origin(s) — `"*"` or comma-separated URLs |
-| `DATABASE_DB`       | Database name (used by Docker Compose)                 |
-| `DATABASE_USER`     | Database user (used by Docker Compose)                 |
-| `DATABASE_PASSWORD` | Database password (used by Docker Compose)             |
+| Variable                                              | Notes                                                                       |
+| ----------------------------------------------------- | --------------------------------------------------------------------------- |
+| `DATABASE_URL`                                        | Postgres connection string (validated as URL)                               |
+| `JWT_SECRET`                                          | min 32 chars                                                                |
+| `PORT`                                                | default 3000                                                                |
+| `NODE_ENV`                                            | `development` \| `test` \| `production`                                     |
+| `CORS_ORIGIN`                                         | `"*"` or comma-separated URLs (cannot be `"*"` in production)               |
+| `APP_URL`                                             | frontend base URL for invite accept links (default `http://localhost:5173`) |
+| `DATABASE_DB` / `DATABASE_USER` / `DATABASE_PASSWORD` | used by Docker Compose                                                      |
 
-Validation happens at startup via Zod in `src/config/env.ts`. The app crashes immediately if env vars are invalid.
+---
 
 ## Seed Data
 
-Run `bun run db:seed` to populate the database with 3 default users:
+`bun run db:seed` (idempotent) creates a default company **"Minha Empresa"** and 3 users, each an **ACTIVE ADMIN** of it:
 
 | Email              | Password  |
 | ------------------ | --------- |
@@ -455,246 +244,58 @@ Run `bun run db:seed` to populate the database with 3 default users:
 | alice@template.com | alice1234 |
 | bob@template.com   | bob12345  |
 
-The seed is idempotent (`upsert`) and can be run multiple times safely.
+---
 
 ## Testing
 
-- Framework: `bun:test`
-- Tests run against a **real database** (requires `db:up` + `db:migrate` first)
-- Test files are co-located: `src/api/{domain}/tests/*.test.ts`
-- Each test file handles its own cleanup in `beforeEach`/`beforeAll`
-- Integration tests make HTTP requests to the full Hono app instance
-- Unit tests call service methods directly against the database
-- Test language: English (test descriptions are in en-US)
+- Framework `bun:test`; integration tests hit the full Hono app, unit tests call services directly. Tests run against a real DB. Test descriptions in **English**.
+- **Isolation is mandatory** — `bun test` runs files in parallel workers against one shared DB, so:
+  - **No global `deleteMany()`** in a test's `beforeEach` (it wipes data created by parallel files). Instead, each test creates its own data with **UUID-based unique values** (`crypto.randomUUID()`) and cleans up only its own rows in `afterEach` (`{ where: { id/email: { in: [...] } } }`).
+  - Use **`src/test-utils/company.ts`**: `createTestAuthContext({ role })` (company + user + membership + signed token) and `signTestToken(...)` (token without DB rows — for permission checks, since `requireMinRole` reads the JWT).
+  - Give each test **file a dedicated `X-Forwarded-For` IP** so rate-limit buckets don't collide (existing IPs are in the `127.0.0.x` range, e.g. `.12`–`.14`, `.20`, `.30`–`.33`).
+- Count/list assertions must be **company-scoped** (assert against a freshly created company), never against global totals.
 
-Test files:
-
-| File                                            | Type        | Coverage                                                                                                        |
-| ----------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------- |
-| `src/api/health/tests/health.test.ts`           | Integration | `GET /health` — 200 (DB up), 503 (DB down via DI), CORS, security headers                                       |
-| `src/api/auth/tests/auth-routes.test.ts`        | Integration | Login, refresh token rotation, logout, token reuse prevention, CORS, sec headers                                |
-| `src/api/auth/tests/auth-service.test.ts`       | Unit        | `generateRefreshToken`, `validateRefreshToken`, `revokeRefreshToken`, `revokeAllUserTokens`                     |
-| `src/api/user/tests/user-routes.test.ts`        | Integration | User creation, duplicate detection, auth, pagination, body limit, CORS, sec headers                             |
-| `src/api/user/tests/user-service.test.ts`       | Unit        | `create`, `getAll`, `findByEmail`, `verifyPassword`                                                             |
-| `src/api/client/tests/client-routes.test.ts`    | Integration | Client CRUD, type filter, search, pagination, duplicate document (409), FK conflict on delete                   |
-| `src/api/client/tests/client-service.test.ts`   | Unit        | `create`, `getAll` (filter/search), `findById` (with orders), `update`, `delete`                                |
-| `src/api/order/tests/order-routes.test.ts`      | Integration | Order CRUD, status transitions + history, FK existence → 404, filters/search, auth, sec headers                 |
-| `src/api/order/tests/order-service.test.ts`     | Unit        | `create` (orderNumber gen + initial history), `getAll`, `findById`, `updateStatus`, `clientExists`/`userExists` |
-| `src/api/receipt/tests/receipt-routes.test.ts`  | Integration | Generate/retrieve, idempotency, order-not-found (404), receipt-not-found (404), auth guard, sec headers         |
-| `src/api/receipt/tests/receipt-service.test.ts` | Unit        | `generate` (idempotency, embedded order+client), `getByOrderId`, `orderExists`                                  |
-| `src/api/report/tests/report-routes.test.ts`    | Integration | Billing (totals, month filter, 400 on bad params), summary counts, auth guard, sec headers                      |
-| `src/api/report/tests/report-service.test.ts`   | Unit        | `getMonthlyBilling` (completion-date filter, totals, reverted-order exclusion), `getOrdersSummary`              |
-| `src/middlewares/tests/error-handler.test.ts`   | Unit        | ZodError → 400, HTTPException, P2002 → 409, P2025 → 404, generic → 500                                          |
-| `src/middlewares/tests/rate-limit.test.ts`      | Unit        | IP tracking, 429 after limit exceeded, independent buckets per IP                                               |
-| `src/middlewares/tests/request-id.test.ts`      | Unit        | X-Request-ID presence, 16-char hex format, uniqueness per request                                               |
+---
 
 ## CI/CD
 
-GitHub Actions workflows in `.github/workflows/`:
+`.github/workflows/` (push/PR to `main`/`master`):
 
-### `linting.yaml`
+- **linting.yaml**: `bun install` → `prisma generate` → `format:check` → ESLint.
+- **tests.yaml**: spins up a Postgres service container, `prisma db push`, `bun run test`. Env via secrets: `DATABASE_URL`, `JWT_SECRET`, `PORT`, `NODE_ENV=test`, `CORS_ORIGIN`.
 
-Triggers on push/PR to `main` and `master`. Steps: `bun install`, `prisma generate`, `bun run format:check`, ESLint.
-
-### `tests.yaml`
-
-Triggers on push/PR to `main` and `master`. Spins up a PostgreSQL service container with native health checks (`pg_isready`), then runs `prisma db push` and `bun run test`. Required env vars injected via GitHub Actions secrets/env: `DATABASE_URL`, `JWT_SECRET`, `PORT`, `NODE_ENV=test`, `CORS_ORIGIN`.
-
-## API Documentation
-
-- Swagger UI: `http://localhost:{PORT}/ui`
-- OpenAPI JSON: `http://localhost:{PORT}/doc`
-
-## Logging
-
-The project uses a custom structured JSON logger middleware at `src/utils/logger.ts` (`structuredLogger`), replacing Hono's built-in plain-text logger. Every request emits a JSON line to stdout with the following fields:
-
-- `requestId` — correlated with `X-Request-ID` (set by `requestIdMiddleware` before the logger runs)
-- `method`, `path`, `statusCode`, `duration` (ms), `timestamp`
-
-Unexpected server errors are logged via `console.error` inside the error handler (`error-handler.ts`), also as JSON, including `requestId` and the full stack trace.
-
-These structured logs integrate with log aggregation platforms (Datadog, CloudWatch, Grafana Loki). For future improvements, consider adding `userId` from the JWT payload when available.
+---
 
 ## Frontend Conventions
 
-**Routing**: React Router v6. All authenticated pages are wrapped in `ProtectedRoute` which checks `AuthContext` — redirects to `/login` if no token. Routes defined in `client/src/router/index.tsx`.
+- **Routing** (`client/src/router/index.tsx`): `createBrowserRouter` + `RouterProvider` (never `<BrowserRouter>`). Public: `/login`, `/register`, `/invites/:token`. `OnboardingGuard` wraps `/onboarding` (auth but no company). `ProtectedRoute` wraps the app in `AppShell` and redirects to `/login` (no user) or `/onboarding` (no company).
+- **API layer** (`client/src/api/`): all HTTP goes through `client.ts`, which injects `Authorization: Bearer <token>` and, on 401, clears storage and redirects to `/login`. One file per domain (`auth`, `clients`, `orders`, `receipts`, `reports`, `company`, `invites`). No page calls `fetch` directly.
+- **Auth** (`contexts/`): `AuthContext` provides `user` (decoded JWT: `id`, `email`, `companyId`, `role`), `accessToken`, `login`, `logout`, `setSession`, `refreshSession`. Tokens in `localStorage`.
+- **Role-gated UI**: hide write actions for read-only users with `const canWrite = user?.role !== "VIEWER"`. The backend enforces permissions regardless — this is UX only.
+- **Components**: shadcn/ui in `components/ui/` (generated, **never edit**). Domain components in `components/{domain}/`, pages in `pages/{domain}/`. Naming: PascalCase components/pages, camelCase hooks/utils, kebab-case other files.
+- **Toasts**: `sonner` (`import { toast }`; `<Toaster />` mounted once). **Print**: ReceiptPage uses `@media print` to isolate receipt content; button calls `window.print()`.
+- **After any frontend change, run `bun run client:build`** — the build (tsc) is the source of truth, not the linter alone.
 
-**API Layer**: All HTTP calls go through `client/src/api/`. The base `client.ts` injects `Authorization: Bearer <token>` automatically. On 401, it clears localStorage and redirects to `/login`. No page component calls `fetch` directly.
+### Critical version notes (differ from common training data)
 
-**Auth**: `AuthContext` provides `user` (decoded JWT payload), `accessToken`, `login(email, password)`, `logout()`. Tokens are stored in `localStorage`. The access token is refreshed automatically when a 401 is received (via the refresh token flow).
+React 19.2 · Vite 8 · TypeScript 6 · Zod 4 · React Hook Form 7.78 · Tailwind CSS 4 · shadcn/ui (new-york).
 
-**Components**: shadcn/ui components live in `client/src/components/ui/` (generated, do not edit manually). Domain components (`ClientForm`, `StatusTimeline`, etc.) live in `client/src/components/{domain}/`. Page-level components live in `client/src/pages/{domain}/`.
+- **Zod 4**: `result.safeParse()` returns `.data` / `.error` directly; `z.string().email()`, `z.coerce.number()`, `z.enum([...])` still work; `z.ZodError` removed (catch `ZodError` / `z.core.$ZodError`).
+- **TypeScript strict flags** (`tsconfig.app.json`): `noUnusedLocals` + `noUnusedParameters` (prefix intentionally-unused with `_`), `erasableSyntaxOnly` (no `const enum`, no `namespace`, no decorators), `verbatimModuleSyntax` (use `import type` for type-only imports).
+- **Tailwind v4**: no `tailwind.config.ts` — theme lives in `client/src/index.css` via CSS variables; use `var(--…)`, not `theme()`.
+- **Forms**: always React Hook Form + `zodResolver` + shadcn `Form` components (never uncontrolled inputs or `useState` for fields).
+- **shadcn installed**: Button, Input, Textarea, Card, Table, Badge, Dialog, Select, Label, Form, Sonner, Separator, Avatar, DropdownMenu, Skeleton (+ local `empty-state`). Don't re-add these or edit files in `components/ui/`.
 
-**Print layout**: Receipt page uses `@media print` CSS to hide `AppShell`, sidebar, top bar, and the print button — only the receipt content is printed. The "Print" button calls `window.print()`.
+---
 
-**Naming (frontend)**: PascalCase for components and pages (`OrderDetailPage.tsx`), camelCase for hooks and utilities, kebab-case for non-component files (`order-status.ts`).
+## Code Style
 
-### Frontend — Critical version notes
+- TypeScript strict (`noUncheckedIndexedAccess`, `noImplicitOverride`). ES modules.
+- Prettier: 2 spaces, semicolons, double quotes, 80 cols. ESLint + TS + Prettier plugin; unused vars allowed only with `_` prefix.
+- Naming: camelCase vars/functions, PascalCase types/classes, kebab-case files. Services class-based with Prisma injected. Schemas carry `.openapi()` metadata.
 
-The frontend uses bleeding-edge versions that differ significantly from common training data. Always follow these rules exactly.
+---
 
-**Package versions (client/package.json)**
+## API Docs
 
-| Package         | Version        | Key difference from older versions                                          |
-| --------------- | -------------- | --------------------------------------------------------------------------- |
-| React           | 19.2           | `use()` hook for promises; concurrent features on by default                |
-| Vite            | 8.x            | Config API stable but newer plugin ecosystem                                |
-| TypeScript      | 6.x            | `erasableSyntaxOnly` enabled — no `const enum`, no `namespace`              |
-| Zod             | 4.x            | Breaking changes from v3 — see rules below                                  |
-| React Hook Form | 7.78           | API unchanged but resolver must match Zod 4                                 |
-| Tailwind CSS    | 4.x            | No `tailwind.config.ts` — theme configured via CSS variables in `index.css` |
-| shadcn/ui       | new-york style | Components in `client/src/components/ui/` — never edit manually             |
-
-**Zod 4 rules (breaking vs Zod 3)**
-
-```typescript
-// Inferring types — same as v3
-type MyType = z.infer<typeof mySchema>;
-
-// .safeParse() return type changed — use .data and .error directly
-const result = schema.safeParse(value);
-if (result.success)
-  result.data; // ok
-else result.error; // ZodError
-
-// z.string().email() — still works
-// z.coerce.number() — still works
-// z.enum([...]) — still works
-
-// REMOVED in Zod 4: z.ZodError (use z.core.$ZodError or just catch ZodError)
-// REMOVED in Zod 4: .parse() throwing is the same, but error shape changed
-```
-
-**React Router v6 — required pattern**
-
-Always use `createBrowserRouter` + `RouterProvider`. Never use `<BrowserRouter>`.
-
-```tsx
-// client/src/router/index.tsx
-import {
-  createBrowserRouter,
-  RouterProvider,
-  Navigate,
-} from "react-router-dom";
-
-const router = createBrowserRouter([
-  { path: "/login", element: <LoginPage /> },
-  {
-    element: <ProtectedRoute />,
-    children: [
-      { path: "/", element: <DashboardPage /> },
-      { path: "/clients", element: <ClientsPage /> },
-    ],
-  },
-]);
-
-export function AppRouter() {
-  return <RouterProvider router={router} />;
-}
-```
-
-**Forms — required pattern**
-
-Always use React Hook Form + `zodResolver` + shadcn `Form` components. Never use uncontrolled inputs or `useState` for form fields.
-
-```tsx
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
-type FormData = z.infer<typeof schema>;
-
-export function MyForm() {
-  const form = useForm<FormData>({ resolver: zodResolver(schema) });
-
-  function onSubmit(data: FormData) {
-    /* call api function here */
-  }
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit">Submit</Button>
-      </form>
-    </Form>
-  );
-}
-```
-
-**TypeScript strict flags active in tsconfig.app.json**
-
-- `noUnusedLocals` + `noUnusedParameters`: every declared variable and parameter must be used. Prefix with `_` if intentionally unused.
-- `erasableSyntaxOnly`: no `const enum`, no TypeScript `namespace`, no experimental decorators.
-- `verbatimModuleSyntax`: use `import type` for type-only imports.
-
-```typescript
-// Correct
-import type { ReactNode } from "react";
-import { useState } from "react";
-
-// Wrong — will fail build
-import { ReactNode } from "react"; // must be import type
-```
-
-**Tailwind CSS v4 — no config file**
-
-Tailwind v4 does not use `tailwind.config.ts`. All theme customization lives in `client/src/index.css` via CSS variables. Do not create or modify a `tailwind.config.ts` file. Do not use `theme()` function in CSS — use CSS variables directly (`var(--color-primary)`).
-
-**shadcn/ui components installed**
-
-`Button` `Input` `Card` `Table` `Badge` `Dialog` `Select` `Label` `Form` `Sonner` `Separator` `Avatar` `DropdownMenu`
-
-Do not run `bunx shadcn add` for components already in this list. Do not edit files inside `client/src/components/ui/`.
-
-**Toast notifications**
-
-Use `sonner` (already installed). Import `toast` from `"sonner"` and place `<Toaster />` once in the root layout.
-
-```tsx
-import { toast } from "sonner";
-toast.success("Saved!");
-toast.error("Something went wrong");
-```
-
-**Frontend build validation**
-
-After every task that touches frontend code, run `cd client && bun run build` to catch TypeScript errors before committing. The linter alone is not sufficient — the build is the source of truth.
-
-## Code Style & Conventions
-
-- **Language**: TypeScript strict mode (`noUncheckedIndexedAccess`, `noImplicitOverride`)
-- **Formatting**: Prettier — 2 spaces, semicolons, double quotes, 80 char width
-- **Linting**: ESLint + TypeScript rules + Prettier plugin. Unused vars allowed with `_` prefix
-- **Imports**: ES modules (`"type": "module"` in package.json)
-- **Naming**: camelCase for variables/functions, PascalCase for types/classes, kebab-case for files
-- **Services**: Class-based with Prisma client injected via constructor (default = singleton)
-- **Schemas**: Zod schemas with `.openapi()` metadata for Swagger docs
-- **Tests**: Written in English (en-US)
+Swagger UI `http://localhost:{PORT}/ui` · OpenAPI JSON `/doc`.

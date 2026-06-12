@@ -31,9 +31,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAuth } from "@/contexts/auth-context";
 
 export function OrdersPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canWrite = user?.role !== "VIEWER";
 
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "">("");
   const [typeFilter, setTypeFilter] = useState<ClientType | "">("");
@@ -65,10 +68,12 @@ export function OrdersPage() {
             Gerencie as ordens de serviço do seu negócio
           </p>
         </div>
-        <Button onClick={() => setFormOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nova ordem
-        </Button>
+        {canWrite && (
+          <Button onClick={() => setFormOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova ordem
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -143,7 +148,7 @@ export function OrdersPage() {
               : "Crie a primeira ordem de serviço para começar."
           }
           action={
-            hasFilters ? undefined : (
+            hasFilters || !canWrite ? undefined : (
               <Button onClick={() => setFormOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Nova ordem

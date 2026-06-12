@@ -8,9 +8,12 @@ import {
   getCompany,
   updateCompany,
   uploadCompanyLogo,
+  listMembers,
   type Company,
   type CompanyInput,
+  type Member,
 } from "@/api/company";
+import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -23,6 +26,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { InviteMemberDialog } from "@/components/members/InviteMemberDialog";
+import { MemberList } from "@/components/members/MemberList";
 
 const schema = z.object({
   name: z.string().min(2, "Informe o nome da empresa"),
@@ -59,12 +64,21 @@ function toFormValues(company: Company): FormData {
   };
 }
 
+type Tab = "empresa" | "membros";
+
 export function ProfilePage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
+
+  const [activeTab, setActiveTab] = useState<Tab>("empresa");
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [members, setMembers] = useState<Member[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -99,9 +113,27 @@ export function ProfilePage() {
     };
   }, [form]);
 
+  // Load members when the Membros tab is first opened.
+  useEffect(() => {
+    if (activeTab !== "membros" || !isAdmin) return;
+    let cancelled = false;
+    setMembersLoading(true);
+    listMembers()
+      .then((list) => {
+        if (!cancelled) {
+          setMembers(list);
+          setMembersLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setMembersLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, isAdmin]);
+
   async function onSubmit(data: FormData) {
-    // A filled field sends its trimmed value; a cleared one sends null so the
-    // backend nulls the column (rather than keeping the old value).
     const orNull = (v?: string) => (v?.trim() ? v.trim() : null);
     const payload: CompanyInput = {
       name: data.name.trim(),
@@ -146,8 +178,36 @@ export function ProfilePage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Perfil</h1>
         <p className="text-sm text-muted-foreground">
-          Dados da empresa usados no cabeçalho da OS e nos documentos
+          Dados da empresa e gerenciamento de membros
         </p>
+      </div>
+
+      {/* Tab bar */}
+      <div className="flex border-b">
+        <button
+          onClick={() => setActiveTab("empresa")}
+          className={[
+            "px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors",
+            activeTab === "empresa"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground",
+          ].join(" ")}
+        >
+          Empresa
+        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setActiveTab("membros")}
+            className={[
+              "px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors",
+              activeTab === "membros"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            ].join(" ")}
+          >
+            Membros
+          </button>
+        )}
       </div>
 
       {error && (
@@ -156,180 +216,220 @@ export function ProfilePage() {
         </div>
       )}
 
-      {/* Logo */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base">Logo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <Skeleton className="h-20 w-20 rounded-md" />
-          ) : (
-            <div className="flex items-center gap-4">
-              <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
-                {company?.logoUrl ? (
-                  <img
-                    src={company.logoUrl}
-                    alt="Logo da empresa"
-                    className="size-full object-contain"
-                  />
-                ) : (
-                  <Building2 className="h-8 w-8 text-muted-foreground" />
-                )}
-              </div>
-              <div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg"
-                  className="hidden"
-                  onChange={onLogoChange}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={uploading}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {uploading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ImageUp className="h-4 w-4" />
-                  )}
-                  {uploading ? "Enviando…" : "Enviar logo"}
-                </Button>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  PNG ou JPG, até 2 MB.
-                </p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* ─── Empresa tab ─────────────────────────────────────────────────── */}
+      {activeTab === "empresa" && (
+        <>
+          {/* Logo */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="text-base">Logo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-20 w-20 rounded-md" />
+              ) : (
+                <div className="flex items-center gap-4">
+                  <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                    {company?.logoUrl ? (
+                      <img
+                        src={company.logoUrl}
+                        alt="Logo da empresa"
+                        className="size-full object-contain"
+                      />
+                    ) : (
+                      <Building2 className="h-8 w-8 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      className="hidden"
+                      onChange={onLogoChange}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={uploading}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {uploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ImageUp className="h-4 w-4" />
+                      )}
+                      {uploading ? "Enviando…" : "Enviar logo"}
+                    </Button>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      PNG ou JPG, até 2 MB.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-      {/* Company data */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base">Dados da empresa</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : (
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome da empresa</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex.: Despachante Silva" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="document"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>CNPJ / CPF do responsável</FormLabel>
-                        <FormControl>
-                          <Input placeholder="00.000.000/0000-00" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Telefone</FormLabel>
-                        <FormControl>
-                          <Input placeholder="(00) 0000-0000" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+          {/* Company data */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="text-base">Dados da empresa</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
                 </div>
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>E-mail</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="contato@empresa.com"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Endereço</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Rua, número, bairro, cidade"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="footerNote"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Observação do rodapé (opcional)</FormLabel>
-                      <FormControl>
-                        <textarea
-                          {...field}
-                          rows={3}
-                          placeholder="Ex.: Garantia de 90 dias para todos os serviços."
-                          className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="flex justify-end pt-2">
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting && (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    )}
-                    {isSubmitting ? "Salvando…" : "Salvar alterações"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          )}
-        </CardContent>
-      </Card>
+              ) : (
+                <Form {...form}>
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-4"
+                  >
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome da empresa</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Ex.: Despachante Silva"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="document"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>CNPJ / CPF do responsável</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="00.000.000/0000-00"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Telefone</FormLabel>
+                            <FormControl>
+                              <Input placeholder="(00) 0000-0000" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>E-mail</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="contato@empresa.com"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Endereço</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Rua, número, bairro, cidade"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="footerNote"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            Observação do rodapé (opcional)
+                          </FormLabel>
+                          <FormControl>
+                            <textarea
+                              {...field}
+                              rows={3}
+                              placeholder="Ex.: Garantia de 90 dias para todos os serviços."
+                              className="flex min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex justify-end pt-2">
+                      <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        )}
+                        {isSubmitting ? "Salvando…" : "Salvar alterações"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* ─── Membros tab ─────────────────────────────────────────────────── */}
+      {activeTab === "membros" && isAdmin && (
+        <Card className="shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Membros</CardTitle>
+            <InviteMemberDialog
+              onInvited={(member) => setMembers((prev) => [...prev, member])}
+            />
+          </CardHeader>
+          <CardContent>
+            {membersLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : (
+              <MemberList
+                members={members}
+                currentUserId={user?.id ?? 0}
+                onMembersChange={setMembers}
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

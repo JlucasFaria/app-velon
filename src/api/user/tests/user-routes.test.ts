@@ -1,31 +1,26 @@
 // Integration tests for User Routes — sends real HTTP requests to the Hono app
-import { describe, it, expect, beforeAll, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import app from "../../../../src/index";
 import prisma from "../../../db/client";
-import { sign } from "hono/jwt";
-import { env } from "../../../config/env";
+import {
+  createTestAuthContext,
+  signTestToken,
+  type TestAuthContext,
+} from "../../../test-utils/company";
 
 describe("User Routes", () => {
-  let token: string;
+  let ctx: TestAuthContext;
 
-  // Generate JWT token once — we only need to do this once since
-  // it doesn't depend on database state. The auth middleware validates
-  // the signature, not whether the user exists in the DB.
-  beforeAll(async () => {
-    const payload = {
-      id: 1,
-      email: "test@example.com",
-      exp: Math.floor(Date.now() / 1000) + 60 * 60,
-    };
-    token = await sign(payload, env.JWT_SECRET);
-  });
-
-  // Clean the database before each test to ensure test isolation.
-  // This prevents one test's data from affecting another.
+  // Re-create a fresh company + admin user before each test so every test
+  // starts from a clean, consistent state.
   beforeEach(async () => {
-    await prisma.receipt.deleteMany(); // FK → ServiceOrder (no cascade), delete first
-    await prisma.serviceOrder.deleteMany(); // cascades StatusHistory; clears changedById and assignedUserId FK refs
+    await prisma.receipt.deleteMany();
+    await prisma.serviceOrder.deleteMany();
+    await prisma.client.deleteMany();
+    await prisma.membership.deleteMany();
+    await prisma.company.deleteMany();
     await prisma.user.deleteMany();
+    ctx = await createTestAuthContext({ role: "ADMIN" });
   });
 
   // ─── POST /api/users ─────────────────────────────────────────
@@ -210,9 +205,47 @@ describe("User Routes", () => {
       expect(res.status).toBe(401);
     });
 
-    it("should return paginated user list with a valid auth token", async () => {
+    it("should return 403 when token has no company (pre-onboarding user)", async () => {
+      // Token without companyId simulates a user who registered but hasn't
+      // completed onboarding yet. The company-scoped listing must reject it.
+      const noCompanyToken = await signTestToken(
+        ctx.userId,
+        ctx.email,
+        null,
+        null,
+      );
       const res = await app.request("/api/users", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${noCompanyToken}` },
+      });
+
+      expect(res.status).toBe(403);
+    });
+
+    it("should return only members of the caller's company", async () => {
+      // Create a second company with its own user — should NOT appear in results
+      await createTestAuthContext({
+        email: "other-company@example.com",
+        companyName: "Other Company",
+      });
+
+      const res = await app.request("/api/users", {
+        headers: { Authorization: `Bearer ${ctx.token}` },
+      });
+
+      const body = (await res.json()) as {
+        success: true;
+        data: { users: Array<{ email: string }>; pagination: object };
+      };
+
+      expect(res.status).toBe(200);
+      expect(
+        body.data.users.every((u) => u.email !== "other-company@example.com"),
+      ).toBe(true);
+    });
+
+    it("should return paginated member list with a valid auth token", async () => {
+      const res = await app.request("/api/users", {
+        headers: { Authorization: `Bearer ${ctx.token}` },
       });
 
       const body = (await res.json()) as {
@@ -236,7 +269,7 @@ describe("User Routes", () => {
 
     it("should use page 1 when page=0 is provided", async () => {
       const res = await app.request("/api/users?page=0", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${ctx.token}` },
       });
       const body = (await res.json()) as {
         data: { pagination: { page: number } };
@@ -247,7 +280,7 @@ describe("User Routes", () => {
 
     it("should use page 1 when page=-5 is provided", async () => {
       const res = await app.request("/api/users?page=-5", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${ctx.token}` },
       });
       const body = (await res.json()) as {
         data: { pagination: { page: number } };
@@ -258,7 +291,7 @@ describe("User Routes", () => {
 
     it("should use limit 1 when limit=0 is provided", async () => {
       const res = await app.request("/api/users?limit=0", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${ctx.token}` },
       });
       const body = (await res.json()) as {
         data: { pagination: { limit: number } };
@@ -269,7 +302,7 @@ describe("User Routes", () => {
 
     it("should cap limit at 100 when limit=101 is provided", async () => {
       const res = await app.request("/api/users?limit=101", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${ctx.token}` },
       });
       const body = (await res.json()) as {
         data: { pagination: { limit: number } };
@@ -280,7 +313,7 @@ describe("User Routes", () => {
 
     it("should use page 1 when page=abc is provided", async () => {
       const res = await app.request("/api/users?page=abc", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${ctx.token}` },
       });
       const body = (await res.json()) as {
         data: { pagination: { page: number } };
@@ -291,7 +324,7 @@ describe("User Routes", () => {
 
     it("should use default limit of 10 when limit is an empty string", async () => {
       const res = await app.request("/api/users?limit=", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${ctx.token}` },
       });
       const body = (await res.json()) as {
         data: { pagination: { limit: number } };
@@ -301,21 +334,23 @@ describe("User Routes", () => {
     });
 
     it("should respect pagination params: return correct page and limit", async () => {
-      // Create 3 users so we have data to paginate
-      for (let i = 1; i <= 3; i++) {
-        await app.request("/api/users", {
-          method: "POST",
-          body: JSON.stringify({
-            email: `user${i}@example.com`,
-            password: "Secret1234",
-          }),
-          headers: { "Content-Type": "application/json" },
+      // Add 2 more members to ctx.companyId so we have 3 total (ctx user + 2)
+      for (let i = 1; i <= 2; i++) {
+        const user = await prisma.user.create({
+          data: { email: `member${i}@example.com`, password: "hashed" },
+        });
+        await prisma.membership.create({
+          data: {
+            userId: user.id,
+            companyId: ctx.companyId,
+            role: "OPERATOR",
+            status: "ACTIVE",
+          },
         });
       }
 
-      // Request page 1 with a limit of 2 — should return 2 users out of 3
       const res = await app.request("/api/users?page=1&limit=2", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${ctx.token}` },
       });
 
       const body = (await res.json()) as {
@@ -391,7 +426,7 @@ describe("User Routes — CORS headers", () => {
 
 describe("User Routes — security headers", () => {
   // Security headers are applied globally, regardless of auth status.
-  // Using an unauthenticated GET so this block has no dependency on `token`.
+  // Using an unauthenticated GET so this block has no dependency on a token.
   it("should include X-Content-Type-Options: nosniff", async () => {
     const res = await app.request("/api/users");
 

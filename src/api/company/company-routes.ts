@@ -16,12 +16,14 @@ import {
   UPLOADS_DIR,
   UPLOADS_URL_PREFIX,
 } from "../../config/constants";
+import { requireMinRole } from "../../middlewares/permissions";
 import { CompanyService } from "./company-service";
 import {
   updateCompanySchema,
   companyDetailResponseSchema,
   createCompanySchema,
 } from "./company-schema";
+import { createMemberRoutes } from "./member-routes";
 
 // Validate by file signature (magic bytes) rather than the client-supplied
 // Content-Type, which can be spoofed. Returns the real extension or null.
@@ -153,6 +155,14 @@ export function createCompanyRoutes(
   // ─── Middleware ─────────────────────────────────────────────────
 
   companyRoutes.use("/*", authMiddleware);
+
+  // Company write operations restricted to admins.
+  // POST /setup is excluded — caller has no company yet (no role to check).
+  companyRoutes.on("PATCH", "/", requireMinRole("ADMIN"));
+  companyRoutes.on("POST", "/logo", requireMinRole("ADMIN"));
+
+  // Member management lives under /members; the auth middleware above covers it.
+  companyRoutes.route("/members", createMemberRoutes());
 
   // ─── Route Handlers ─────────────────────────────────────────────
 

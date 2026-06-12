@@ -20,6 +20,8 @@ const envSchema = z
       .enum(["development", "test", "production"])
       .default("development"),
     CORS_ORIGIN: z.string().default("*"),
+    // Public base URL of the frontend, used to build invite accept links.
+    APP_URL: z.string().default("http://localhost:5173"),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === "production" && data.CORS_ORIGIN === "*") {

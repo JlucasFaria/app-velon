@@ -7,6 +7,7 @@ import {
 } from "../../middlewares/auth";
 import { successResponse, errorResponse } from "../../utils/response";
 import { errorResponseSchema } from "../../schemas/response";
+import { requireMinRole } from "../../middlewares/permissions";
 import { ReceiptService } from "./receipt-service";
 import { receiptDetailResponseSchema } from "./receipt-schema";
 
@@ -80,6 +81,7 @@ export function createReceiptRoutes(
   // ─── Middleware ─────────────────────────────────────────────────
 
   receiptRoutes.use("/*", authMiddleware);
+  receiptRoutes.on("POST", "/:id/receipt", requireMinRole("OPERATOR"));
 
   // ─── Route Handlers ─────────────────────────────────────────────
 

@@ -1,47 +1,66 @@
 // Integration tests for Auth Routes — tests login, refresh, and logout flows
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, afterEach } from "bun:test";
 import app from "../../../../src/index";
 import prisma from "../../../db/client";
 
-// Helper: creates a user via POST /api/users and logs them in,
-// returning the token pair. Avoids repeating this setup in every test.
+// Dedicated X-Forwarded-For IPs isolate each describe block into its own
+// rate-limit bucket. Combined with UUID emails + targeted cleanup, every test
+// is independent — so parallel test files never delete each other's data.
+const LOGIN_IP = "127.0.0.33";
+const REGISTER_IP = "127.0.0.30";
+const ME_IP = "127.0.0.31";
+
+const jsonHeaders = (ip: string, extra?: Record<string, string>) => ({
+  "Content-Type": "application/json",
+  "X-Forwarded-For": ip,
+  ...extra,
+});
+
+// Helper: registers a fresh UUID-email user via POST /api/users and logs them
+// in, returning the token pair plus the email. Pushes the email onto the given
+// cleanup array so the caller's afterEach removes only its own rows.
 async function createAndLogin(
-  email = "auth@example.com",
+  createdEmails: string[],
   password = "Secret1234",
-): Promise<{ token: string; refreshToken: string }> {
+): Promise<{ token: string; refreshToken: string; email: string }> {
+  const email = `auth-${crypto.randomUUID()}@test.com`;
+  createdEmails.push(email);
+
   await app.request("/api/users", {
     method: "POST",
     body: JSON.stringify({ email, password }),
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders(LOGIN_IP),
   });
 
   const res = await app.request("/api/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders(LOGIN_IP),
   });
 
   const body = (await res.json()) as {
     data: { token: string; refreshToken: string };
   };
-  return body.data;
+  return { ...body.data, email };
 }
 
 describe("Auth Routes", () => {
-  // Delete in FK-safe order: receipts → orders (cascades StatusHistory,
-  // clearing changedById/assignedUserId refs) → users (cascades their
-  // refresh tokens). Required because other test files create orders/receipts.
-  beforeEach(async () => {
-    await prisma.receipt.deleteMany();
-    await prisma.serviceOrder.deleteMany();
-    await prisma.user.deleteMany();
+  // Per-test cleanup of only the rows this block created — no global wipe, so
+  // it can't race with users/orders created by parallel test files.
+  const createdEmails: string[] = [];
+
+  afterEach(async () => {
+    if (createdEmails.length > 0) {
+      await prisma.user.deleteMany({ where: { email: { in: createdEmails } } });
+      createdEmails.length = 0;
+    }
   });
 
   // ─── POST /api/auth/login ────────────────────────────────────────
 
   describe("POST /api/auth/login", () => {
     it("should return 200 with access token and refresh token on valid credentials", async () => {
-      const { token, refreshToken } = await createAndLogin();
+      const { token, refreshToken } = await createAndLogin(createdEmails);
 
       expect(typeof token).toBe("string");
       expect(typeof refreshToken).toBe("string");
@@ -49,23 +68,46 @@ describe("Auth Routes", () => {
       expect(refreshToken.length).toBeGreaterThan(0);
     });
 
-    it("should return 401 when password is wrong", async () => {
+    it("should log in with a different email casing than registration (emails normalized to lowercase)", async () => {
+      // Register with a mixed-case email — stored lowercase by the service.
+      const email = `MixedCase-${crypto.randomUUID()}@Example.com`;
+      createdEmails.push(email.toLowerCase());
+
       await app.request("/api/users", {
         method: "POST",
+        body: JSON.stringify({ email, password: "Secret1234" }),
+        headers: jsonHeaders(LOGIN_IP),
+      });
+
+      // Log in using a different casing; findByEmail normalizes the lookup.
+      const res = await app.request("/api/auth/login", {
+        method: "POST",
         body: JSON.stringify({
-          email: "auth@example.com",
+          email: email.toUpperCase(),
           password: "Secret1234",
         }),
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(LOGIN_IP),
+      });
+
+      const body = (await res.json()) as { data: { token: string } };
+      expect(res.status).toBe(200);
+      expect(typeof body.data.token).toBe("string");
+    });
+
+    it("should return 401 when password is wrong", async () => {
+      const email = `auth-${crypto.randomUUID()}@test.com`;
+      createdEmails.push(email);
+
+      await app.request("/api/users", {
+        method: "POST",
+        body: JSON.stringify({ email, password: "Secret1234" }),
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       const res = await app.request("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({
-          email: "auth@example.com",
-          password: "wrongpassword",
-        }),
-        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: "wrongpassword" }),
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       expect(res.status).toBe(401);
@@ -75,10 +117,10 @@ describe("Auth Routes", () => {
       const res = await app.request("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({
-          email: "nonexistent@example.com",
+          email: `nonexistent-${crypto.randomUUID()}@test.com`,
           password: "Secret1234",
         }),
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       expect(res.status).toBe(401);
@@ -87,31 +129,28 @@ describe("Auth Routes", () => {
     it("should return the same error message for wrong password and nonexistent email", async () => {
       // Security: prevents email enumeration — the client cannot tell whether
       // the email exists or the password is wrong. Both return "Invalid credentials".
+      const email = `auth-${crypto.randomUUID()}@test.com`;
+      createdEmails.push(email);
+
       await app.request("/api/users", {
         method: "POST",
-        body: JSON.stringify({
-          email: "auth@example.com",
-          password: "Secret1234",
-        }),
-        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: "Secret1234" }),
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       const wrongPasswordRes = await app.request("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({
-          email: "auth@example.com",
-          password: "wrongpassword",
-        }),
-        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: "wrongpassword" }),
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       const noEmailRes = await app.request("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({
-          email: "nonexistent@example.com",
+          email: `nonexistent-${crypto.randomUUID()}@test.com`,
           password: "Secret1234",
         }),
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       const body1 = (await wrongPasswordRes.json()) as { error: string };
@@ -124,7 +163,7 @@ describe("Auth Routes", () => {
       const res = await app.request("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ password: "Secret1234" }),
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       expect(res.status).toBe(400);
@@ -134,7 +173,7 @@ describe("Auth Routes", () => {
       const res = await app.request("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ email: "not-an-email", password: "Secret1234" }),
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       expect(res.status).toBe(400);
@@ -145,12 +184,13 @@ describe("Auth Routes", () => {
 
   describe("POST /api/auth/refresh", () => {
     it("should return a new token pair when refresh token is valid", async () => {
-      const { refreshToken: originalToken } = await createAndLogin();
+      const { refreshToken: originalToken } =
+        await createAndLogin(createdEmails);
 
       const res = await app.request("/api/auth/refresh", {
         method: "POST",
         body: JSON.stringify({ refreshToken: originalToken }),
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       const body = (await res.json()) as {
@@ -171,27 +211,27 @@ describe("Auth Routes", () => {
         body: JSON.stringify({
           refreshToken: "invalid-token-that-does-not-exist",
         }),
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       expect(res.status).toBe(401);
     });
 
     it("should return 401 when the same refresh token is used twice (token rotation)", async () => {
-      const { refreshToken } = await createAndLogin();
+      const { refreshToken } = await createAndLogin(createdEmails);
 
       // First use — consumes the token and issues a new one
       await app.request("/api/auth/refresh", {
         method: "POST",
         body: JSON.stringify({ refreshToken }),
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       // Second use — old token was revoked during the first refresh
       const res = await app.request("/api/auth/refresh", {
         method: "POST",
         body: JSON.stringify({ refreshToken }),
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       expect(res.status).toBe(401);
@@ -202,12 +242,12 @@ describe("Auth Routes", () => {
 
   describe("POST /api/auth/logout", () => {
     it("should return 200 and a success message on logout", async () => {
-      const { refreshToken } = await createAndLogin();
+      const { refreshToken } = await createAndLogin(createdEmails);
 
       const res = await app.request("/api/auth/logout", {
         method: "POST",
         body: JSON.stringify({ refreshToken }),
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       const body = (await res.json()) as {
@@ -226,48 +266,48 @@ describe("Auth Routes", () => {
       const res = await app.request("/api/auth/logout", {
         method: "POST",
         body: JSON.stringify({ refreshToken: "nonexistent-token" }),
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       expect(res.status).toBe(200);
     });
 
     it("should blacklist the access token so protected routes return 401 after logout", async () => {
-      const { token, refreshToken } = await createAndLogin();
+      const { token, refreshToken } = await createAndLogin(createdEmails);
 
       // Logout sending the access token in the Authorization header
       await app.request("/api/auth/logout", {
         method: "POST",
         body: JSON.stringify({ refreshToken }),
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: jsonHeaders(LOGIN_IP, { Authorization: `Bearer ${token}` }),
       });
 
       // The blacklisted access token must no longer grant access
       const res = await app.request("/api/users", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "X-Forwarded-For": LOGIN_IP,
+        },
       });
 
       expect(res.status).toBe(401);
     });
 
     it("should invalidate the refresh token so it cannot be used after logout", async () => {
-      const { refreshToken } = await createAndLogin();
+      const { refreshToken } = await createAndLogin(createdEmails);
 
       // Revoke the token via logout
       await app.request("/api/auth/logout", {
         method: "POST",
         body: JSON.stringify({ refreshToken }),
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       // Attempt to use the revoked token — must fail
       const res = await app.request("/api/auth/refresh", {
         method: "POST",
         body: JSON.stringify({ refreshToken }),
-        headers: { "Content-Type": "application/json" },
+        headers: jsonHeaders(LOGIN_IP),
       });
 
       expect(res.status).toBe(401);
@@ -276,22 +316,6 @@ describe("Auth Routes", () => {
 });
 
 // ─── POST /api/auth/register ─────────────────────────────────────────────────
-// These tests live outside the main "Auth Routes" describe so they do NOT
-// trigger the global deleteMany beforeEach — they create users with UUID emails
-// and clean up only those specific rows after each test.
-//
-// A dedicated X-Forwarded-For IP isolates these requests into their own
-// rate-limit bucket, so they don't push the shared "unknown" bucket past the
-// 100 req/window cap and trip 429s in other test files.
-
-const REGISTER_IP = "127.0.0.30";
-const ME_IP = "127.0.0.31";
-
-const jsonHeaders = (ip: string, extra?: Record<string, string>) => ({
-  "Content-Type": "application/json",
-  "X-Forwarded-For": ip,
-  ...extra,
-});
 
 describe("Register Route", () => {
   const createdEmails: string[] = [];
@@ -584,10 +608,7 @@ describe("Auth Routes — CORS headers", () => {
         email: "cors@example.com",
         password: "Secret1234",
       }),
-      headers: {
-        "Content-Type": "application/json",
-        Origin: "http://localhost:3000",
-      },
+      headers: jsonHeaders(LOGIN_IP, { Origin: "http://localhost:3000" }),
     });
 
     expect(res.headers.get("Access-Control-Allow-Origin")).not.toBeNull();
@@ -604,7 +625,7 @@ describe("Auth Routes — security headers", () => {
         email: "sec@example.com",
         password: "Secret1234",
       }),
-      headers: { "Content-Type": "application/json" },
+      headers: jsonHeaders(LOGIN_IP),
     });
 
     expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
@@ -617,7 +638,7 @@ describe("Auth Routes — security headers", () => {
         email: "sec@example.com",
         password: "Secret1234",
       }),
-      headers: { "Content-Type": "application/json" },
+      headers: jsonHeaders(LOGIN_IP),
     });
 
     expect(res.headers.get("X-Frame-Options")).not.toBeNull();

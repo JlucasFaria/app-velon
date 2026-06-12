@@ -11,6 +11,7 @@ import {
   errorResponseSchema,
   validationErrorResponseSchema,
 } from "../../schemas/response";
+import { requireMinRole } from "../../middlewares/permissions";
 import { ClientService } from "./client-service";
 import {
   createClientSchema,
@@ -199,6 +200,8 @@ export function createClientRoutes(
   // ─── Middleware ─────────────────────────────────────────────────
 
   clientRoutes.use("/*", authMiddleware);
+  clientRoutes.on("POST", "/", requireMinRole("OPERATOR"));
+  clientRoutes.on(["PUT", "DELETE"], "/:id", requireMinRole("OPERATOR"));
 
   // ─── Route Handlers ─────────────────────────────────────────────
 

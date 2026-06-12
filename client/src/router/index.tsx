@@ -17,6 +17,7 @@ import { OrderDetailPage } from "@/pages/orders/OrderDetailPage";
 import { ReceiptPage } from "@/pages/receipts/ReceiptPage";
 import { ReportsPage } from "@/pages/reports/ReportsPage";
 import { ProfilePage } from "@/pages/profile/ProfilePage";
+import { AcceptInvitePage } from "@/pages/invites/AcceptInvitePage";
 
 /** Requires auth + company. No company → /onboarding. Not logged in → /login. */
 function ProtectedRoute() {
@@ -49,6 +50,7 @@ function OnboardingGuard() {
 const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/register", element: <RegisterPage /> },
+  { path: "/invites/:token", element: <AcceptInvitePage /> },
   {
     element: <OnboardingGuard />,
     children: [{ path: "/onboarding", element: <OnboardingPage /> }],

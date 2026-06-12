@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { useAuth } from "@/contexts/auth-context";
 
 // Receipts can only be issued once work has progressed past the initial state.
 const RECEIPT_BLOCKED_STATUSES = ["PENDING", "CANCELLED"];
@@ -52,6 +53,8 @@ function DetailSkeleton() {
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canWrite = user?.role !== "VIEWER";
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [receiptLoading, setReceiptLoading] = useState(true);
@@ -148,34 +151,44 @@ export function OrderDetailPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <OrderStatusBadge status={order.status} />
-            <Button variant="outline" onClick={() => setStatusDialogOpen(true)}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Alterar status
-            </Button>
+            {canWrite && (
+              <Button
+                variant="outline"
+                onClick={() => setStatusDialogOpen(true)}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Alterar status
+              </Button>
+            )}
             {receiptLoading ? (
               <Button disabled>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Recibo
               </Button>
             ) : receipt ? (
+              // Viewing an issued receipt is allowed for every role.
               <Button onClick={() => navigate(`/orders/${order.id}/receipt`)}>
                 <ReceiptIcon className="mr-2 h-4 w-4" />
                 Ver recibo
               </Button>
             ) : (
-              <Button
-                onClick={handleGenerateReceipt}
-                disabled={
-                  generating || RECEIPT_BLOCKED_STATUSES.includes(order.status)
-                }
-              >
-                {generating ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <ReceiptIcon className="mr-2 h-4 w-4" />
-                )}
-                {generating ? "Gerando…" : "Gerar recibo"}
-              </Button>
+              // Issuing a receipt is a write action — hidden from read-only users.
+              canWrite && (
+                <Button
+                  onClick={handleGenerateReceipt}
+                  disabled={
+                    generating ||
+                    RECEIPT_BLOCKED_STATUSES.includes(order.status)
+                  }
+                >
+                  {generating ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <ReceiptIcon className="mr-2 h-4 w-4" />
+                  )}
+                  {generating ? "Gerando…" : "Gerar recibo"}
+                </Button>
+              )
             )}
           </div>
         </div>

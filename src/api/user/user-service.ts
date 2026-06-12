@@ -13,12 +13,15 @@ export class UserService {
     name?: string | null;
     password: string;
   }) {
-    const { password, ...rest } = data;
+    const { password, email, ...rest } = data;
     const hashedPassword = await Bun.password.hash(password);
 
     return await this.prisma.user.create({
       data: {
         ...rest,
+        // Normalize to lower-case so lookups (login, invite checks) are
+        // case-insensitive and a single email can't yield duplicate accounts.
+        email: email.trim().toLowerCase(),
         password: hashedPassword,
       },
       select: {
@@ -34,16 +37,31 @@ export class UserService {
   async registerUser(data: { email: string; name: string; password: string }) {
     const hashedPassword = await Bun.password.hash(data.password);
     return await this.prisma.user.create({
-      data: { email: data.email, name: data.name, password: hashedPassword },
+      data: {
+        email: data.email.trim().toLowerCase(),
+        name: data.name,
+        password: hashedPassword,
+      },
       select: { id: true, email: true },
     });
   }
 
-  async getAll(page?: string | number, limit?: string | number) {
+  // Returns only users who have an active membership in the given company —
+  // the GET /api/users listing is company-scoped to prevent cross-tenant
+  // data exposure.
+  async getAllByCompany(
+    companyId: number,
+    page?: string | number,
+    limit?: string | number,
+  ) {
     const params = getPaginationParams(page, limit);
+    const companyFilter = {
+      memberships: { some: { companyId, status: "ACTIVE" as const } },
+    };
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
+        where: companyFilter,
         skip: params.skip,
         take: params.limit,
         orderBy: { id: "asc" },
@@ -55,12 +73,13 @@ export class UserService {
           updatedAt: true,
         },
       }),
-      this.prisma.user.count(),
+      this.prisma.user.count({ where: companyFilter }),
     ]);
 
-    const pagination = createPaginationMeta(params.page, params.limit, total);
-
-    return { users, pagination };
+    return {
+      users,
+      pagination: createPaginationMeta(params.page, params.limit, total),
+    };
   }
 
   async verifyPassword(hash: string, password: string) {
@@ -69,7 +88,7 @@ export class UserService {
 
   async findByEmail(email: string) {
     return await this.prisma.user.findUnique({
-      where: { email },
+      where: { email: email.trim().toLowerCase() },
     });
   }
 
