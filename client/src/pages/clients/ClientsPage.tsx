@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, MoreHorizontal, Pencil, Plus, Search, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -261,7 +261,12 @@ export function ClientsPage() {
                 : data?.clients.map((client) => (
                     <TableRow key={client.id}>
                       <TableCell className="font-medium">
-                        {client.name}
+                        <Link
+                          to={`/clients/${client.id}`}
+                          className="underline-offset-2 transition-colors hover:text-primary hover:underline"
+                        >
+                          {client.name}
+                        </Link>
                       </TableCell>
                       <TableCell>{client.document}</TableCell>
                       <TableCell>{client.phone ?? "—"}</TableCell>
