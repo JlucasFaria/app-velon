@@ -444,6 +444,210 @@ describe("OrderService", () => {
     });
   });
 
+  describe("items and total computation", () => {
+    it("should persist items and compute the correct total", async () => {
+      const order = await orderService.create(
+        {
+          description: "Multi-item service",
+          items: [{ description: "Part A", unitValue: "150.00", quantity: 2 }],
+          clientId: testClientId,
+        },
+        testUserId,
+        companyId,
+      );
+
+      expect(order.value.toString()).toBe("300");
+      expect(order.items).toHaveLength(1);
+      expect(order.items[0]?.description).toBe("Part A");
+      expect(order.items[0]?.quantity).toBe(2);
+      expect(order.items[0]?.subtotal.toString()).toBe("300");
+    });
+
+    it("should sum multiple items into the total", async () => {
+      const order = await orderService.create(
+        {
+          description: "Combo service",
+          items: [
+            { description: "Part A", unitValue: "100.00", quantity: 1 },
+            { description: "Part B", unitValue: "50.00", quantity: 3 },
+          ],
+          clientId: testClientId,
+        },
+        testUserId,
+        companyId,
+      );
+
+      // 100 + (50 × 3) = 250
+      expect(order.value.toString()).toBe("250");
+      expect(order.items).toHaveLength(2);
+      expect(order.items[0]?.subtotal.toString()).toBe("100");
+      expect(order.items[1]?.subtotal.toString()).toBe("150");
+    });
+
+    it("should avoid floating-point drift when summing items", async () => {
+      const order = await orderService.create(
+        {
+          description: "Float edge case",
+          items: [
+            { description: "A", unitValue: "0.10", quantity: 1 },
+            { description: "B", unitValue: "0.20", quantity: 1 },
+          ],
+          clientId: testClientId,
+        },
+        testUserId,
+        companyId,
+      );
+
+      // 0.1 + 0.2 = 0.30 (not 0.30000000000000004 via floating-point drift)
+      expect(order.value.toString()).toBe("0.3");
+    });
+
+    it("should include optional category on each item", async () => {
+      const order = await orderService.create(
+        {
+          description: "Categorised service",
+          items: [
+            {
+              description: "Mão de obra",
+              category: "Honorário",
+              unitValue: "200.00",
+              quantity: 1,
+            },
+          ],
+          clientId: testClientId,
+        },
+        testUserId,
+        companyId,
+      );
+
+      expect(order.items[0]?.category).toBe("Honorário");
+    });
+
+    it("should return items ordered by id (insertion order)", async () => {
+      const order = await orderService.create(
+        {
+          description: "Ordered items",
+          items: [
+            { description: "First", unitValue: "10.00", quantity: 1 },
+            { description: "Second", unitValue: "20.00", quantity: 1 },
+            { description: "Third", unitValue: "30.00", quantity: 1 },
+          ],
+          clientId: testClientId,
+        },
+        testUserId,
+        companyId,
+      );
+
+      expect(order.items[0]?.description).toBe("First");
+      expect(order.items[1]?.description).toBe("Second");
+      expect(order.items[2]?.description).toBe("Third");
+    });
+
+    it("should replace all items and recompute total on update", async () => {
+      const order = await orderService.create(
+        baseOrder(),
+        testUserId,
+        companyId,
+      );
+
+      const updated = await orderService.update(order.id, companyId, {
+        items: [{ description: "New item", unitValue: "75.00", quantity: 4 }],
+      });
+
+      // 75 × 4 = 300; old item (250) must be gone
+      expect(updated?.value.toString()).toBe("300");
+      expect(updated?.items).toHaveLength(1);
+      expect(updated?.items[0]?.description).toBe("New item");
+    });
+
+    it("should not change items when update omits the items field", async () => {
+      const order = await orderService.create(
+        baseOrder(),
+        testUserId,
+        companyId,
+      );
+
+      const updated = await orderService.update(order.id, companyId, {
+        description: "Updated description only",
+      });
+
+      // Total unchanged; items preserved
+      expect(updated?.value.toString()).toBe("250");
+      expect(updated?.items).toHaveLength(1);
+      expect(updated?.description).toBe("Updated description only");
+    });
+  });
+
+  describe("legacy migration", () => {
+    it("should create one Serviço item for a bare order (no items)", async () => {
+      // Insert a ServiceOrder directly, bypassing the service — simulates
+      // pre-migration rows that had a value but no OrderItems.
+      const legacyOrder = await prisma.serviceOrder.create({
+        data: {
+          orderNumber: `OS-LEGACY-${crypto.randomUUID()}`,
+          description: "Legacy order",
+          value: "99.99",
+          clientId: testClientId,
+          companyId,
+          statusHistory: {
+            create: { toStatus: "PENDING", changedById: testUserId },
+          },
+        },
+      });
+
+      // Run the migration SQL scoped to this order
+      await prisma.$executeRaw`
+        INSERT INTO "OrderItem" ("orderId","description","category","unitValue","quantity","subtotal","createdAt","updatedAt")
+        SELECT o."id",'Serviço',NULL,o."value",1,o."value",NOW(),NOW()
+        FROM "ServiceOrder" o
+        WHERE NOT EXISTS (SELECT 1 FROM "OrderItem" i WHERE i."orderId" = o."id")
+          AND o."id" = ${legacyOrder.id}
+      `;
+
+      const items = await prisma.orderItem.findMany({
+        where: { orderId: legacyOrder.id },
+      });
+
+      expect(items).toHaveLength(1);
+      expect(items[0]?.description).toBe("Serviço");
+      expect(items[0]?.quantity).toBe(1);
+      expect(items[0]?.unitValue.toString()).toBe("99.99");
+    });
+
+    it("should be idempotent — running migration twice does not duplicate items", async () => {
+      const legacyOrder = await prisma.serviceOrder.create({
+        data: {
+          orderNumber: `OS-LEGACY-${crypto.randomUUID()}`,
+          description: "Idempotent test",
+          value: "50.00",
+          clientId: testClientId,
+          companyId,
+          statusHistory: {
+            create: { toStatus: "PENDING", changedById: testUserId },
+          },
+        },
+      });
+
+      const migrationSql = async () => {
+        await prisma.$executeRaw`
+          INSERT INTO "OrderItem" ("orderId","description","category","unitValue","quantity","subtotal","createdAt","updatedAt")
+          SELECT o."id",'Serviço',NULL,o."value",1,o."value",NOW(),NOW()
+          FROM "ServiceOrder" o
+          WHERE NOT EXISTS (SELECT 1 FROM "OrderItem" i WHERE i."orderId" = o."id")
+            AND o."id" = ${legacyOrder.id}
+        `;
+      };
+
+      await migrationSql();
+      await migrationSql();
+
+      const items = await prisma.orderItem.findMany({
+        where: { orderId: legacyOrder.id },
+      });
+      expect(items).toHaveLength(1);
+    });
+  });
+
   describe("clientExists", () => {
     it("should return true for an existing client", async () => {
       expect(await orderService.clientExists(testClientId, companyId)).toBe(
