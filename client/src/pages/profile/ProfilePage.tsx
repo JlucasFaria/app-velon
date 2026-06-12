@@ -117,19 +117,23 @@ export function ProfilePage() {
   useEffect(() => {
     if (activeTab !== "membros" || !isAdmin) return;
     let cancelled = false;
-    setMembersLoading(true);
-    listMembers()
-      .then((list) => {
-        if (!cancelled) {
-          setMembers(list);
-          setMembersLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setMembersLoading(false);
-      });
+    const t = setTimeout(() => {
+      if (cancelled) return;
+      setMembersLoading(true);
+      listMembers()
+        .then((list) => {
+          if (!cancelled) {
+            setMembers(list);
+            setMembersLoading(false);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setMembersLoading(false);
+        });
+    }, 0);
     return () => {
       cancelled = true;
+      clearTimeout(t);
     };
   }, [activeTab, isAdmin]);
 

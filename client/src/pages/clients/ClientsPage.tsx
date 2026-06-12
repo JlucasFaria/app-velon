@@ -76,13 +76,14 @@ export function ClientsPage() {
   );
 
   useEffect(() => {
-    if (searchInput.trim().length < 3) {
-      setSearchResults([]);
-      setShowSearchDropdown(false);
-      return;
-    }
     let cancelled = false;
     const t = setTimeout(async () => {
+      if (cancelled) return;
+      if (searchInput.trim().length < 3) {
+        setSearchResults([]);
+        setShowSearchDropdown(false);
+        return;
+      }
       try {
         const results = await searchClients(searchInput.trim());
         if (!cancelled) {

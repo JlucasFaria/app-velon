@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -84,7 +84,7 @@ export function ClientForm({
   });
 
   const { isSubmitting } = form.formState;
-  const clientType = form.watch("clientType");
+  const clientType = useWatch({ control: form.control, name: "clientType" });
 
   const submitLabel = isEditing
     ? isSubmitting
@@ -108,7 +108,8 @@ export function ClientForm({
   }, []);
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    const t = setTimeout(() => {
       setSuggestions([]);
       setShowSuggestions(false);
       form.reset(
@@ -123,7 +124,8 @@ export function ClientForm({
             }
           : EMPTY_VALUES,
       );
-    }
+    }, 0);
+    return () => clearTimeout(t);
   }, [open, client, form]);
 
   async function onSubmit(data: FormData) {

@@ -37,12 +37,6 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export const ROLE_LABELS: Record<MemberRole, string> = {
-  ADMIN: "Admin",
-  OPERATOR: "Operador",
-  VIEWER: "Leitor",
-};
-
 interface InviteMemberDialogProps {
   onInvited: (member: Member) => void;
 }
