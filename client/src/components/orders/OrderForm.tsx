@@ -6,7 +6,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { createOrder } from "@/api/orders";
-import type { ClientInput } from "@/api/clients";
+import { createClient, type ClientInput } from "@/api/clients";
 import { ClientCombobox } from "@/components/clients/ClientCombobox";
 import { InlineClientForm } from "@/components/orders/InlineClientForm";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,8 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
     active: boolean;
     initialName: string;
   }>({ active: false, initialName: "" });
+  const [selectionKey, setSelectionKey] = useState(0);
+  const [selectedClientName, setSelectedClientName] = useState("");
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -66,6 +68,8 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
     if (open) {
       form.reset({ description: "", value: "" });
       setInlineClient({ active: false, initialName: "" });
+      setSelectedClientName("");
+      setSelectionKey(0);
     }
   }, [open, form]);
 
@@ -77,8 +81,13 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
     setInlineClient({ active: false, initialName: "" });
   }
 
-  async function handleClientSave(_data: ClientInput) {
-    // Task 3: create client via API and auto-select it
+  async function handleClientSave(data: ClientInput) {
+    const client = await createClient(data);
+    form.setValue("clientId", client.id);
+    setSelectedClientName(client.name);
+    setSelectionKey((k) => k + 1);
+    cancelInlineClient();
+    toast.success("Cliente criado e selecionado");
   }
 
   async function onSubmit(data: FormData) {
@@ -124,9 +133,11 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
                     <FormLabel>Cliente</FormLabel>
                     <FormControl>
                       <ClientCombobox
+                        key={selectionKey}
                         value={field.value ?? null}
                         onChange={(id) => field.onChange(id ?? undefined)}
                         onCreateNew={openInlineClient}
+                        initialQuery={selectedClientName}
                       />
                     </FormControl>
                     <FormMessage />

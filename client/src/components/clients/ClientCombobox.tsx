@@ -7,6 +7,8 @@ interface ClientComboboxProps {
   value: number | null;
   onChange: (clientId: number | null) => void;
   onCreateNew?: (query: string) => void;
+  /** Pre-fills the input text on mount (used for auto-select after inline creation). */
+  initialQuery?: string;
   placeholder?: string;
   id?: string;
   ref?: Ref<HTMLInputElement>;
@@ -18,13 +20,14 @@ export function ClientCombobox({
   value,
   onChange,
   onCreateNew,
+  initialQuery,
   placeholder,
   id,
   ref,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
 }: ClientComboboxProps) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery ?? "");
   const [results, setResults] = useState<ClientSearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);

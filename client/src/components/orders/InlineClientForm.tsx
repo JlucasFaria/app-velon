@@ -1,8 +1,10 @@
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import type { ClientInput } from "@/api/clients";
+import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -65,15 +67,23 @@ export function InlineClientForm({
   const clientType = useWatch({ control: form.control, name: "clientType" });
 
   async function onSubmit(data: FormData) {
-    await onSave({
-      name: data.name,
-      document: data.document,
-      phone: data.phone || undefined,
-      address: data.address || undefined,
-      clientType: data.clientType,
-      partnerName:
-        data.clientType === "PARTNER" ? data.partnerName || undefined : undefined,
-    });
+    try {
+      await onSave({
+        name: data.name,
+        document: data.document,
+        phone: data.phone || undefined,
+        address: data.address || undefined,
+        clientType: data.clientType,
+        partnerName:
+          data.clientType === "PARTNER" ? data.partnerName || undefined : undefined,
+      });
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        form.setError("document", { message: err.message });
+      } else {
+        toast.error(err instanceof Error ? err.message : "Erro ao criar cliente");
+      }
+    }
   }
 
   return (
