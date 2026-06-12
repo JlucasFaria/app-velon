@@ -263,7 +263,7 @@ export function ClientsPage() {
                       <TableCell className="font-medium">
                         <Link
                           to={`/clients/${client.id}`}
-                          className="hover:underline"
+                          className="underline-offset-2 transition-colors hover:text-primary hover:underline"
                         >
                           {client.name}
                         </Link>

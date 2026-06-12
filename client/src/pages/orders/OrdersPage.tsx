@@ -198,7 +198,7 @@ export function OrdersPage() {
                       <TableCell className="font-medium">
                         <Link
                           to={`/orders/${order.id}`}
-                          className="hover:underline"
+                          className="underline-offset-2 transition-colors hover:text-primary hover:underline"
                         >
                           {order.orderNumber}
                         </Link>
@@ -206,7 +206,7 @@ export function OrdersPage() {
                       <TableCell>
                         <Link
                           to={`/clients/${order.client.id}`}
-                          className="hover:underline"
+                          className="underline-offset-2 transition-colors hover:text-primary hover:underline"
                         >
                           {order.client.name}
                         </Link>
