@@ -1,10 +1,16 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { createClient, updateClient, type Client } from "@/api/clients";
+import {
+  createClient,
+  updateClient,
+  getPartnerNameSuggestions,
+  type Client,
+} from "@/api/clients";
+import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,13 +36,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const schema = z.object({
-  name: z.string().min(1, "Informe o nome"),
-  document: z.string().min(1, "Informe o documento"),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  clientType: z.enum(["COUNTER", "PARTNER"]),
-});
+const schema = z
+  .object({
+    name: z.string().min(1, "Informe o nome"),
+    document: z.string().min(1, "Informe o documento"),
+    phone: z.string().optional(),
+    address: z.string().optional(),
+    clientType: z.enum(["COUNTER", "PARTNER"]),
+    partnerName: z.string().optional(),
+  })
+  .refine((d) => d.clientType !== "PARTNER" || !!d.partnerName, {
+    message: "Informe o nome do parceiro",
+    path: ["partnerName"],
+  });
 
 type FormData = z.infer<typeof schema>;
 
@@ -46,6 +58,7 @@ const EMPTY_VALUES: FormData = {
   phone: "",
   address: "",
   clientType: "COUNTER",
+  partnerName: "",
 };
 
 interface ClientFormProps {
@@ -62,6 +75,8 @@ export function ClientForm({
   onSuccess,
 }: ClientFormProps) {
   const isEditing = !!client;
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -69,6 +84,7 @@ export function ClientForm({
   });
 
   const { isSubmitting } = form.formState;
+  const clientType = form.watch("clientType");
 
   const submitLabel = isEditing
     ? isSubmitting
@@ -78,9 +94,23 @@ export function ClientForm({
       ? "Criando…"
       : "Criar cliente";
 
-  // Populate form when editing an existing client
+  const fetchSuggestions = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setSuggestions([]);
+      return;
+    }
+    try {
+      const names = await getPartnerNameSuggestions(q);
+      setSuggestions(names);
+    } catch {
+      setSuggestions([]);
+    }
+  }, []);
+
   useEffect(() => {
     if (open) {
+      setSuggestions([]);
+      setShowSuggestions(false);
       form.reset(
         client
           ? {
@@ -89,6 +119,7 @@ export function ClientForm({
               phone: client.phone ?? "",
               address: client.address ?? "",
               clientType: client.clientType,
+              partnerName: client.partnerName ?? "",
             }
           : EMPTY_VALUES,
       );
@@ -101,6 +132,10 @@ export function ClientForm({
         ...data,
         phone: data.phone || undefined,
         address: data.address || undefined,
+        partnerName:
+          data.clientType === "PARTNER"
+            ? data.partnerName || undefined
+            : undefined,
       };
       if (isEditing) {
         await updateClient(client.id, input);
@@ -112,7 +147,11 @@ export function ClientForm({
       onOpenChange(false);
       onSuccess();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Algo deu errado");
+      if (err instanceof ApiError && err.status === 409) {
+        form.setError("document", { message: err.message });
+      } else {
+        toast.error(err instanceof Error ? err.message : "Algo deu errado");
+      }
     }
   }
 
@@ -193,6 +232,59 @@ export function ClientForm({
                 )}
               />
             </div>
+            {clientType === "PARTNER" && (
+              <FormField
+                control={form.control}
+                name="partnerName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome do parceiro</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          placeholder="Nome do parceiro"
+                          {...field}
+                          value={field.value ?? ""}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            void fetchSuggestions(e.target.value);
+                            setShowSuggestions(true);
+                          }}
+                          onFocus={() => {
+                            if (field.value) {
+                              void fetchSuggestions(field.value);
+                              setShowSuggestions(true);
+                            }
+                          }}
+                          onBlur={() => {
+                            field.onBlur();
+                            setTimeout(() => setShowSuggestions(false), 150);
+                          }}
+                        />
+                        {showSuggestions && suggestions.length > 0 && (
+                          <ul className="absolute z-10 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md">
+                            {suggestions.map((name) => (
+                              <li
+                                key={name}
+                                className="cursor-pointer px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                                onMouseDown={() => {
+                                  field.onChange(name);
+                                  setSuggestions([]);
+                                  setShowSuggestions(false);
+                                }}
+                              >
+                                {name}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="address"

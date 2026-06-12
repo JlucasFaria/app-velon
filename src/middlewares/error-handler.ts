@@ -49,7 +49,11 @@ export const errorHandler: ErrorHandler = (err, c) => {
       const fields =
         meta?.target ?? meta?.driverAdapterError?.cause?.constraint?.fields;
       const field = fields?.[fields.length - 1]?.replace(/"/g, "") ?? "Field";
-      return c.json({ success: false, error: `${field} already in use` }, 409);
+      const ptBrMessages: Record<string, string> = {
+        document: "Documento já cadastrado nesta empresa",
+      };
+      const message = ptBrMessages[field] ?? `${field} already in use`;
+      return c.json({ success: false, error: message }, 409);
     }
 
     if (err.code === "P2025") {

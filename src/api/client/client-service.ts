@@ -13,6 +13,7 @@ const CLIENT_SELECT = {
   phone: true,
   address: true,
   clientType: true,
+  partnerName: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -99,9 +100,41 @@ export class ClientService {
 
     return await this.prisma.client.update({
       where: { id },
-      data,
+      data: {
+        ...data,
+        // Changing to COUNTER must clear partnerName; Prisma ignores undefined.
+        ...(data.clientType === "COUNTER" ? { partnerName: null } : {}),
+      },
       select: CLIENT_SELECT,
     });
+  }
+
+  async search(companyId: number, q: string) {
+    return await this.prisma.client.findMany({
+      where: {
+        companyId,
+        name: { contains: q, mode: "insensitive" },
+      },
+      select: { id: true, name: true, document: true, clientType: true },
+      take: 5,
+      orderBy: { name: "asc" },
+    });
+  }
+
+  async getPartnerNameSuggestions(companyId: number, q?: string) {
+    const clients = await this.prisma.client.findMany({
+      where: {
+        companyId,
+        clientType: "PARTNER",
+        partnerName: q
+          ? { contains: q, mode: "insensitive" }
+          : { not: null },
+      },
+      select: { partnerName: true },
+      distinct: ["partnerName"],
+      orderBy: { partnerName: "asc" },
+    });
+    return clients.map((c) => c.partnerName as string);
   }
 
   async delete(id: number, companyId: number) {

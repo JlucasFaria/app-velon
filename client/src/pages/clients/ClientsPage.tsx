@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, MoreHorizontal, Pencil, Plus, Search, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
   getClients,
   deleteClient,
+  searchClients,
   type Client,
+  type ClientSearchResult,
   type ClientType,
   type PaginatedClients,
 } from "@/api/clients";
@@ -57,6 +59,8 @@ export function ClientsPage() {
   const [deleting, setDeleting] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Client | undefined>(undefined);
+  const [searchResults, setSearchResults] = useState<ClientSearchResult[]>([]);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
 
   const {
     data,
@@ -70,6 +74,36 @@ export function ClientsPage() {
     getClients,
     { clientType: typeFilter || undefined },
   );
+
+  useEffect(() => {
+    if (searchInput.trim().length < 3) {
+      setSearchResults([]);
+      setShowSearchDropdown(false);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const results = await searchClients(searchInput.trim());
+        if (!cancelled) {
+          setSearchResults(results);
+          setShowSearchDropdown(results.length > 0);
+        }
+      } catch {
+        if (!cancelled) setSearchResults([]);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [searchInput]);
+
+  function handleSearchResultClick(clientId: number) {
+    setShowSearchDropdown(false);
+    setFormOpen(false);
+    navigate(`/clients/${clientId}`);
+  }
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -123,8 +157,28 @@ export function ClientsPage() {
             className="pl-9"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
+            onFocus={() => {
+              if (searchResults.length > 0) setShowSearchDropdown(true);
+            }}
+            onBlur={() => setTimeout(() => setShowSearchDropdown(false), 150)}
             aria-label="Buscar clientes"
           />
+          {showSearchDropdown && searchResults.length > 0 && (
+            <ul className="absolute z-20 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md">
+              {searchResults.map((client) => (
+                <li
+                  key={client.id}
+                  className="cursor-pointer px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                  onMouseDown={() => handleSearchResultClick(client.id)}
+                >
+                  <span className="font-medium">{client.name}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {client.document}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <Select
           value={typeFilter || "all"}

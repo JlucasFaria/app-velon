@@ -20,6 +20,8 @@ import {
   updateClientResponseSchema,
   paginatedClientsResponseSchema,
   clientDetailWithOrdersResponseSchema,
+  clientSearchResponseSchema,
+  partnerNameSuggestionsResponseSchema,
 } from "./client-schema";
 
 const clientQuerySchema = paginationQuerySchema.extend({
@@ -51,6 +53,66 @@ export function createClientRoutes(
   const clientRoutes = new OpenAPIHono<{ Variables: AuthVariables }>();
 
   // ─── Route Definitions ──────────────────────────────────────────
+
+  const searchClientsRoute = createRoute({
+    method: "get",
+    path: "/search",
+    tags: ["Clients"],
+    security: [{ bearerAuth: [] }],
+    request: {
+      query: z.object({
+        q: z.string().min(3).openapi({
+          description: "Name search term (minimum 3 characters)",
+          example: "João",
+        }),
+      }),
+    },
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: clientSearchResponseSchema },
+        },
+        description: "Search results (up to 5 clients)",
+      },
+      400: {
+        content: {
+          "application/json": { schema: validationErrorResponseSchema },
+        },
+        description: "Query too short (< 3 characters)",
+      },
+      401: {
+        content: { "application/json": { schema: errorResponseSchema } },
+        description: "Missing or invalid authentication token",
+      },
+    },
+  });
+
+  const partnerNamesRoute = createRoute({
+    method: "get",
+    path: "/partner-names",
+    tags: ["Clients"],
+    security: [{ bearerAuth: [] }],
+    request: {
+      query: z.object({
+        q: z.string().optional().openapi({
+          description: "Filter partner names (optional)",
+          example: "Parceiro",
+        }),
+      }),
+    },
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: partnerNameSuggestionsResponseSchema },
+        },
+        description: "Distinct partner name suggestions",
+      },
+      401: {
+        content: { "application/json": { schema: errorResponseSchema } },
+        description: "Missing or invalid authentication token",
+      },
+    },
+  });
 
   const listClientsRoute = createRoute({
     method: "get",
@@ -204,6 +266,20 @@ export function createClientRoutes(
   clientRoutes.on(["PUT", "DELETE"], "/:id", requireMinRole("OPERATOR"));
 
   // ─── Route Handlers ─────────────────────────────────────────────
+
+  clientRoutes.openapi(searchClientsRoute, async (c) => {
+    const { q } = c.req.valid("query");
+    const { companyId } = getCompanyContext(c);
+    const results = await clientService.search(companyId, q);
+    return successResponse(c, results, 200, "Search results retrieved");
+  });
+
+  clientRoutes.openapi(partnerNamesRoute, async (c) => {
+    const { q } = c.req.valid("query");
+    const { companyId } = getCompanyContext(c);
+    const names = await clientService.getPartnerNameSuggestions(companyId, q);
+    return successResponse(c, names, 200, "Partner name suggestions retrieved");
+  });
 
   clientRoutes.openapi(listClientsRoute, async (c) => {
     const { page, limit, clientType, search } = c.req.valid("query");

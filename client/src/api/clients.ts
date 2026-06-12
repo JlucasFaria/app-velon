@@ -9,6 +9,7 @@ export interface Client {
   phone: string | null;
   address: string | null;
   clientType: ClientType;
+  partnerName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -32,6 +33,14 @@ export interface ClientInput {
   document: string;
   phone?: string;
   address?: string;
+  clientType: ClientType;
+  partnerName?: string;
+}
+
+export interface ClientSearchResult {
+  id: number;
+  name: string;
+  document: string;
   clientType: ClientType;
 }
 
@@ -67,4 +76,16 @@ export function deleteClient(id: number) {
   return apiRequest<{ message?: string }>(`/clients/${id}`, {
     method: "DELETE",
   });
+}
+
+export function searchClients(q: string) {
+  return apiRequest<ClientSearchResult[]>(
+    `/clients/search${buildQuery({ q })}`,
+  );
+}
+
+export function getPartnerNameSuggestions(q?: string) {
+  return apiRequest<string[]>(
+    `/clients/partner-names${buildQuery({ q })}`,
+  );
 }

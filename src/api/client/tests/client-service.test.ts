@@ -221,6 +221,27 @@ describe("ClientService", () => {
 
       expect(updated).toBeNull();
     });
+
+    it("should clear partnerName when clientType changes from PARTNER to COUNTER", async () => {
+      const partner = await clientService.create(
+        {
+          name: "Empresa Parceira",
+          document: "99999999999999",
+          clientType: "PARTNER" as const,
+          partnerName: "Parceiro Original",
+        },
+        companyId,
+      );
+
+      expect(partner.partnerName).toBe("Parceiro Original");
+
+      const updated = await clientService.update(partner.id, companyId, {
+        clientType: "COUNTER",
+      });
+
+      expect(updated?.clientType).toBe("COUNTER");
+      expect(updated?.partnerName).toBeNull();
+    });
   });
 
   describe("delete", () => {
@@ -242,6 +263,134 @@ describe("ClientService", () => {
       // The client must still exist for its real owner.
       const found = await clientService.findById(created.id, companyId);
       expect(found).not.toBeNull();
+    });
+  });
+
+  describe("search", () => {
+    it("should return clients matching the name (case-insensitive)", async () => {
+      await clientService.create(baseClient, companyId);
+      await clientService.create(
+        { name: "Maria Souza", document: "98765432100", clientType: "COUNTER" as const },
+        companyId,
+      );
+
+      const results = await clientService.search(companyId, "joão");
+
+      expect(results.length).toBe(1);
+      expect(results[0]?.name).toBe("João Silva");
+    });
+
+    it("should return id, name, document and clientType fields only", async () => {
+      await clientService.create(baseClient, companyId);
+
+      const results = await clientService.search(companyId, "João");
+
+      expect(results[0]).toHaveProperty("id");
+      expect(results[0]).toHaveProperty("name");
+      expect(results[0]).toHaveProperty("document");
+      expect(results[0]).toHaveProperty("clientType");
+      expect(results[0]).not.toHaveProperty("phone");
+      expect(results[0]).not.toHaveProperty("partnerName");
+    });
+
+    it("should return at most 5 results", async () => {
+      for (let i = 1; i <= 6; i++) {
+        await clientService.create(
+          {
+            name: `Teste Busca ${i}`,
+            document: String(i).padStart(11, "0"),
+            clientType: "COUNTER" as const,
+          },
+          companyId,
+        );
+      }
+
+      const results = await clientService.search(companyId, "Teste Busca");
+
+      expect(results.length).toBe(5);
+    });
+
+    it("should not return clients from another company", async () => {
+      await clientService.create(baseClient, companyId);
+      const otherCompanyId = await createTestCompany("Other Co Search");
+      await clientService.create(
+        { name: "João Outro", document: "98765432100", clientType: "COUNTER" as const },
+        otherCompanyId,
+      );
+
+      const results = await clientService.search(companyId, "João");
+
+      expect(results.length).toBe(1);
+      expect(results[0]?.name).toBe("João Silva");
+    });
+  });
+
+  describe("getPartnerNameSuggestions", () => {
+    it("should return distinct partner names", async () => {
+      await clientService.create(
+        { name: "Empresa A", document: "11111111111111", clientType: "PARTNER" as const, partnerName: "Alpha Ltda" },
+        companyId,
+      );
+      await clientService.create(
+        { name: "Empresa B", document: "22222222222222", clientType: "PARTNER" as const, partnerName: "Alpha Ltda" },
+        companyId,
+      );
+      await clientService.create(
+        { name: "Empresa C", document: "33333333333333", clientType: "PARTNER" as const, partnerName: "Beta Corp" },
+        companyId,
+      );
+
+      const names = await clientService.getPartnerNameSuggestions(companyId);
+
+      expect(names).toContain("Alpha Ltda");
+      expect(names).toContain("Beta Corp");
+      expect(names.filter((n) => n === "Alpha Ltda").length).toBe(1);
+    });
+
+    it("should filter by q when provided", async () => {
+      await clientService.create(
+        { name: "Empresa A", document: "11111111111111", clientType: "PARTNER" as const, partnerName: "Alpha Ltda" },
+        companyId,
+      );
+      await clientService.create(
+        { name: "Empresa B", document: "22222222222222", clientType: "PARTNER" as const, partnerName: "Beta Corp" },
+        companyId,
+      );
+
+      const names = await clientService.getPartnerNameSuggestions(companyId, "Alpha");
+
+      expect(names).toContain("Alpha Ltda");
+      expect(names).not.toContain("Beta Corp");
+    });
+
+    it("should only include PARTNER type clients", async () => {
+      await clientService.create(baseClient, companyId);
+      await clientService.create(
+        { name: "Empresa B", document: "22222222222222", clientType: "PARTNER" as const, partnerName: "Meu Parceiro" },
+        companyId,
+      );
+
+      const names = await clientService.getPartnerNameSuggestions(companyId);
+
+      expect(names.length).toBe(1);
+      expect(names[0]).toBe("Meu Parceiro");
+    });
+
+    it("should not return names from another company", async () => {
+      await clientService.create(
+        { name: "Empresa A", document: "11111111111111", clientType: "PARTNER" as const, partnerName: "Meu Parceiro" },
+        companyId,
+      );
+      const otherCompanyId = await createTestCompany("Other Co Names");
+      await clientService.create(
+        { name: "Empresa X", document: "22222222222222", clientType: "PARTNER" as const, partnerName: "Outro Parceiro" },
+        otherCompanyId,
+      );
+
+      const names = await clientService.getPartnerNameSuggestions(companyId);
+
+      expect(names).toContain("Meu Parceiro");
+      expect(names).not.toContain("Outro Parceiro");
     });
   });
 });

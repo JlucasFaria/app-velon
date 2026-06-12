@@ -114,6 +114,7 @@ describe("Client Routes", () => {
         name: "Maria Souza",
         document: "987.654.321-00",
         clientType: "PARTNER",
+        partnerName: "Parceiro XYZ",
       });
 
       const res = await app.request("/api/clients", { headers: authHeader() });
@@ -137,6 +138,7 @@ describe("Client Routes", () => {
         name: "Maria Souza",
         document: "987.654.321-00",
         clientType: "PARTNER",
+        partnerName: "Parceiro XYZ",
       });
 
       const res = await app.request("/api/clients?clientType=COUNTER", {
@@ -157,6 +159,7 @@ describe("Client Routes", () => {
         name: "Maria Souza",
         document: "987.654.321-00",
         clientType: "PARTNER",
+        partnerName: "Parceiro XYZ",
       });
 
       const res = await app.request("/api/clients?search=Maria", {
@@ -177,6 +180,7 @@ describe("Client Routes", () => {
         name: "Maria Souza",
         document: "987.654.321-00",
         clientType: "PARTNER",
+        partnerName: "Parceiro XYZ",
       });
 
       const res = await app.request("/api/clients?page=1&limit=1", {
@@ -330,6 +334,193 @@ describe("Client Routes", () => {
         headers: authHeader(),
       });
       expect(res.status).toBe(409);
+    });
+  });
+
+  // ─── partnerName validation ───────────────────────────────────────
+
+  describe("partnerName validation", () => {
+    it("should return 400 when clientType is PARTNER and partnerName is missing", async () => {
+      const res = await post({
+        name: "Empresa Parceira",
+        document: "12345678000100",
+        clientType: "PARTNER",
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 201 when clientType is PARTNER and partnerName is provided", async () => {
+      const res = await post({
+        name: "Empresa Parceira",
+        document: "12345678000100",
+        clientType: "PARTNER",
+        partnerName: "Parceiro XYZ",
+      });
+      expect(res.status).toBe(201);
+    });
+
+    it("should return 400 on PUT when changing to PARTNER without partnerName", async () => {
+      const created = (await (await post(basePayload)).json()) as {
+        data: { id: number };
+      };
+
+      const res = await app.request(`/api/clients/${created.data.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ clientType: "PARTNER" }),
+        headers: { "Content-Type": "application/json", ...authHeader() },
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 409 with pt-BR message when document is duplicate", async () => {
+      await post(basePayload);
+      const res = await post({ ...basePayload, name: "Outro Nome" });
+      const body = (await res.json()) as { success: boolean; error: string };
+
+      expect(res.status).toBe(409);
+      expect(body.error).toBe("Documento já cadastrado nesta empresa");
+    });
+  });
+
+  // ─── GET /api/clients/search ──────────────────────────────────────
+
+  describe("GET /api/clients/search", () => {
+    it("should return 401 without token", async () => {
+      const res = await app.request("/api/clients/search?q=João");
+      expect(res.status).toBe(401);
+    });
+
+    it("should return 400 when q has fewer than 3 characters", async () => {
+      const res = await app.request("/api/clients/search?q=Jo", {
+        headers: authHeader(),
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it("should return matching clients by name (case-insensitive)", async () => {
+      await post(basePayload);
+      await post({
+        name: "Maria Souza",
+        document: "98765432100",
+        clientType: "COUNTER",
+      });
+
+      const res = await app.request("/api/clients/search?q=jo%C3%A3o", {
+        headers: authHeader(),
+      });
+      const body = (await res.json()) as {
+        success: boolean;
+        data: Array<{ name: string; document: string; clientType: string }>;
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.data.length).toBe(1);
+      expect(body.data[0]?.name).toBe("João Silva");
+    });
+
+    it("should return at most 5 results", async () => {
+      for (let i = 1; i <= 6; i++) {
+        await post({
+          name: `Teste Busca ${i}`,
+          document: String(i).padStart(11, "0"),
+          clientType: "COUNTER",
+        });
+      }
+
+      const res = await app.request(
+        "/api/clients/search?q=Teste+Busca",
+        { headers: authHeader() },
+      );
+      const body = (await res.json()) as { data: unknown[] };
+
+      expect(res.status).toBe(200);
+      expect(body.data.length).toBe(5);
+    });
+
+    it("should not return clients from another company", async () => {
+      await post(basePayload);
+      const otherCompanyId = await createTestCompany("Other Co Search");
+      await prisma.client.create({
+        data: {
+          name: "João Outro",
+          document: "98765432100",
+          clientType: "COUNTER",
+          companyId: otherCompanyId,
+        },
+      });
+
+      const res = await app.request("/api/clients/search?q=Jo%C3%A3o", {
+        headers: authHeader(),
+      });
+      const body = (await res.json()) as { data: Array<{ name: string }> };
+
+      expect(res.status).toBe(200);
+      expect(body.data.length).toBe(1);
+      expect(body.data[0]?.name).toBe("João Silva");
+    });
+  });
+
+  // ─── GET /api/clients/partner-names ──────────────────────────────
+
+  describe("GET /api/clients/partner-names", () => {
+    it("should return 401 without token", async () => {
+      const res = await app.request("/api/clients/partner-names");
+      expect(res.status).toBe(401);
+    });
+
+    it("should return distinct partner names", async () => {
+      await post({ name: "Empresa A", document: "11111111111111", clientType: "PARTNER", partnerName: "Alpha Ltda" });
+      await post({ name: "Empresa B", document: "22222222222222", clientType: "PARTNER", partnerName: "Alpha Ltda" });
+      await post({ name: "Empresa C", document: "33333333333333", clientType: "PARTNER", partnerName: "Beta Corp" });
+
+      const res = await app.request("/api/clients/partner-names", {
+        headers: authHeader(),
+      });
+      const body = (await res.json()) as { success: boolean; data: string[] };
+
+      expect(res.status).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.data).toContain("Alpha Ltda");
+      expect(body.data).toContain("Beta Corp");
+      expect(body.data.filter((n) => n === "Alpha Ltda").length).toBe(1);
+    });
+
+    it("should filter by q when provided", async () => {
+      await post({ name: "Empresa A", document: "11111111111111", clientType: "PARTNER", partnerName: "Alpha Ltda" });
+      await post({ name: "Empresa B", document: "22222222222222", clientType: "PARTNER", partnerName: "Beta Corp" });
+
+      const res = await app.request("/api/clients/partner-names?q=Alpha", {
+        headers: authHeader(),
+      });
+      const body = (await res.json()) as { data: string[] };
+
+      expect(res.status).toBe(200);
+      expect(body.data).toContain("Alpha Ltda");
+      expect(body.data).not.toContain("Beta Corp");
+    });
+
+    it("should not return names from another company", async () => {
+      await post({ name: "Empresa A", document: "11111111111111", clientType: "PARTNER", partnerName: "Meu Parceiro" });
+      const otherCompanyId = await createTestCompany("Other Co Names");
+      await prisma.client.create({
+        data: {
+          name: "Empresa X",
+          document: "22222222222222",
+          clientType: "PARTNER",
+          partnerName: "Outro Parceiro",
+          companyId: otherCompanyId,
+        },
+      });
+
+      const res = await app.request("/api/clients/partner-names", {
+        headers: authHeader(),
+      });
+      const body = (await res.json()) as { data: string[] };
+
+      expect(res.status).toBe(200);
+      expect(body.data).toContain("Meu Parceiro");
+      expect(body.data).not.toContain("Outro Parceiro");
     });
   });
 
