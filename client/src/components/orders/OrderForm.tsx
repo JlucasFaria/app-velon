@@ -28,13 +28,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+// Keep in sync with the backend ORDER_ITEM_QUANTITY_MAX bound.
+const QUANTITY_MAX = 100_000;
+
 const itemSchema = z.object({
   description: z.string().min(1, "Obrigatório"),
   category: z.string().optional(),
   unitValue: z
     .string()
-    .regex(/^\d+([.,]\d{1,2})?$/, "Valor inválido"),
-  quantity: z.number().int().positive("Deve ser positivo"),
+    // Up to 8 integer digits keeps a single unit within Decimal(10,2).
+    .regex(/^\d{1,8}([.,]\d{1,2})?$/, "Valor inválido"),
+  quantity: z
+    .number()
+    .int("Deve ser inteiro")
+    .positive("Deve ser positivo")
+    .max(QUANTITY_MAX, "Muito alto"),
 });
 
 const schema = z.object({

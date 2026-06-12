@@ -1,3 +1,4 @@
+import { HTTPException } from "hono/http-exception";
 import prismaClient from "../../db/client";
 import type {
   PrismaClient,
@@ -8,6 +9,7 @@ import {
   getPaginationParams,
   createPaginationMeta,
 } from "../../utils/pagination";
+import { ORDER_VALUE_MAX } from "../../config/constants";
 import type {
   CreateOrderInput,
   UpdateOrderInput,
@@ -15,12 +17,25 @@ import type {
   OrderItemInput,
 } from "./order-schema";
 
+const ORDER_VALUE_MAX_CENTS = Math.round(ORDER_VALUE_MAX * 100);
+
 function computeSubtotalCents(unitValue: string, quantity: number): number {
   return Math.round(parseFloat(unitValue) * 100) * quantity;
 }
 
 function centsToDecimalString(cents: number): string {
   return (cents / 100).toFixed(2);
+}
+
+// Per-field bounds keep each unit/quantity small, but the summed total can still
+// exceed the Decimal(10,2) column. Guard here so it fails as a clean 400 rather
+// than a Postgres numeric-overflow 500.
+function assertTotalWithinCeiling(totalCents: number): void {
+  if (totalCents > ORDER_VALUE_MAX_CENTS) {
+    throw new HTTPException(400, {
+      message: "O valor total da ordem excede o limite permitido",
+    });
+  }
 }
 
 function buildItemCreateData(item: OrderItemInput) {
@@ -148,8 +163,11 @@ export class OrderService {
   }
 
   async create(data: CreateOrderInput, createdById: number, companyId: number) {
+    const totalCents = computeTotalCents(data.items);
+    assertTotalWithinCeiling(totalCents);
+
     const orderNumber = await this.generateOrderNumber(companyId);
-    const totalValue = centsToDecimalString(computeTotalCents(data.items));
+    const totalValue = centsToDecimalString(totalCents);
 
     return await this.prisma.serviceOrder.create({
       data: {
@@ -272,7 +290,9 @@ export class OrderService {
     if (!owned) return null;
 
     if (data.items !== undefined) {
-      const totalValue = centsToDecimalString(computeTotalCents(data.items));
+      const totalCents = computeTotalCents(data.items);
+      assertTotalWithinCeiling(totalCents);
+      const totalValue = centsToDecimalString(totalCents);
       const newItems = data.items;
 
       return await this.prisma.$transaction(async (tx) => {

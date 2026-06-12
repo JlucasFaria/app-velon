@@ -29,3 +29,9 @@ export const UPLOADS_URL_PREFIX = "/api/uploads";
 export const PAGINATION_DEFAULT_PAGE = 1;
 export const PAGINATION_DEFAULT_LIMIT = 10;
 export const PAGINATION_MAX_LIMIT = 100;
+
+// Order line items — bounds that keep computed subtotals/total within the
+// ServiceOrder.value / OrderItem.subtotal Decimal(10,2) column ceiling, so a
+// huge input fails validation (400) instead of overflowing the column (500).
+export const ORDER_VALUE_MAX = 99_999_999.99; // Decimal(10,2) ceiling
+export const ORDER_ITEM_QUANTITY_MAX = 100_000;

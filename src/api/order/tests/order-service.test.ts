@@ -576,6 +576,25 @@ describe("OrderService", () => {
       expect(updated?.items).toHaveLength(1);
       expect(updated?.description).toBe("Updated description only");
     });
+
+    it("should reject a total that exceeds the Decimal(10,2) ceiling", async () => {
+      // Two items each near the column ceiling overflow the order total —
+      // the service must reject this as a clean error, not let it hit the DB.
+      await expect(
+        orderService.create(
+          {
+            description: "Overflow order",
+            items: [
+              { description: "A", unitValue: "99999999.99", quantity: 1 },
+              { description: "B", unitValue: "99999999.99", quantity: 1 },
+            ],
+            clientId: testClientId,
+          },
+          testUserId,
+          companyId,
+        ),
+      ).rejects.toThrow();
+    });
   });
 
   describe("legacy migration", () => {

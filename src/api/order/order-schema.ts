@@ -1,6 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import { successResponseSchema } from "../../schemas/response";
 import { paginationMetaSchema } from "../../schemas/pagination";
+import { ORDER_ITEM_QUANTITY_MAX } from "../../config/constants";
 
 export const orderStatusSchema = z
   .enum(["PENDING", "IN_PROGRESS", "AWAITING_CLIENT", "COMPLETED", "CANCELLED"])
@@ -47,15 +48,17 @@ export const orderItemInputSchema = z
     category: z.string().optional().openapi({ example: "Honorário" }),
     unitValue: z
       .string()
-      .regex(/^\d+(\.\d{1,2})?$/, "Valor unitário inválido")
+      // Up to 8 integer digits keeps a single unit within Decimal(10,2).
+      .regex(/^\d{1,8}(\.\d{1,2})?$/, "Valor unitário inválido")
       .openapi({
         description: "Unit price as decimal string",
         example: "250.00",
       }),
     quantity: z
       .number()
-      .int()
+      .int("Quantidade deve ser um número inteiro")
       .positive("Quantidade deve ser positiva")
+      .max(ORDER_ITEM_QUANTITY_MAX, "Quantidade muito alta")
       .openapi({ example: 1 }),
   })
   .openapi("OrderItemInput");
