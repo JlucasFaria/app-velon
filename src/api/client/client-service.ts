@@ -105,6 +105,34 @@ export class ClientService {
     });
   }
 
+  async search(companyId: number, q: string) {
+    return await this.prisma.client.findMany({
+      where: {
+        companyId,
+        name: { contains: q, mode: "insensitive" },
+      },
+      select: { id: true, name: true, document: true, clientType: true },
+      take: 5,
+      orderBy: { name: "asc" },
+    });
+  }
+
+  async getPartnerNameSuggestions(companyId: number, q?: string) {
+    const clients = await this.prisma.client.findMany({
+      where: {
+        companyId,
+        clientType: "PARTNER",
+        partnerName: q
+          ? { contains: q, mode: "insensitive" }
+          : { not: null },
+      },
+      select: { partnerName: true },
+      distinct: ["partnerName"],
+      orderBy: { partnerName: "asc" },
+    });
+    return clients.map((c) => c.partnerName as string);
+  }
+
   async delete(id: number, companyId: number) {
     const owned = await this.prisma.client.findFirst({
       where: { id, companyId },

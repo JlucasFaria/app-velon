@@ -87,6 +87,25 @@ export const updateClientSchema = clientInputBaseSchema
   })
   .openapi("UpdateClientInput");
 
+export const clientSearchResultSchema = z
+  .object({
+    id: z.number().openapi({ example: 1 }),
+    name: z.string().openapi({ example: "João Silva" }),
+    document: z.string().openapi({ example: "123.456.789-00" }),
+    clientType: clientTypeSchema,
+  })
+  .openapi("ClientSearchResult");
+
+export const clientSearchResponseSchema = successResponseSchema(
+  clientSearchResultSchema.array(),
+  "ClientSearchResponse",
+);
+
+export const partnerNameSuggestionsResponseSchema = successResponseSchema(
+  z.string().array(),
+  "PartnerNameSuggestionsResponse",
+);
+
 export const createClientResponseSchema = successResponseSchema(
   clientResponseSchema,
   "CreateClientResponse",
@@ -112,3 +131,4 @@ export const updateClientResponseSchema = successResponseSchema(
 
 export type CreateClientInput = z.infer<typeof createClientSchema>;
 export type UpdateClientInput = z.infer<typeof updateClientSchema>;
+export type ClientSearchResult = z.infer<typeof clientSearchResultSchema>;
