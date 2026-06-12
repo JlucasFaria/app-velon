@@ -12,7 +12,43 @@ import type {
   CreateOrderInput,
   UpdateOrderInput,
   ChangeOrderStatusInput,
+  OrderItemInput,
 } from "./order-schema";
+
+function computeSubtotalCents(unitValue: string, quantity: number): number {
+  return Math.round(parseFloat(unitValue) * 100) * quantity;
+}
+
+function centsToDecimalString(cents: number): string {
+  return (cents / 100).toFixed(2);
+}
+
+function buildItemCreateData(item: OrderItemInput) {
+  const subtotalCents = computeSubtotalCents(item.unitValue, item.quantity);
+  return {
+    description: item.description,
+    category: item.category ?? null,
+    unitValue: item.unitValue,
+    quantity: item.quantity,
+    subtotal: centsToDecimalString(subtotalCents),
+  };
+}
+
+function computeTotalCents(items: OrderItemInput[]): number {
+  return items.reduce(
+    (acc, item) => acc + computeSubtotalCents(item.unitValue, item.quantity),
+    0,
+  );
+}
+
+const ITEMS_SELECT = {
+  id: true,
+  description: true,
+  category: true,
+  unitValue: true,
+  quantity: true,
+  subtotal: true,
+} as const;
 
 const ORDER_SELECT = {
   id: true,
@@ -24,6 +60,10 @@ const ORDER_SELECT = {
   clientId: true,
   createdAt: true,
   updatedAt: true,
+  items: {
+    select: ITEMS_SELECT,
+    orderBy: { id: "asc" as const },
+  },
 } as const;
 
 // List rows embed the client name so the orders table can display it without
@@ -109,15 +149,19 @@ export class OrderService {
 
   async create(data: CreateOrderInput, createdById: number, companyId: number) {
     const orderNumber = await this.generateOrderNumber(companyId);
+    const totalValue = centsToDecimalString(computeTotalCents(data.items));
 
     return await this.prisma.serviceOrder.create({
       data: {
         orderNumber,
         description: data.description,
-        value: data.value,
+        value: totalValue,
         clientId: data.clientId,
         companyId,
         assignedUserId: data.assignedUserId ?? null,
+        items: {
+          create: data.items.map(buildItemCreateData),
+        },
         statusHistory: {
           create: {
             toStatus: "PENDING",
@@ -227,13 +271,37 @@ export class OrderService {
     });
     if (!owned) return null;
 
+    if (data.items !== undefined) {
+      const totalValue = centsToDecimalString(computeTotalCents(data.items));
+      const newItems = data.items;
+
+      return await this.prisma.$transaction(async (tx) => {
+        await tx.orderItem.deleteMany({ where: { orderId: id } });
+        return await tx.serviceOrder.update({
+          where: { id },
+          data: {
+            ...(data.description !== undefined
+              ? { description: data.description }
+              : {}),
+            value: totalValue,
+            ...("assignedUserId" in data
+              ? { assignedUserId: data.assignedUserId }
+              : {}),
+            items: {
+              create: newItems.map(buildItemCreateData),
+            },
+          },
+          select: ORDER_SELECT,
+        });
+      });
+    }
+
     return await this.prisma.serviceOrder.update({
       where: { id },
       data: {
         ...(data.description !== undefined
           ? { description: data.description }
           : {}),
-        ...(data.value !== undefined ? { value: data.value } : {}),
         ...("assignedUserId" in data
           ? { assignedUserId: data.assignedUserId }
           : {}),

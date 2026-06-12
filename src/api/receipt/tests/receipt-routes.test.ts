@@ -53,7 +53,13 @@ describe("Receipt Routes", () => {
       method: "POST",
       body: JSON.stringify({
         description: "Screen replacement",
-        value: "250.00",
+        items: [
+          {
+            description: "Screen replacement",
+            unitValue: "250.00",
+            quantity: 1,
+          },
+        ],
         clientId: testClientId,
       }),
       headers: h({ "Content-Type": "application/json" }),

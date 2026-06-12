@@ -11,7 +11,9 @@ let companyId: number;
 
 const baseOrder = () => ({
   description: "Screen replacement",
-  value: "250.00",
+  items: [
+    { description: "Screen replacement", unitValue: "250.00", quantity: 1 },
+  ],
   clientId: testClientId,
 });
 
@@ -406,7 +408,7 @@ describe("OrderService", () => {
       );
       const updated = await orderService.update(order.id, companyId, {
         description: "Battery replacement",
-        value: "180.00",
+        items: [{ description: "Bateria", unitValue: "180.00", quantity: 1 }],
       });
 
       expect(updated?.description).toBe("Battery replacement");

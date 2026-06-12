@@ -11,6 +11,17 @@ const RECEIPT_SELECT = {
       orderNumber: true,
       description: true,
       value: true,
+      items: {
+        select: {
+          id: true,
+          description: true,
+          category: true,
+          unitValue: true,
+          quantity: true,
+          subtotal: true,
+        },
+        orderBy: { id: "asc" as const },
+      },
       client: {
         select: {
           id: true,
