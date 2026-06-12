@@ -46,6 +46,7 @@ model Company {
   memberships Membership[]
   clients     Client[]
   orders      ServiceOrder[]
+  templates   ServiceTemplate[]
 }
 
 model Membership {
@@ -131,6 +132,31 @@ model OrderItem {
   subtotal    Decimal      @db.Decimal(10, 2)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+}
+
+model ServiceTemplate {
+  id                 Int                   @id @default(autoincrement())
+  companyId          Int
+  company            Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name               String
+  defaultDescription String
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  items              ServiceTemplateItem[]
+
+  @@unique([companyId, name])
+}
+
+model ServiceTemplateItem {
+  id             Int             @id @default(autoincrement())
+  templateId     Int
+  template       ServiceTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  description    String
+  category       String?
+  suggestedValue Decimal         @db.Decimal(10, 2)
+  quantity       Int?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 }
 
 model Receipt {
