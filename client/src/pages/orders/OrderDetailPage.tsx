@@ -199,25 +199,78 @@ export function OrderDetailPage() {
           <CardHeader>
             <CardTitle className="text-base">Informações da ordem</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
-            <div>
-              <p className="text-muted-foreground">Cliente</p>
-              <Link
-                to={`/clients/${order.client.id}`}
-                className="font-medium text-primary hover:underline"
-              >
-                {order.client.name}
-              </Link>
+          <CardContent className="space-y-4 text-sm">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-muted-foreground">Cliente</p>
+                <Link
+                  to={`/clients/${order.client.id}`}
+                  className="font-medium text-primary hover:underline"
+                >
+                  {order.client.name}
+                </Link>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Descrição</p>
+                <p className="font-medium whitespace-pre-wrap">
+                  {order.description}
+                </p>
+              </div>
             </div>
             <div>
-              <p className="text-muted-foreground">Valor</p>
-              <p className="font-medium">{formatCurrency(order.value)}</p>
-            </div>
-            <div className="sm:col-span-2">
-              <p className="text-muted-foreground">Descrição</p>
-              <p className="font-medium whitespace-pre-wrap">
-                {order.description}
-              </p>
+              <p className="mb-2 text-muted-foreground">Itens</p>
+              <div className="overflow-x-auto rounded-md border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
+                      <th className="px-3 py-2 font-medium">Descrição</th>
+                      <th className="px-3 py-2 font-medium">Categoria</th>
+                      <th className="px-3 py-2 text-right font-medium">Qtd</th>
+                      <th className="px-3 py-2 text-right font-medium">
+                        Vlr. Unit.
+                      </th>
+                      <th className="px-3 py-2 text-right font-medium">
+                        Subtotal
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {order.items.map((item) => (
+                      <tr
+                        key={item.id}
+                        className="border-b last:border-0"
+                      >
+                        <td className="px-3 py-2">{item.description}</td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {item.category ?? "—"}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {item.quantity}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {formatCurrency(item.unitValue)}
+                        </td>
+                        <td className="px-3 py-2 text-right font-medium">
+                          {formatCurrency(item.subtotal)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t bg-muted/50">
+                      <td
+                        colSpan={4}
+                        className="px-3 py-2 text-right font-semibold"
+                      >
+                        Total
+                      </td>
+                      <td className="px-3 py-2 text-right font-bold">
+                        {formatCurrency(order.value)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
           </CardContent>
         </Card>

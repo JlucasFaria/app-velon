@@ -53,7 +53,9 @@ describe("Order Routes", () => {
 
   const basePayload = () => ({
     description: "Screen replacement",
-    value: "250.00",
+    items: [
+      { description: "Screen replacement", unitValue: "250.00", quantity: 1 },
+    ],
     clientId: testClientId,
   });
 
@@ -138,17 +140,33 @@ describe("Order Routes", () => {
     });
 
     it("should return 400 when description is missing", async () => {
-      const res = await post({ value: "100.00", clientId: testClientId });
+      const res = await post({
+        items: [{ description: "Item", unitValue: "100.00", quantity: 1 }],
+        clientId: testClientId,
+      });
       expect(res.status).toBe(400);
     });
 
-    it("should return 400 when value format is invalid", async () => {
-      const res = await post({ ...basePayload(), value: "not-a-number" });
+    it("should return 400 when items array is empty", async () => {
+      const res = await post({ ...basePayload(), items: [] });
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 when unitValue format is invalid", async () => {
+      const res = await post({
+        ...basePayload(),
+        items: [
+          { description: "Item", unitValue: "not-a-number", quantity: 1 },
+        ],
+      });
       expect(res.status).toBe(400);
     });
 
     it("should return 400 when clientId is missing", async () => {
-      const res = await post({ description: "Test", value: "100.00" });
+      const res = await post({
+        description: "Test",
+        items: [{ description: "Item", unitValue: "100.00", quantity: 1 }],
+      });
       expect(res.status).toBe(400);
     });
 

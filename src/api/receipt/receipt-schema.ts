@@ -1,5 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { successResponseSchema } from "../../schemas/response";
+import { orderItemResponseSchema } from "../order/order-schema";
 
 export const receiptResponseSchema = z
   .object({
@@ -15,6 +16,7 @@ export const receiptResponseSchema = z
         orderNumber: z.string().openapi({ example: "OS-0001" }),
         description: z.string().openapi({ example: "Screen replacement" }),
         value: z.string().openapi({ example: "250.00" }),
+        items: orderItemResponseSchema.array(),
         client: z
           .object({
             id: z.number().openapi({ example: 1 }),

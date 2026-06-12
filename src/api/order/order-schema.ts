@@ -1,6 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import { successResponseSchema } from "../../schemas/response";
 import { paginationMetaSchema } from "../../schemas/pagination";
+import { ORDER_ITEM_QUANTITY_MAX } from "../../config/constants";
 
 export const orderStatusSchema = z
   .enum(["PENDING", "IN_PROGRESS", "AWAITING_CLIENT", "COMPLETED", "CANCELLED"])
@@ -39,6 +40,40 @@ const statusHistoryEntrySchema = z.object({
     .openapi({ description: "User who made the change" }),
 });
 
+export const orderItemInputSchema = z
+  .object({
+    description: z.string().min(1, "Descrição obrigatória").openapi({
+      example: "Troca de tela",
+    }),
+    category: z.string().optional().openapi({ example: "Honorário" }),
+    unitValue: z
+      .string()
+      // Up to 8 integer digits keeps a single unit within Decimal(10,2).
+      .regex(/^\d{1,8}(\.\d{1,2})?$/, "Valor unitário inválido")
+      .openapi({
+        description: "Unit price as decimal string",
+        example: "250.00",
+      }),
+    quantity: z
+      .number()
+      .int("Quantidade deve ser um número inteiro")
+      .positive("Quantidade deve ser positiva")
+      .max(ORDER_ITEM_QUANTITY_MAX, "Quantidade muito alta")
+      .openapi({ example: 1 }),
+  })
+  .openapi("OrderItemInput");
+
+export const orderItemResponseSchema = z
+  .object({
+    id: z.number().openapi({ example: 1 }),
+    description: z.string().openapi({ example: "Troca de tela" }),
+    category: z.string().nullable().openapi({ example: "Honorário" }),
+    unitValue: z.string().openapi({ example: "250.00" }),
+    quantity: z.number().openapi({ example: 1 }),
+    subtotal: z.string().openapi({ example: "250.00" }),
+  })
+  .openapi("OrderItem");
+
 export const orderResponseSchema = z
   .object({
     id: z.number().openapi({ example: 1 }),
@@ -53,6 +88,7 @@ export const orderResponseSchema = z
       .string()
       .datetime()
       .openapi({ description: "Last update date" }),
+    items: orderItemResponseSchema.array(),
   })
   .openapi("ServiceOrder");
 
@@ -79,13 +115,10 @@ export const createOrderSchema = z
       description: "Service description",
       example: "Screen replacement",
     }),
-    value: z
-      .string()
-      .regex(/^\d+(\.\d{1,2})?$/)
-      .openapi({
-        description: "Order value (decimal as string)",
-        example: "250.00",
-      }),
+    items: orderItemInputSchema
+      .array()
+      .min(1, "Informe ao menos um item")
+      .openapi({ description: "Order line items" }),
     clientId: z.number().int().positive().openapi({
       description: "Client ID",
       example: 1,
@@ -103,14 +136,11 @@ export const updateOrderSchema = z
       description: "Service description",
       example: "Screen replacement",
     }),
-    value: z
-      .string()
-      .regex(/^\d+(\.\d{1,2})?$/)
+    items: orderItemInputSchema
+      .array()
+      .min(1, "Informe ao menos um item")
       .optional()
-      .openapi({
-        description: "Order value (decimal as string)",
-        example: "250.00",
-      }),
+      .openapi({ description: "Replace all line items" }),
     assignedUserId: z.number().int().positive().nullable().optional().openapi({
       description: "Assigned technician user ID (null to unassign)",
       example: 1,
@@ -158,4 +188,5 @@ export const changeStatusResponseSchema = successResponseSchema(
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;
+export type OrderItemInput = z.infer<typeof orderItemInputSchema>;
 export type ChangeOrderStatusInput = z.infer<typeof changeOrderStatusSchema>;
