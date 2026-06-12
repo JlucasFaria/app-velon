@@ -435,7 +435,7 @@ describe("Client Routes", () => {
       const body = (await res.json()) as { data: unknown[] };
 
       expect(res.status).toBe(200);
-      expect(body.data.length).toBeLessThanOrEqual(5);
+      expect(body.data.length).toBe(5);
     });
 
     it("should not return clients from another company", async () => {

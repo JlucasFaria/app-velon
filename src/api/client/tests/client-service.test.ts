@@ -221,6 +221,27 @@ describe("ClientService", () => {
 
       expect(updated).toBeNull();
     });
+
+    it("should clear partnerName when clientType changes from PARTNER to COUNTER", async () => {
+      const partner = await clientService.create(
+        {
+          name: "Empresa Parceira",
+          document: "99999999999999",
+          clientType: "PARTNER" as const,
+          partnerName: "Parceiro Original",
+        },
+        companyId,
+      );
+
+      expect(partner.partnerName).toBe("Parceiro Original");
+
+      const updated = await clientService.update(partner.id, companyId, {
+        clientType: "COUNTER",
+      });
+
+      expect(updated?.clientType).toBe("COUNTER");
+      expect(updated?.partnerName).toBeNull();
+    });
   });
 
   describe("delete", () => {
@@ -286,7 +307,7 @@ describe("ClientService", () => {
 
       const results = await clientService.search(companyId, "Teste Busca");
 
-      expect(results.length).toBeLessThanOrEqual(5);
+      expect(results.length).toBe(5);
     });
 
     it("should not return clients from another company", async () => {

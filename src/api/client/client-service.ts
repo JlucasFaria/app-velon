@@ -100,7 +100,11 @@ export class ClientService {
 
     return await this.prisma.client.update({
       where: { id },
-      data,
+      data: {
+        ...data,
+        // Changing to COUNTER must clear partnerName; Prisma ignores undefined.
+        ...(data.clientType === "COUNTER" ? { partnerName: null } : {}),
+      },
       select: CLIENT_SELECT,
     });
   }

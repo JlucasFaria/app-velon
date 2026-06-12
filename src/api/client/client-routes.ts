@@ -75,7 +75,9 @@ export function createClientRoutes(
         description: "Search results (up to 5 clients)",
       },
       400: {
-        content: { "application/json": { schema: errorResponseSchema } },
+        content: {
+          "application/json": { schema: validationErrorResponseSchema },
+        },
         description: "Query too short (< 3 characters)",
       },
       401: {
