@@ -8,6 +8,22 @@ export type OrderStatus =
   | "COMPLETED"
   | "CANCELLED";
 
+export interface OrderItem {
+  id: number;
+  description: string;
+  category: string | null;
+  unitValue: string;
+  quantity: number;
+  subtotal: string;
+}
+
+export interface OrderItemInput {
+  description: string;
+  category?: string;
+  unitValue: string;
+  quantity: number;
+}
+
 export interface Order {
   id: number;
   orderNumber: string;
@@ -18,6 +34,7 @@ export interface Order {
   clientId: number;
   createdAt: string;
   updatedAt: string;
+  items: OrderItem[];
 }
 
 export interface StatusHistoryEntry {
@@ -45,9 +62,15 @@ export interface OrderDetail extends Order {
 
 export interface OrderInput {
   description: string;
-  value: string;
+  items: OrderItemInput[];
   clientId: number;
   assignedUserId?: number;
+}
+
+export interface UpdateOrderInput {
+  description?: string;
+  items?: OrderItemInput[];
+  assignedUserId?: number | null;
 }
 
 // List rows embed the client's id + name (see backend ORDER_LIST_SELECT) so the
@@ -84,10 +107,7 @@ export function createOrder(input: OrderInput) {
   return apiRequest<Order>("/orders", { method: "POST", body: input });
 }
 
-export function updateOrder(
-  id: number,
-  input: Partial<Omit<OrderInput, "clientId">>,
-) {
+export function updateOrder(id: number, input: UpdateOrderInput) {
   return apiRequest<Order>(`/orders/${id}`, { method: "PUT", body: input });
 }
 
