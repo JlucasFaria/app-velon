@@ -23,6 +23,7 @@ export const clientResponseSchema = z
     phone: z.string().nullable().openapi({ example: "(11) 91234-5678" }),
     address: z.string().nullable().openapi({ example: "Rua das Flores, 123" }),
     clientType: clientTypeSchema,
+    partnerName: z.string().nullable().openapi({ example: "Parceiro XYZ" }),
     createdAt: z.string().datetime().openapi({ description: "Creation date" }),
     updatedAt: z
       .string()
@@ -47,30 +48,43 @@ export const clientDetailResponseSchema = clientResponseSchema
   })
   .openapi("ClientDetail");
 
-export const createClientSchema = z
-  .object({
-    name: z.string().min(2).openapi({
-      description: "Client full name",
-      example: "João Silva",
-    }),
-    document: z.string().min(11).max(18).openapi({
-      description: "CPF or CNPJ (unique)",
-      example: "123.456.789-00",
-    }),
-    phone: z.string().optional().openapi({
-      description: "Contact phone number",
-      example: "(11) 91234-5678",
-    }),
-    address: z.string().optional().openapi({
-      description: "Client address",
-      example: "Rua das Flores, 123",
-    }),
-    clientType: clientTypeSchema,
+const clientInputBaseSchema = z.object({
+  name: z.string().min(2).openapi({
+    description: "Client full name",
+    example: "João Silva",
+  }),
+  document: z.string().min(11).max(18).openapi({
+    description: "CPF or CNPJ (unique)",
+    example: "123.456.789-00",
+  }),
+  phone: z.string().optional().openapi({
+    description: "Contact phone number",
+    example: "(11) 91234-5678",
+  }),
+  address: z.string().optional().openapi({
+    description: "Client address",
+    example: "Rua das Flores, 123",
+  }),
+  clientType: clientTypeSchema,
+  partnerName: z.string().min(2).optional().openapi({
+    description: "Partner name (required when clientType is PARTNER)",
+    example: "Parceiro XYZ",
+  }),
+});
+
+export const createClientSchema = clientInputBaseSchema
+  .refine((d) => d.clientType !== "PARTNER" || !!d.partnerName, {
+    message: "Nome do parceiro é obrigatório para clientes do tipo Parceiro",
+    path: ["partnerName"],
   })
   .openapi("CreateClientInput");
 
-export const updateClientSchema = createClientSchema
+export const updateClientSchema = clientInputBaseSchema
   .partial()
+  .refine((d) => d.clientType !== "PARTNER" || !!d.partnerName, {
+    message: "Nome do parceiro é obrigatório para clientes do tipo Parceiro",
+    path: ["partnerName"],
+  })
   .openapi("UpdateClientInput");
 
 export const createClientResponseSchema = successResponseSchema(

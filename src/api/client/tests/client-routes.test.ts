@@ -114,6 +114,7 @@ describe("Client Routes", () => {
         name: "Maria Souza",
         document: "987.654.321-00",
         clientType: "PARTNER",
+        partnerName: "Parceiro XYZ",
       });
 
       const res = await app.request("/api/clients", { headers: authHeader() });
@@ -137,6 +138,7 @@ describe("Client Routes", () => {
         name: "Maria Souza",
         document: "987.654.321-00",
         clientType: "PARTNER",
+        partnerName: "Parceiro XYZ",
       });
 
       const res = await app.request("/api/clients?clientType=COUNTER", {
@@ -157,6 +159,7 @@ describe("Client Routes", () => {
         name: "Maria Souza",
         document: "987.654.321-00",
         clientType: "PARTNER",
+        partnerName: "Parceiro XYZ",
       });
 
       const res = await app.request("/api/clients?search=Maria", {
@@ -177,6 +180,7 @@ describe("Client Routes", () => {
         name: "Maria Souza",
         document: "987.654.321-00",
         clientType: "PARTNER",
+        partnerName: "Parceiro XYZ",
       });
 
       const res = await app.request("/api/clients?page=1&limit=1", {

@@ -13,6 +13,7 @@ const CLIENT_SELECT = {
   phone: true,
   address: true,
   clientType: true,
+  partnerName: true,
   createdAt: true,
   updatedAt: true,
 } as const;

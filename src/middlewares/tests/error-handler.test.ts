@@ -123,7 +123,7 @@ describe("errorHandler", () => {
       error: string;
     };
 
-    expect(body.error).toBe("document already in use");
+    expect(body.error).toBe("Documento já cadastrado nesta empresa");
   });
 
   // ─── Prisma P2025 (record not found) ─────────────────────────────
