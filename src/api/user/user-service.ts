@@ -13,12 +13,15 @@ export class UserService {
     name?: string | null;
     password: string;
   }) {
-    const { password, ...rest } = data;
+    const { password, email, ...rest } = data;
     const hashedPassword = await Bun.password.hash(password);
 
     return await this.prisma.user.create({
       data: {
         ...rest,
+        // Normalize to lower-case so lookups (login, invite checks) are
+        // case-insensitive and a single email can't yield duplicate accounts.
+        email: email.trim().toLowerCase(),
         password: hashedPassword,
       },
       select: {
@@ -34,7 +37,11 @@ export class UserService {
   async registerUser(data: { email: string; name: string; password: string }) {
     const hashedPassword = await Bun.password.hash(data.password);
     return await this.prisma.user.create({
-      data: { email: data.email, name: data.name, password: hashedPassword },
+      data: {
+        email: data.email.trim().toLowerCase(),
+        name: data.name,
+        password: hashedPassword,
+      },
       select: { id: true, email: true },
     });
   }
@@ -104,7 +111,7 @@ export class UserService {
 
   async findByEmail(email: string) {
     return await this.prisma.user.findUnique({
-      where: { email },
+      where: { email: email.trim().toLowerCase() },
     });
   }
 
