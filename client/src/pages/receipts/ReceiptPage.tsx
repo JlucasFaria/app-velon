@@ -119,6 +119,40 @@ export function ReceiptPage() {
           </p>
         </div>
 
+        <div className="border-b border-gray-200 py-4 text-sm">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
+                <th className="pb-2 font-medium">Descrição</th>
+                <th className="pb-2 font-medium">Cat.</th>
+                <th className="pb-2 text-right font-medium">Qtd</th>
+                <th className="pb-2 text-right font-medium">Vlr. Unit.</th>
+                <th className="pb-2 text-right font-medium">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {receipt.order.items.map((item) => (
+                <tr
+                  key={item.id}
+                  className="border-b border-gray-100 last:border-0"
+                >
+                  <td className="py-1.5">{item.description}</td>
+                  <td className="py-1.5 text-gray-500">
+                    {item.category ?? "—"}
+                  </td>
+                  <td className="py-1.5 text-right">{item.quantity}</td>
+                  <td className="py-1.5 text-right">
+                    {formatCurrency(item.unitValue)}
+                  </td>
+                  <td className="py-1.5 text-right font-medium">
+                    {formatCurrency(item.subtotal)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
         <div className="flex items-center justify-between pt-4">
           <span className="text-base font-semibold">Total</span>
           <span className="text-xl font-bold">

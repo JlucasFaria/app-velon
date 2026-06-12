@@ -1,4 +1,5 @@
 import { apiRequest } from "./client";
+import type { OrderItem } from "./orders";
 
 export interface Receipt {
   id: number;
@@ -9,6 +10,7 @@ export interface Receipt {
     orderNumber: string;
     description: string;
     value: string;
+    items: OrderItem[];
     client: {
       id: number;
       name: string;
