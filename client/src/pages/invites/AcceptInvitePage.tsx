@@ -6,7 +6,7 @@ import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { getInviteInfo, acceptInvite, type InviteInfo } from "@/api/invites";
 import { useAuth } from "@/contexts/auth-context";
-import { ROLE_LABELS } from "@/components/members/InviteMemberDialog";
+import { ROLE_LABELS } from "@/components/members/member-constants";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -47,13 +47,12 @@ export function AcceptInvitePage() {
   const { setSession } = useAuth();
 
   const [info, setInfo] = useState<InviteInfo | null>(null);
-  const [status, setStatus] = useState<"loading" | "ready" | "expired" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "expired" | "error">(
+    !token ? "error" : "loading",
+  );
 
   useEffect(() => {
-    if (!token) {
-      setStatus("error");
-      return;
-    }
+    if (!token) return;
     let cancelled = false;
     getInviteInfo(token)
       .then((data) => {

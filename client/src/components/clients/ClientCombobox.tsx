@@ -1,56 +1,54 @@
 import { useEffect, useRef, useState, type Ref } from "react";
-import { getClients, type Client } from "@/api/clients";
+import { searchClients, type ClientSearchResult } from "@/api/clients";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface ClientComboboxProps {
   value: number | null;
   onChange: (clientId: number | null) => void;
+  onCreateNew?: (query: string) => void;
+  /** Pre-fills the input text on mount (used for auto-select after inline creation). */
+  initialQuery?: string;
   placeholder?: string;
-  // Forwarded to the inner input so it can be wired by shadcn's FormControl
-  // (id/aria-* for label + error association, ref for focus management).
   id?: string;
   ref?: Ref<HTMLInputElement>;
   "aria-describedby"?: string;
   "aria-invalid"?: boolean;
 }
 
-/**
- * Searchable client picker backed by the server-side client search. Typing
- * re-queries the API (debounced); editing the text after a selection clears
- * the selected id so a stale id can never be submitted with mismatched text.
- */
 export function ClientCombobox({
   value,
   onChange,
+  onCreateNew,
+  initialQuery,
   placeholder,
   id,
   ref,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
 }: ClientComboboxProps) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Client[]>([]);
+  const [query, setQuery] = useState(initialQuery ?? "");
+  const [results, setResults] = useState<ClientSearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const blurTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || query.length < 3) return;
     let cancelled = false;
     const t = setTimeout(() => {
       setLoading(true);
-      getClients({ search: query || undefined, limit: 8 })
-        .then((d) => {
+      searchClients(query)
+        .then((data) => {
           if (!cancelled) {
-            setResults(d.clients);
+            setResults(data);
             setLoading(false);
           }
         })
         .catch(() => {
           if (!cancelled) setLoading(false);
         });
-    }, 250);
+    }, 300);
     return () => {
       cancelled = true;
       clearTimeout(t);
@@ -63,11 +61,26 @@ export function ClientCombobox({
     };
   }, []);
 
-  function selectClient(client: Client) {
+  function selectClient(client: ClientSearchResult) {
     onChange(client.id);
     setQuery(client.name);
     setOpen(false);
   }
+
+  const createNewButton = onCreateNew ? (
+    <button
+      type="button"
+      onMouseDown={(e) => {
+        e.preventDefault();
+        setOpen(false);
+        onCreateNew(query);
+      }}
+      className="flex w-full items-center gap-1 border-t px-3 py-2 text-left text-sm font-medium text-primary hover:bg-accent"
+    >
+      + Criar novo cliente:{" "}
+      <span className="font-normal text-foreground">{query}</span>
+    </button>
+  ) : null;
 
   return (
     <div className="relative">
@@ -77,7 +90,7 @@ export function ClientCombobox({
         aria-describedby={ariaDescribedby}
         aria-invalid={ariaInvalid}
         value={query}
-        placeholder={placeholder ?? "Search client by name or document…"}
+        placeholder={placeholder ?? "Buscar cliente por nome ou documento…"}
         onFocus={() => setOpen(true)}
         onBlur={() => {
           blurTimeout.current = setTimeout(() => setOpen(false), 120);
@@ -88,36 +101,46 @@ export function ClientCombobox({
           if (value !== null) onChange(null);
         }}
       />
-      {open && (
+      {open && query.length >= 1 && (
         <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover shadow-md">
-          {loading ? (
+          {query.length < 3 ? (
             <div className="px-3 py-2 text-sm text-muted-foreground">
-              Loading…
+              Digite ao menos 3 caracteres para buscar.
+            </div>
+          ) : loading ? (
+            <div className="px-3 py-2 text-sm text-muted-foreground">
+              Buscando…
             </div>
           ) : results.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-muted-foreground">
-              No clients found.
-            </div>
+            <>
+              <div className="px-3 py-2 text-sm text-muted-foreground">
+                Nenhum cliente encontrado.
+              </div>
+              {createNewButton}
+            </>
           ) : (
-            results.map((client) => (
-              <button
-                key={client.id}
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  selectClient(client);
-                }}
-                className={cn(
-                  "flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-accent",
-                  value === client.id && "bg-accent",
-                )}
-              >
-                <span className="font-medium">{client.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {client.document}
-                </span>
-              </button>
-            ))
+            <>
+              {results.map((client) => (
+                <button
+                  key={client.id}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    selectClient(client);
+                  }}
+                  className={cn(
+                    "flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-accent",
+                    value === client.id && "bg-accent",
+                  )}
+                >
+                  <span className="font-medium">{client.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {client.document}
+                  </span>
+                </button>
+              ))}
+              {createNewButton}
+            </>
           )}
         </div>
       )}

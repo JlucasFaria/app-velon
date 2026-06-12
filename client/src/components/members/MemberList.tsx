@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ROLE_LABELS } from "./InviteMemberDialog";
+import { ROLE_LABELS } from "./member-constants";
 
 const STATUS_CONFIG: Record<
   MemberStatus,
