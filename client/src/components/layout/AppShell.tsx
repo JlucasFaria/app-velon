@@ -13,7 +13,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar onMenuClick={() => setMenuOpen(true)} />
         <main className="flex-1 overflow-auto">
-          <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-8">
+          <div className="w-full px-4 py-6 md:px-8 md:py-8">
             {children}
           </div>
         </main>

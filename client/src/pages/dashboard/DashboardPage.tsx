@@ -42,7 +42,7 @@ function StatCard({
       {/* Left accent strip */}
       <div className={cn("absolute inset-y-0 left-0 w-[3px]", stripColor)} />
       <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 pl-5">
-        <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
+        <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground/80">
           {title}
         </CardTitle>
         <span className={cn("flex size-9 items-center justify-center rounded-xl", iconAccent)}>
@@ -177,7 +177,7 @@ export function DashboardPage() {
       )}
 
       {isLoading && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <StatCardSkeleton key={i} />
           ))}
@@ -198,7 +198,7 @@ export function DashboardPage() {
       )}
 
       {summary && total > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {stats.map((stat) => (
             <StatCard key={stat.title} {...stat} />
           ))}
