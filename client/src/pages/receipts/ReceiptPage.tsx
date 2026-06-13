@@ -83,11 +83,11 @@ export function ReceiptPage() {
       <div className="rounded-lg border border-gray-200 bg-white p-8 text-gray-900 shadow-card print:shadow-none">
         <div className="flex items-start justify-between border-b border-gray-200 pb-4">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg border-2 border-teal-700 text-lg font-bold text-teal-700">
+            <div className="flex size-10 items-center justify-center rounded-lg border-2 border-blue-700 text-lg font-bold text-blue-700">
               V
             </div>
             <div>
-              <h1 className="text-2xl font-bold leading-none text-teal-700">Velon</h1>
+              <h1 className="text-2xl font-bold leading-none text-blue-700">Velon</h1>
               <p className="mt-1 text-sm text-gray-500">Recibo de serviço</p>
             </div>
           </div>
