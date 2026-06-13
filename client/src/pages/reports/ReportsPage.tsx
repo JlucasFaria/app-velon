@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Download, FileBarChart, Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -6,6 +6,7 @@ import {
   downloadAllOrdersExport,
   getAllOrders,
   getMonthlyBilling,
+  type AllOrdersFilters,
   type AllOrdersResult,
   type MonthlyBilling,
 } from "@/api/reports";
@@ -290,6 +291,17 @@ function AllOrdersTab() {
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
+  const filters = useMemo<AllOrdersFilters>(
+    () => ({
+      ...(dateFrom && { dateFrom }),
+      ...(dateTo && { dateTo }),
+      ...(status && { status: status as OrderStatus }),
+      ...(paymentStatus && { paymentStatus: paymentStatus as PaymentStatus }),
+      ...(clientId && { clientId: Number(clientId) }),
+    }),
+    [dateFrom, dateTo, status, paymentStatus, clientId],
+  );
+
   useEffect(() => {
     getClients({ limit: 100 })
       .then((r) => setClients(r.clients))
@@ -298,13 +310,8 @@ function AllOrdersTab() {
 
   useEffect(() => {
     let cancelled = false;
-    getAllOrders({
-      ...(dateFrom && { dateFrom }),
-      ...(dateTo && { dateTo }),
-      ...(status && { status: status as OrderStatus }),
-      ...(paymentStatus && { paymentStatus: paymentStatus as PaymentStatus }),
-      ...(clientId && { clientId: Number(clientId) }),
-    })
+    setLoading(true);
+    getAllOrders(filters)
       .then((d) => {
         if (!cancelled) {
           setData(d);
@@ -323,18 +330,12 @@ function AllOrdersTab() {
     return () => {
       cancelled = true;
     };
-  }, [dateFrom, dateTo, status, paymentStatus, clientId]);
+  }, [filters]);
 
   const handleExport = async (format: "csv" | "pdf") => {
     setExporting(true);
     try {
-      await downloadAllOrdersExport(format, {
-        ...(dateFrom && { dateFrom }),
-        ...(dateTo && { dateTo }),
-        ...(status && { status: status as OrderStatus }),
-        ...(paymentStatus && { paymentStatus: paymentStatus as PaymentStatus }),
-        ...(clientId && { clientId: Number(clientId) }),
-      });
+      await downloadAllOrdersExport(format, filters);
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Falha ao exportar relatório",
@@ -351,29 +352,20 @@ function AllOrdersTab() {
           <Input
             type="date"
             value={dateFrom}
-            onChange={(e) => {
-              setLoading(true);
-              setDateFrom(e.target.value);
-            }}
+            onChange={(e) => setDateFrom(e.target.value)}
             className="w-full sm:w-40"
             aria-label="Data inicial"
           />
           <Input
             type="date"
             value={dateTo}
-            onChange={(e) => {
-              setLoading(true);
-              setDateTo(e.target.value);
-            }}
+            onChange={(e) => setDateTo(e.target.value)}
             className="w-full sm:w-40"
             aria-label="Data final"
           />
           <Select
             value={status || "all"}
-            onValueChange={(v) => {
-              setLoading(true);
-              setStatus(v === "all" ? "" : v);
-            }}
+            onValueChange={(v) => setStatus(v === "all" ? "" : v)}
           >
             <SelectTrigger className="w-full sm:w-48" aria-label="Status da OS">
               <SelectValue placeholder="Todos os status" />
@@ -389,10 +381,7 @@ function AllOrdersTab() {
           </Select>
           <Select
             value={paymentStatus || "all"}
-            onValueChange={(v) => {
-              setLoading(true);
-              setPaymentStatus(v === "all" ? "" : v);
-            }}
+            onValueChange={(v) => setPaymentStatus(v === "all" ? "" : v)}
           >
             <SelectTrigger
               className="w-full sm:w-48"
@@ -411,10 +400,7 @@ function AllOrdersTab() {
           </Select>
           <Select
             value={clientId || "all"}
-            onValueChange={(v) => {
-              setLoading(true);
-              setClientId(v === "all" ? "" : v);
-            }}
+            onValueChange={(v) => setClientId(v === "all" ? "" : v)}
           >
             <SelectTrigger className="w-full sm:w-48" aria-label="Cliente">
               <SelectValue placeholder="Todos os clientes" />
