@@ -86,6 +86,79 @@ const createOrder = async (
   });
 };
 
+// Extended helper that supports items, paymentStatus, and a custom createdAt.
+const createOrderFull = async (
+  overrides: Partial<{
+    status:
+      | "PENDING"
+      | "IN_PROGRESS"
+      | "AWAITING_CLIENT"
+      | "COMPLETED"
+      | "CANCELLED";
+    value: string;
+    completedAt: Date;
+    paymentStatus:
+      | "UNPAID"
+      | "PAID_PIX"
+      | "PAID_CREDIT"
+      | "PAID_DEBIT"
+      | "PAID_CASH"
+      | "PAID_TRANSFER"
+      | "PAID_OTHER";
+    items: Array<{
+      description: string;
+      category?: string | null;
+      unitValue: string;
+      quantity: number;
+      subtotal: string;
+    }>;
+    createdAt: Date;
+    clientId: number;
+  }> = {},
+) => {
+  const seq = await prisma.serviceOrder.count();
+  const status = overrides.status ?? "PENDING";
+  const value = overrides.value ?? "100.00";
+  const completedAt = overrides.completedAt ?? JUNE_2026;
+  return prisma.serviceOrder.create({
+    data: {
+      orderNumber: `OS-RPTF-${String(seq + 1).padStart(3, "0")}`,
+      description: "Test service",
+      value,
+      clientId: overrides.clientId ?? testClientId,
+      companyId,
+      status,
+      paymentStatus: overrides.paymentStatus ?? "UNPAID",
+      ...(overrides.createdAt && { createdAt: overrides.createdAt }),
+      items: {
+        create: overrides.items ?? [
+          {
+            description: "Serviço",
+            category: null,
+            unitValue: value,
+            quantity: 1,
+            subtotal: value,
+          },
+        ],
+      },
+      statusHistory: {
+        create:
+          status === "COMPLETED"
+            ? [
+                { toStatus: "PENDING", changedById: testUserId },
+                {
+                  fromStatus: "PENDING",
+                  toStatus: "COMPLETED",
+                  changedById: testUserId,
+                  changedAt: completedAt,
+                },
+              ]
+            : [{ toStatus: status, changedById: testUserId }],
+      },
+    },
+  });
+};
+
 describe("ReportService", () => {
   describe("getMonthlyBilling", () => {
     it("should return empty result when no COMPLETED orders exist for the month", async () => {
@@ -225,6 +298,301 @@ describe("ReportService", () => {
       expect(Object.keys(summary)).toHaveLength(5);
       expect(summary.CANCELLED).toBe(1);
       expect(summary.PENDING).toBe(0);
+    });
+  });
+
+  describe("getAllOrders", () => {
+    it("should return empty result when no orders exist", async () => {
+      const result = await reportService.getAllOrders(companyId, {});
+
+      expect(result.orders).toHaveLength(0);
+      expect(result.totals.sumTotal).toBe("0.00");
+      expect(result.totals.sumHonorario).toBe("0.00");
+      expect(result.totals.totalReceived).toBe("0.00");
+    });
+
+    it("should return all company orders with no filters", async () => {
+      await createOrderFull({ value: "100.00" });
+      await createOrderFull({ value: "200.00" });
+
+      const result = await reportService.getAllOrders(companyId, {});
+
+      expect(result.orders).toHaveLength(2);
+    });
+
+    it("should scope orders to the requesting company", async () => {
+      await createOrderFull({ value: "100.00" });
+
+      const otherCompanyId = await createTestCompany("Scoping Other Company");
+      const otherClient = await prisma.client.create({
+        data: {
+          name: "Scoping Other Client",
+          document: `scope-doc-${crypto.randomUUID()}`,
+          clientType: "COUNTER",
+          companyId: otherCompanyId,
+        },
+      });
+      await prisma.serviceOrder.create({
+        data: {
+          orderNumber: "OS-SCOPE-001",
+          description: "Other co order",
+          value: "999.00",
+          clientId: otherClient.id,
+          companyId: otherCompanyId,
+          status: "PENDING",
+          items: {
+            create: [
+              {
+                description: "Item",
+                unitValue: "999.00",
+                quantity: 1,
+                subtotal: "999.00",
+              },
+            ],
+          },
+          statusHistory: {
+            create: [{ toStatus: "PENDING", changedById: testUserId }],
+          },
+        },
+      });
+
+      const result = await reportService.getAllOrders(companyId, {});
+
+      expect(result.orders).toHaveLength(1);
+      expect(result.orders[0]!.total).toBe("100.00");
+    });
+
+    it("should filter by status", async () => {
+      await createOrderFull({ status: "PENDING" });
+      await createOrderFull({ status: "COMPLETED" });
+      await createOrderFull({ status: "CANCELLED" });
+
+      const result = await reportService.getAllOrders(companyId, {
+        status: "PENDING",
+      });
+
+      expect(result.orders).toHaveLength(1);
+      expect(result.orders[0]!.status).toBe("PENDING");
+    });
+
+    it("should filter by paymentStatus", async () => {
+      await createOrderFull({ paymentStatus: "UNPAID" });
+      await createOrderFull({ paymentStatus: "PAID_PIX" });
+
+      const result = await reportService.getAllOrders(companyId, {
+        paymentStatus: "PAID_PIX",
+      });
+
+      expect(result.orders).toHaveLength(1);
+      expect(result.orders[0]!.paymentStatus).toBe("PAID_PIX");
+    });
+
+    it("should filter by clientId", async () => {
+      const secondClient = await prisma.client.create({
+        data: {
+          name: "Second Client",
+          document: `second-doc-${crypto.randomUUID()}`,
+          clientType: "COUNTER",
+          companyId,
+        },
+      });
+
+      await createOrderFull({ clientId: testClientId });
+      await createOrderFull({ clientId: secondClient.id });
+
+      const result = await reportService.getAllOrders(companyId, {
+        clientId: secondClient.id,
+      });
+
+      expect(result.orders).toHaveLength(1);
+      expect(result.orders[0]!.client.id).toBe(secondClient.id);
+    });
+
+    it("should filter by dateFrom", async () => {
+      await createOrderFull({ createdAt: new Date("2026-01-15T12:00:00Z") });
+      await createOrderFull({ createdAt: new Date("2026-06-15T12:00:00Z") });
+
+      const result = await reportService.getAllOrders(companyId, {
+        dateFrom: "2026-06-01",
+      });
+
+      expect(result.orders).toHaveLength(1);
+    });
+
+    it("should filter by dateTo", async () => {
+      await createOrderFull({ createdAt: new Date("2026-01-15T12:00:00Z") });
+      await createOrderFull({ createdAt: new Date("2026-06-15T12:00:00Z") });
+
+      const result = await reportService.getAllOrders(companyId, {
+        dateTo: "2026-03-31",
+      });
+
+      expect(result.orders).toHaveLength(1);
+    });
+
+    it("should filter by dateFrom + dateTo range", async () => {
+      await createOrderFull({ createdAt: new Date("2026-01-15T12:00:00Z") });
+      await createOrderFull({ createdAt: new Date("2026-04-10T12:00:00Z") });
+      await createOrderFull({ createdAt: new Date("2026-06-15T12:00:00Z") });
+
+      const result = await reportService.getAllOrders(companyId, {
+        dateFrom: "2026-03-01",
+        dateTo: "2026-05-31",
+      });
+
+      expect(result.orders).toHaveLength(1);
+    });
+
+    it("should aggregate honorário from items with category Honorário", async () => {
+      await createOrderFull({
+        value: "250.00",
+        items: [
+          {
+            description: "Honorário",
+            category: "Honorário",
+            unitValue: "100.00",
+            quantity: 1,
+            subtotal: "100.00",
+          },
+          {
+            description: "Peça",
+            category: "Peças",
+            unitValue: "50.00",
+            quantity: 3,
+            subtotal: "150.00",
+          },
+        ],
+      });
+
+      const result = await reportService.getAllOrders(companyId, {});
+
+      expect(result.orders[0]!.honorario).toBe("100.00");
+    });
+
+    it("should aggregate honorário case-insensitively", async () => {
+      await createOrderFull({
+        value: "200.00",
+        items: [
+          {
+            description: "H lowercase",
+            category: "honorário",
+            unitValue: "80.00",
+            quantity: 1,
+            subtotal: "80.00",
+          },
+          {
+            description: "H uppercase",
+            category: "HONORÁRIO",
+            unitValue: "70.00",
+            quantity: 1,
+            subtotal: "70.00",
+          },
+        ],
+      });
+
+      const result = await reportService.getAllOrders(companyId, {});
+
+      expect(result.orders[0]!.honorario).toBe("150.00");
+    });
+
+    it("should return honorário 0.00 when no items match the category", async () => {
+      await createOrderFull({
+        value: "100.00",
+        items: [
+          {
+            description: "Peça",
+            category: "Peças",
+            unitValue: "100.00",
+            quantity: 1,
+            subtotal: "100.00",
+          },
+        ],
+      });
+
+      const result = await reportService.getAllOrders(companyId, {});
+
+      expect(result.orders[0]!.honorario).toBe("0.00");
+    });
+
+    it("should compute footer totals correctly", async () => {
+      await createOrderFull({
+        value: "100.00",
+        paymentStatus: "PAID_PIX",
+        items: [
+          {
+            description: "Honorário",
+            category: "Honorário",
+            unitValue: "100.00",
+            quantity: 1,
+            subtotal: "100.00",
+          },
+        ],
+      });
+      await createOrderFull({
+        value: "200.00",
+        paymentStatus: "UNPAID",
+        items: [
+          {
+            description: "Serviço",
+            category: null,
+            unitValue: "200.00",
+            quantity: 1,
+            subtotal: "200.00",
+          },
+        ],
+      });
+
+      const result = await reportService.getAllOrders(companyId, {});
+
+      expect(result.totals.sumTotal).toBe("300.00");
+      expect(result.totals.sumHonorario).toBe("100.00");
+      // Only the PAID_PIX order counts as received
+      expect(result.totals.totalReceived).toBe("100.00");
+    });
+
+    it("should include all paid statuses in totalReceived", async () => {
+      await createOrderFull({ value: "100.00", paymentStatus: "PAID_PIX" });
+      await createOrderFull({ value: "200.00", paymentStatus: "PAID_CASH" });
+      await createOrderFull({ value: "300.00", paymentStatus: "UNPAID" });
+
+      const result = await reportService.getAllOrders(companyId, {});
+
+      expect(result.totals.totalReceived).toBe("300.00");
+    });
+
+    it("should set completedAt from status history for completed orders", async () => {
+      const completedDate = new Date("2026-06-10T10:00:00.000Z");
+      await createOrderFull({
+        status: "COMPLETED",
+        completedAt: completedDate,
+      });
+
+      const result = await reportService.getAllOrders(companyId, {});
+
+      expect(result.orders[0]!.completedAt).toBe(completedDate.toISOString());
+    });
+
+    it("should return null completedAt for non-completed orders", async () => {
+      await createOrderFull({ status: "PENDING" });
+
+      const result = await reportService.getAllOrders(companyId, {});
+
+      expect(result.orders[0]!.completedAt).toBeNull();
+    });
+
+    it("should include order fields in each row", async () => {
+      await createOrderFull({ value: "150.00" });
+
+      const result = await reportService.getAllOrders(companyId, {});
+      const row = result.orders[0]!;
+
+      expect(row.orderNumber).toMatch(/^OS-/);
+      expect(row.client.id).toBe(testClientId);
+      expect(row.client.name).toBe("Report Test Client");
+      expect(row.total).toBe("150.00");
+      expect(row.status).toBe("PENDING");
+      expect(row.paymentStatus).toBe("UNPAID");
+      expect(row.createdAt).toBeDefined();
     });
   });
 });
