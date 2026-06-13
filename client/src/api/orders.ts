@@ -83,6 +83,7 @@ export interface OrderDetail extends Order {
     name: string;
     document: string;
     clientType: ClientType;
+    partnerName: string | null;
   };
   statusHistory: StatusHistoryEntry[];
 }
