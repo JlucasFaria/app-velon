@@ -35,12 +35,16 @@ export interface CsvReportTotals {
   totalReceived: string;
 }
 
-// RFC 4180: wrap in double-quotes when the value contains comma, quote, or newline
+// RFC 4180: wrap in double-quotes when the value contains comma, quote, or
+// newline. Also neutralizes CSV formula injection (CWE-1236): Excel/Sheets
+// execute cells starting with = + - @ (or tab/CR), so prefix those with a
+// single quote before quoting.
 function escapeCell(value: string): string {
-  if (/[",\n\r]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
+  const sanitized = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  if (/[",\n\r]/.test(sanitized)) {
+    return `"${sanitized.replace(/"/g, '""')}"`;
   }
-  return value;
+  return sanitized;
 }
 
 function csvRow(cells: string[]): string {
