@@ -23,13 +23,25 @@ interface StatCardProps {
   icon: ElementType;
   iconAccent: string;
   stripColor: string;
+  gradientOverlay: string;
 }
 
-function StatCard({ title, value, description, icon: Icon, iconAccent, stripColor }: StatCardProps) {
+function StatCard({
+  title,
+  value,
+  description,
+  icon: Icon,
+  iconAccent,
+  stripColor,
+  gradientOverlay,
+}: StatCardProps) {
   return (
     <Card className="relative overflow-hidden shadow-card transition-shadow hover:shadow-elevated">
-      <div className={cn("absolute inset-y-0 left-0 w-1 rounded-l-lg", stripColor)} />
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pl-6">
+      {/* Subtle gradient overlay — light mode only */}
+      <div className={cn("pointer-events-none absolute inset-0 dark:hidden", gradientOverlay)} />
+      {/* Left accent strip */}
+      <div className={cn("absolute inset-y-0 left-0 w-[3px]", stripColor)} />
+      <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 pl-5">
         <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
           {title}
         </CardTitle>
@@ -37,7 +49,7 @@ function StatCard({ title, value, description, icon: Icon, iconAccent, stripColo
           <Icon className="h-5 w-5 shrink-0" />
         </span>
       </CardHeader>
-      <CardContent className="pl-6">
+      <CardContent className="relative pl-5">
         <div className="text-3xl font-bold tracking-tight">{value}</div>
         <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
       </CardContent>
@@ -50,7 +62,7 @@ function StatCardSkeleton() {
     <Card className="shadow-card">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <Skeleton className="h-4 w-24" />
-        <Skeleton className="size-8 rounded-md" />
+        <Skeleton className="size-9 rounded-xl" />
       </CardHeader>
       <CardContent>
         <Skeleton className="h-8 w-12" />
@@ -92,48 +104,54 @@ export function DashboardPage() {
           value: total,
           description: "Desde o início",
           icon: ClipboardList,
-          iconAccent: "bg-primary/10 text-primary",
-          stripColor: "bg-primary",
+          iconAccent: "bg-indigo-50 text-indigo-600",
+          stripColor: "bg-indigo-500",
+          gradientOverlay: "bg-gradient-to-br from-white to-indigo-50/70",
         },
         {
           title: "Pendentes",
           value: summary.PENDING,
           description: "Aguardando início",
           icon: Clock,
-          iconAccent: "bg-muted text-foreground/70",
-          stripColor: "bg-foreground/25",
+          iconAccent: "bg-slate-100 text-slate-500",
+          stripColor: "bg-slate-400",
+          gradientOverlay: "bg-gradient-to-br from-white to-slate-50/80",
         },
         {
           title: "Em andamento",
           value: summary.IN_PROGRESS,
           description: "Sendo executadas",
           icon: Wrench,
-          iconAccent: "bg-info/10 text-info",
-          stripColor: "bg-info",
+          iconAccent: "bg-blue-50 text-blue-600",
+          stripColor: "bg-blue-500",
+          gradientOverlay: "bg-gradient-to-br from-white to-blue-50/70",
         },
         {
           title: "Aguardando cliente",
           value: summary.AWAITING_CLIENT,
           description: "Esperando retorno do cliente",
           icon: HourglassIcon,
-          iconAccent: "bg-warning/15 text-warning-foreground",
-          stripColor: "bg-warning",
+          iconAccent: "bg-amber-50 text-amber-600",
+          stripColor: "bg-amber-400",
+          gradientOverlay: "bg-gradient-to-br from-white to-amber-50/70",
         },
         {
           title: "Concluídas",
           value: summary.COMPLETED,
           description: "Desde o início",
           icon: CheckCircle2,
-          iconAccent: "bg-success/10 text-success",
-          stripColor: "bg-success",
+          iconAccent: "bg-emerald-50 text-emerald-600",
+          stripColor: "bg-emerald-500",
+          gradientOverlay: "bg-gradient-to-br from-white to-emerald-50/70",
         },
         {
           title: "Canceladas",
           value: summary.CANCELLED,
           description: "Desde o início",
           icon: XCircle,
-          iconAccent: "bg-danger/10 text-danger",
-          stripColor: "bg-danger",
+          iconAccent: "bg-rose-50 text-rose-600",
+          stripColor: "bg-rose-500",
+          gradientOverlay: "bg-gradient-to-br from-white to-rose-50/70",
         },
       ]
     : [];
