@@ -6,6 +6,7 @@ import {
   Loader2,
   Receipt as ReceiptIcon,
   RefreshCw,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getOrder, type OrderDetail } from "@/api/orders";
@@ -14,6 +15,7 @@ import { downloadOrderPdf } from "@/api/pdf";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { PaymentBadge } from "@/components/orders/PaymentBadge";
 import { StatusChangeDialog } from "@/components/orders/StatusChangeDialog";
+import { PaymentChangeDialog } from "@/components/orders/PaymentChangeDialog";
 import { StatusTimeline } from "@/components/orders/StatusTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -70,6 +72,7 @@ export function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
@@ -197,6 +200,15 @@ export function OrderDetailPage() {
                 Alterar status
               </Button>
             )}
+            {canWrite && (
+              <Button
+                variant="outline"
+                onClick={() => setPaymentDialogOpen(true)}
+              >
+                <Wallet className="mr-2 h-4 w-4" />
+                Alterar pagamento
+              </Button>
+            )}
             {receiptLoading ? (
               <Button disabled>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -314,6 +326,19 @@ export function OrderDetailPage() {
         orderId={order.id}
         currentStatus={order.status}
         onUpdated={setOrder}
+      />
+
+      <PaymentChangeDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        orderId={order.id}
+        currentStatus={order.paymentStatus}
+        currentNote={order.paymentNote}
+        onUpdated={(paymentStatus, paymentNote) =>
+          setOrder((prev) =>
+            prev ? { ...prev, paymentStatus, paymentNote } : prev,
+          )
+        }
       />
     </div>
   );
