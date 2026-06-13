@@ -47,6 +47,10 @@ const orderQuerySchema = paginationQuerySchema.extend({
     description: "Filter by payment situation (paid = any non-UNPAID status)",
     example: "paid",
   }),
+  partnerName: z.string().optional().openapi({
+    description: "Filter by the client's partner name (case-insensitive)",
+    example: "Parceiro XYZ",
+  }),
 });
 
 const idParamSchema = z.object({
@@ -254,7 +258,7 @@ export function createOrderRoutes(
   // ─── Route Handlers ─────────────────────────────────────────────
 
   orderRoutes.openapi(listOrdersRoute, async (c) => {
-    const { page, limit, status, clientType, search, payment } =
+    const { page, limit, status, clientType, search, payment, partnerName } =
       c.req.valid("query");
     const { companyId } = getCompanyContext(c);
     const result = await orderService.getAll(
@@ -265,6 +269,7 @@ export function createOrderRoutes(
       clientType,
       search,
       payment,
+      partnerName,
     );
     return successResponse(c, result, 200, "Orders retrieved successfully");
   });
