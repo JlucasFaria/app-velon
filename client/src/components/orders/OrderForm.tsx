@@ -7,9 +7,17 @@ import { toast } from "sonner";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { createOrder } from "@/api/orders";
 import { createClient, type ClientInput } from "@/api/clients";
+import { getTemplates, type ServiceTemplate } from "@/api/templates";
 import { ClientCombobox } from "@/components/clients/ClientCombobox";
 import { InlineClientForm } from "@/components/orders/InlineClientForm";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +34,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 // Keep in sync with the backend ORDER_ITEM_QUANTITY_MAX bound.
@@ -95,6 +104,9 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
   }>({ active: false, initialName: "" });
   const [selectionKey, setSelectionKey] = useState(0);
   const [selectedClientName, setSelectedClientName] = useState("");
+  const [templates, setTemplates] = useState<ServiceTemplate[]>([]);
+  const [templateId, setTemplateId] = useState("none");
+  const [wasOpen, setWasOpen] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -103,13 +115,26 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
 
   const { isSubmitting } = form.formState;
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: "items",
   });
 
   const watchedItems = useWatch({ control: form.control, name: "items" });
 
+  // Reset transient React state on each open/close transition during render
+  // (guarded by wasOpen) rather than in an effect, avoiding cascading renders.
+  if (open && !wasOpen) {
+    setWasOpen(true);
+    setInlineClient({ active: false, initialName: "" });
+    setTemplateId("none");
+  } else if (!open && wasOpen) {
+    setWasOpen(false);
+    setSelectedClientName("");
+    setSelectionKey(0);
+  }
+
+  // Reset the RHF form when the dialog opens.
   useEffect(() => {
     if (open) {
       form.reset({
@@ -117,12 +142,47 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
         description: "",
         items: [emptyItem()],
       });
-      setInlineClient({ active: false, initialName: "" });
-    } else {
-      setSelectedClientName("");
-      setSelectionKey(0);
     }
   }, [open, form]);
+
+  // Load the company's service templates when the dialog opens.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    getTemplates()
+      .then((list) => {
+        if (!cancelled) setTemplates(list);
+      })
+      .catch(() => {
+        // Templates are optional; failing to load just leaves the dropdown empty.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  // Selecting a template fills the description and replaces the items table;
+  // every field stays editable afterwards.
+  function applyTemplate(id: string) {
+    setTemplateId(id);
+    if (id === "none") return;
+    const template = templates.find((t) => String(t.id) === id);
+    if (!template) return;
+
+    form.setValue("description", template.defaultDescription, {
+      shouldValidate: true,
+    });
+    replace(
+      template.items.length > 0
+        ? template.items.map((item) => ({
+            description: item.description,
+            category: item.category ?? "",
+            unitValue: item.suggestedValue,
+            quantity: item.quantity ?? 1,
+          }))
+        : [emptyItem()],
+    );
+  }
 
   function openInlineClient(query: string) {
     setInlineClient({ active: true, initialName: query });
@@ -206,6 +266,26 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
                   </FormItem>
                 )}
               />
+              {templates.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Modelo de serviço</Label>
+                  <Select value={templateId} onValueChange={applyTemplate}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">
+                        Nenhum (preencher manualmente)
+                      </SelectItem>
+                      {templates.map((t) => (
+                        <SelectItem key={t.id} value={String(t.id)}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <FormField
                 control={form.control}
                 name="description"

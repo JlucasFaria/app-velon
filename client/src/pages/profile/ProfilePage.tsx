@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InviteMemberDialog } from "@/components/members/InviteMemberDialog";
 import { MemberList } from "@/components/members/MemberList";
+import { TemplatesSection } from "@/components/templates/TemplatesSection";
 
 const schema = z.object({
   name: z.string().min(2, "Informe o nome da empresa"),
@@ -64,7 +65,7 @@ function toFormValues(company: Company): FormData {
   };
 }
 
-type Tab = "empresa" | "membros";
+type Tab = "empresa" | "modelos" | "membros";
 
 export function ProfilePage() {
   const { user } = useAuth();
@@ -198,6 +199,17 @@ export function ProfilePage() {
           ].join(" ")}
         >
           Empresa
+        </button>
+        <button
+          onClick={() => setActiveTab("modelos")}
+          className={[
+            "px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors",
+            activeTab === "modelos"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground",
+          ].join(" ")}
+        >
+          Modelos
         </button>
         {isAdmin && (
           <button
@@ -407,6 +419,9 @@ export function ProfilePage() {
           </Card>
         </>
       )}
+
+      {/* ─── Modelos tab ─────────────────────────────────────────────────── */}
+      {activeTab === "modelos" && <TemplatesSection />}
 
       {/* ─── Membros tab ─────────────────────────────────────────────────── */}
       {activeTab === "membros" && isAdmin && (

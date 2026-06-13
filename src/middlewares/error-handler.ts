@@ -51,6 +51,8 @@ export const errorHandler: ErrorHandler = (err, c) => {
       const field = fields?.[fields.length - 1]?.replace(/"/g, "") ?? "Field";
       const ptBrMessages: Record<string, string> = {
         document: "Documento já cadastrado nesta empresa",
+        // `name` is unique only on ServiceTemplate today (@@unique[companyId,name]).
+        name: "Já existe um modelo com esse nome",
       };
       const message = ptBrMessages[field] ?? `${field} already in use`;
       return c.json({ success: false, error: message }, 409);
