@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, FileBarChart, Wallet } from "lucide-react";
+import { CheckCircle2, Download, FileBarChart, Wallet } from "lucide-react";
+import { toast } from "sonner";
 import {
+  downloadAllOrdersExport,
   getAllOrders,
   getMonthlyBilling,
+  type AllOrdersFilters,
   type AllOrdersResult,
   type MonthlyBilling,
 } from "@/api/reports";
@@ -25,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -285,6 +289,28 @@ function AllOrdersTab() {
   const [data, setData] = useState<AllOrdersResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const buildFilters = (): AllOrdersFilters => ({
+    ...(dateFrom && { dateFrom }),
+    ...(dateTo && { dateTo }),
+    ...(status && { status: status as OrderStatus }),
+    ...(paymentStatus && { paymentStatus: paymentStatus as PaymentStatus }),
+    ...(clientId && { clientId: Number(clientId) }),
+  });
+
+  const handleExport = async (format: "csv" | "pdf") => {
+    setExporting(true);
+    try {
+      await downloadAllOrdersExport(format, buildFilters());
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Falha ao exportar relatório",
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     getClients({ limit: 100 })
@@ -296,15 +322,7 @@ function AllOrdersTab() {
     let cancelled = false;
     setLoading(true);
 
-    const filters = {
-      ...(dateFrom && { dateFrom }),
-      ...(dateTo && { dateTo }),
-      ...(status && { status: status as OrderStatus }),
-      ...(paymentStatus && { paymentStatus: paymentStatus as PaymentStatus }),
-      ...(clientId && { clientId: Number(clientId) }),
-    };
-
-    getAllOrders(filters)
+    getAllOrders(buildFilters())
       .then((d) => {
         if (!cancelled) {
           setData(d);
@@ -328,6 +346,7 @@ function AllOrdersTab() {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="flex flex-wrap gap-3">
         <Input
           type="date"
@@ -394,6 +413,28 @@ function AllOrdersTab() {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+        <div className="flex shrink-0 gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleExport("csv")}
+            disabled={exporting || loading}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleExport("pdf")}
+            disabled={exporting || loading}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            PDF
+          </Button>
+        </div>
       </div>
 
       {error && (
