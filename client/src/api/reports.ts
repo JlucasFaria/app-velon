@@ -1,4 +1,5 @@
 import { apiRequest, buildQuery } from "./client";
+import type { OrderStatus, PaymentStatus } from "./orders";
 
 export interface OrdersSummary {
   PENDING: number;
@@ -36,4 +37,43 @@ export function getMonthlyBilling(month: number, year: number) {
 
 export function getOrdersSummary() {
   return apiRequest<OrdersSummary>("/reports/summary");
+}
+
+// ─── All-orders report ───────────────────────────────────────────────────────
+
+export interface AllOrdersRow {
+  id: number;
+  orderNumber: string;
+  client: { id: number; name: string };
+  createdAt: string;
+  completedAt: string | null;
+  total: string;
+  honorario: string;
+  paymentStatus: PaymentStatus;
+  status: OrderStatus;
+}
+
+export interface AllOrdersTotals {
+  sumTotal: string;
+  sumHonorario: string;
+  totalReceived: string;
+}
+
+export interface AllOrdersResult {
+  orders: AllOrdersRow[];
+  totals: AllOrdersTotals;
+}
+
+export interface AllOrdersFilters {
+  dateFrom?: string;
+  dateTo?: string;
+  status?: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  clientId?: number;
+}
+
+export function getAllOrders(filters: AllOrdersFilters = {}) {
+  return apiRequest<AllOrdersResult>(
+    `/reports/orders${buildQuery({ ...filters })}`,
+  );
 }
