@@ -25,8 +25,8 @@ export function EmptyState({
     >
       {Icon ? (
         <div className="relative flex size-20 items-center justify-center">
-          <div className="absolute inset-0 rounded-2xl bg-primary/8" />
-          <div className="absolute inset-2 rounded-xl bg-primary/14" />
+          <div aria-hidden="true" className="absolute inset-0 rounded-2xl bg-primary/8" />
+          <div aria-hidden="true" className="absolute inset-2 rounded-xl bg-primary/14" />
           <Icon className="relative size-9 text-primary/65" />
         </div>
       ) : null}

@@ -65,7 +65,7 @@ export function ReceiptPage() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9"
+          className="min-h-11 min-w-11 shrink-0"
           aria-label="Voltar para a ordem"
           asChild
         >

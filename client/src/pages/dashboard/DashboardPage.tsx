@@ -38,9 +38,9 @@ function StatCard({
   return (
     <Card className="relative overflow-hidden shadow-card transition-shadow hover:shadow-elevated">
       {/* Subtle gradient overlay — light mode only */}
-      <div className={cn("pointer-events-none absolute inset-0 dark:hidden", gradientOverlay)} />
+      <div aria-hidden="true" className={cn("pointer-events-none absolute inset-0 dark:hidden", gradientOverlay)} />
       {/* Left accent strip */}
-      <div className={cn("absolute inset-y-0 left-0 w-[3px]", stripColor)} />
+      <div aria-hidden="true" className={cn("absolute inset-y-0 left-0 w-[3px]", stripColor)} />
       <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 pl-5">
         <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground/80">
           {title}
