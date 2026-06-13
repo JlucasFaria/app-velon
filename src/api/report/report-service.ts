@@ -2,6 +2,20 @@ import prismaClient from "../../db/client";
 import type { PrismaClient } from "../../../generated/prisma";
 import type { AllOrdersQuery } from "./report-schema";
 
+// Sums the value (in integer cents) of every "Honorário" line item, matching the
+// category case-insensitively. Shared by the all-orders and monthly-billing
+// reports so the service-fee figure is computed identically in both.
+function computeHonorarioCents(
+  items: Array<{ category: string | null; subtotal: { toString(): string } }>,
+): number {
+  return items
+    .filter((i) => i.category?.trim().toLowerCase() === "honorário")
+    .reduce(
+      (sum, i) => sum + Math.round(parseFloat(i.subtotal.toString()) * 100),
+      0,
+    );
+}
+
 export class ReportService {
   constructor(private prisma: PrismaClient = prismaClient) {}
 
@@ -30,31 +44,44 @@ export class ReportService {
             client: {
               select: { id: true, name: true },
             },
+            items: {
+              select: { category: true, subtotal: true },
+            },
           },
         },
       },
       orderBy: { changedAt: "asc" },
     });
 
-    const totalCents = histories.reduce((sum, h) => {
-      return sum + Math.round(parseFloat(h.order.value.toString()) * 100);
-    }, 0);
+    let totalCents = 0;
+    let totalHonorarioCents = 0;
 
-    return {
-      month,
-      year,
-      totalRevenue: (totalCents / 100).toFixed(2),
-      orderCount: histories.length,
-      orders: histories.map((h) => ({
+    const orders = histories.map((h) => {
+      const valueCents = Math.round(parseFloat(h.order.value.toString()) * 100);
+      const honorarioCents = computeHonorarioCents(h.order.items);
+      totalCents += valueCents;
+      totalHonorarioCents += honorarioCents;
+
+      return {
         id: h.order.id,
         orderNumber: h.order.orderNumber,
         description: h.order.description,
         // Always 2 decimals so the payload is consistent with totalRevenue.
         // Display formatting (R$ 100,00 / pt-BR) is handled on the frontend.
-        value: parseFloat(h.order.value.toString()).toFixed(2),
+        value: (valueCents / 100).toFixed(2),
+        honorario: (honorarioCents / 100).toFixed(2),
         completedAt: h.changedAt.toISOString(),
         client: h.order.client,
-      })),
+      };
+    });
+
+    return {
+      month,
+      year,
+      totalRevenue: (totalCents / 100).toFixed(2),
+      totalHonorario: (totalHonorarioCents / 100).toFixed(2),
+      orderCount: histories.length,
+      orders,
     };
   }
 
@@ -92,8 +119,14 @@ export class ReportService {
       where: {
         companyId,
         ...(filters.status && { status: filters.status }),
-        ...(filters.paymentStatus && { paymentStatus: filters.paymentStatus }),
-        ...(filters.clientId && { clientId: filters.clientId }),
+        ...(filters.partnerName && {
+          client: {
+            partnerName: {
+              contains: filters.partnerName,
+              mode: "insensitive" as const,
+            },
+          },
+        }),
         ...((dateFrom ?? dateTo) && {
           createdAt: {
             ...(dateFrom && { gte: dateFrom }),
@@ -126,12 +159,7 @@ export class ReportService {
 
     const rows = orders.map((o) => {
       const totalCents = Math.round(parseFloat(o.value.toString()) * 100);
-      const honorarioCents = o.items
-        .filter((i) => i.category?.trim().toLowerCase() === "honorário")
-        .reduce(
-          (sum, i) => sum + Math.round(parseFloat(i.subtotal.toString()) * 100),
-          0,
-        );
+      const honorarioCents = computeHonorarioCents(o.items);
 
       sumTotalCents += totalCents;
       sumHonorarioCents += honorarioCents;

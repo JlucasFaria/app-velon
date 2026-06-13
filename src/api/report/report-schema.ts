@@ -24,6 +24,11 @@ const billingOrderSchema = z.object({
   orderNumber: z.string().openapi({ example: "OS-0001" }),
   description: z.string().openapi({ example: "Screen replacement" }),
   value: z.string().openapi({ example: "250.00" }),
+  honorario: z.string().openapi({
+    description:
+      "Service-fee total for this order (items in the Honorário category)",
+    example: "100.00",
+  }),
   completedAt: z
     .string()
     .datetime()
@@ -40,6 +45,10 @@ export const monthlyBillingResponseSchema = successResponseSchema(
       month: z.number().int().openapi({ example: 6 }),
       year: z.number().int().openapi({ example: 2026 }),
       totalRevenue: z.string().openapi({ example: "1500.00" }),
+      totalHonorario: z.string().openapi({
+        description: "Sum of service-fee (Honorário) items across the month",
+        example: "600.00",
+      }),
       orderCount: z.number().int().openapi({ example: 6 }),
       orders: billingOrderSchema.array(),
     })
@@ -91,13 +100,9 @@ export const allOrdersQuerySchema = z.object({
     description: "Filter by OS status",
     example: "COMPLETED",
   }),
-  paymentStatus: z.enum(PAYMENT_STATUSES).optional().openapi({
-    description: "Filter by payment status",
-    example: "PAID_PIX",
-  }),
-  clientId: z.coerce.number().int().positive().optional().openapi({
-    description: "Filter by client ID",
-    example: 1,
+  partnerName: z.string().optional().openapi({
+    description: "Filter by the client's partner name (case-insensitive)",
+    example: "Parceiro XYZ",
   }),
 });
 

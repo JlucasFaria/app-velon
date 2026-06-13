@@ -14,6 +14,7 @@ export interface BillingOrder {
   orderNumber: string;
   description: string;
   value: string;
+  honorario: string;
   completedAt: string;
   client: {
     id: number;
@@ -25,6 +26,7 @@ export interface MonthlyBilling {
   month: number;
   year: number;
   totalRevenue: string;
+  totalHonorario: string;
   orderCount: number;
   orders: BillingOrder[];
 }
@@ -68,8 +70,7 @@ export interface AllOrdersFilters {
   dateFrom?: string;
   dateTo?: string;
   status?: OrderStatus;
-  paymentStatus?: PaymentStatus;
-  clientId?: number;
+  partnerName?: string;
 }
 
 export function getAllOrders(filters: AllOrdersFilters = {}) {

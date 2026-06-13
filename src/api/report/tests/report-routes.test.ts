@@ -390,21 +390,51 @@ describe("Report Routes", () => {
       expect(body.data.orders[0]!.status).toBe("COMPLETED");
     });
 
-    it("should filter by paymentStatus query param", async () => {
-      await createOrderWithItems({ paymentStatus: "UNPAID" });
-      await createOrderWithItems({ paymentStatus: "PAID_CASH" });
+    it("should filter by partnerName query param", async () => {
+      const partnerClient = await prisma.client.create({
+        data: {
+          name: "Routes Partner Co",
+          document: `routes-partner-doc-${crypto.randomUUID()}`,
+          clientType: "PARTNER",
+          partnerName: "Beta Partner",
+          companyId,
+        },
+      });
+      await createOrderWithItems(); // default COUNTER client, no partner
+      await prisma.serviceOrder.create({
+        data: {
+          orderNumber: "OS-RPTR-PARTNER",
+          description: "Partner order",
+          value: "100.00",
+          clientId: partnerClient.id,
+          companyId,
+          status: "PENDING",
+          items: {
+            create: [
+              {
+                description: "Serviço",
+                unitValue: "100.00",
+                quantity: 1,
+                subtotal: "100.00",
+              },
+            ],
+          },
+          statusHistory: {
+            create: [{ toStatus: "PENDING", changedById: testUserId }],
+          },
+        },
+      });
 
-      const res = await app.request(
-        "/api/reports/orders?paymentStatus=PAID_CASH",
-        { headers: h() },
-      );
+      const res = await app.request("/api/reports/orders?partnerName=beta", {
+        headers: h(),
+      });
       const body = (await res.json()) as {
-        data: { orders: Array<{ paymentStatus: string }> };
+        data: { orders: Array<{ client: { id: number } }> };
       };
 
       expect(res.status).toBe(200);
       expect(body.data.orders).toHaveLength(1);
-      expect(body.data.orders[0]!.paymentStatus).toBe("PAID_CASH");
+      expect(body.data.orders[0]!.client.id).toBe(partnerClient.id);
     });
 
     it("should return empty orders list and zero totals when no orders match filters", async () => {
@@ -520,15 +550,12 @@ describe("Report Routes", () => {
       expect(buffer.byteLength).toBeGreaterThan(0);
     });
 
-    it("should respect paymentStatus filter in PDF export", async () => {
-      await createOrderWithItems({
-        paymentStatus: "PAID_PIX",
-        value: "100.00",
-      });
-      await createOrderWithItems({ paymentStatus: "UNPAID", value: "200.00" });
+    it("should respect status filter in PDF export", async () => {
+      await createOrderWithItems({ status: "PENDING", value: "100.00" });
+      await createOrderWithItems({ status: "CANCELLED", value: "200.00" });
 
       const res = await app.request(
-        "/api/reports/orders/export/pdf?paymentStatus=PAID_PIX",
+        "/api/reports/orders/export/pdf?status=CANCELLED",
         { headers: h() },
       );
 
