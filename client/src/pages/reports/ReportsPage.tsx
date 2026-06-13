@@ -182,8 +182,8 @@ function MonthlyBillingTab() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Faturamento total
             </CardTitle>
-            <span className="flex size-8 items-center justify-center rounded-md bg-success/10 text-success">
-              <Wallet className="h-4 w-4" />
+            <span className="flex size-9 items-center justify-center rounded-xl bg-success/10 text-success">
+              <Wallet className="h-5 w-5 shrink-0" />
             </span>
           </CardHeader>
           <CardContent>
@@ -204,8 +204,8 @@ function MonthlyBillingTab() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Ordens concluídas
             </CardTitle>
-            <span className="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <CheckCircle2 className="h-4 w-4" />
+            <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <CheckCircle2 className="h-5 w-5 shrink-0" />
             </span>
           </CardHeader>
           <CardContent>

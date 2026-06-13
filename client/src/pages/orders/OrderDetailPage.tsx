@@ -34,7 +34,7 @@ function BackButton() {
       asChild
     >
       <Link to="/orders">
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-5 w-5" />
       </Link>
     </Button>
   );

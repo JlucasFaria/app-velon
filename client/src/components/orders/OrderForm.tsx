@@ -452,7 +452,7 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
                                 onClick={() => remove(index)}
                                 aria-label="Remover item"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </td>
                           </tr>
@@ -470,7 +470,7 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
                     className="h-8 gap-1.5 px-2 text-sm text-muted-foreground hover:text-foreground"
                     onClick={() => append(emptyItem())}
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus className="h-4 w-4" />
                     Adicionar item
                   </Button>
                   <p className="text-sm text-muted-foreground">

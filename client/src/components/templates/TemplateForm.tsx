@@ -294,7 +294,7 @@ export function TemplateForm({
                               onClick={() => remove(index)}
                               aria-label="Remover item"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </td>
                         </tr>
@@ -311,7 +311,7 @@ export function TemplateForm({
                 className="h-8 gap-1 px-2 text-sm"
                 onClick={() => append(emptyItem())}
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-4 w-4" />
                 Adicionar item
               </Button>
             </div>

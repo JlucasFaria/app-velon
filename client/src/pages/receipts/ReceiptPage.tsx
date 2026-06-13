@@ -49,7 +49,7 @@ export function ReceiptPage() {
           asChild
         >
           <Link to="/orders">
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
         <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
@@ -70,7 +70,7 @@ export function ReceiptPage() {
           asChild
         >
           <Link to={`/orders/${receipt.order.id}`}>
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
         <Button onClick={() => window.print()} size="sm">

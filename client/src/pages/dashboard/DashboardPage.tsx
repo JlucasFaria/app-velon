@@ -34,7 +34,7 @@ function StatCard({ title, value, description, icon: Icon, iconAccent, stripColo
           {title}
         </CardTitle>
         <span className={cn("flex size-9 items-center justify-center rounded-xl", iconAccent)}>
-          <Icon className="h-4 w-4" />
+          <Icon className="h-5 w-5 shrink-0" />
         </span>
       </CardHeader>
       <CardContent className="pl-6">
@@ -100,8 +100,8 @@ export function DashboardPage() {
           value: summary.PENDING,
           description: "Aguardando início",
           icon: Clock,
-          iconAccent: "bg-muted text-muted-foreground",
-          stripColor: "bg-muted-foreground/40",
+          iconAccent: "bg-muted text-foreground/70",
+          stripColor: "bg-foreground/25",
         },
         {
           title: "Em andamento",
