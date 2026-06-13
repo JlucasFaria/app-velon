@@ -18,7 +18,7 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
 
   return (
-    <header className="flex h-14 items-center justify-between gap-2 border-b border-border bg-card px-4 md:px-6 print:hidden">
+    <header className="flex h-16 items-center justify-between gap-2 border-b border-border bg-card px-4 md:px-6 print:hidden">
       {/* Mobile brand + menu toggle */}
       <div className="flex items-center gap-2 md:hidden">
         <Button

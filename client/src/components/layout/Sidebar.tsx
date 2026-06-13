@@ -29,10 +29,10 @@ const navItems: NavItem[] = [
 function Brand() {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm">
+      <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm">
         V
       </div>
-      <span className="text-lg font-bold tracking-tight text-foreground">
+      <span className="text-xl font-bold tracking-tight text-foreground">
         Velon
       </span>
     </div>
@@ -41,7 +41,7 @@ function Brand() {
 
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
+    <nav className="flex flex-1 flex-col gap-0.5 px-3 py-4">
       {navItems.map(({ to, label, icon: Icon, end = false }) => (
         <NavLink
           key={to}
@@ -52,8 +52,8 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
             cn(
               "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
               isActive
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
             )
           }
         >
@@ -62,7 +62,9 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
               <Icon
                 className={cn(
                   "h-5 w-5 shrink-0 transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+                  isActive
+                    ? "text-primary-foreground"
+                    : "text-muted-foreground group-hover:text-foreground",
                 )}
               />
               <span>{label}</span>
@@ -77,7 +79,7 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
 export function Sidebar() {
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-sidebar md:flex print:hidden">
-      <div className="flex h-14 items-center border-b border-border px-5">
+      <div className="flex h-16 items-center border-b border-border px-5">
         <Brand />
       </div>
       <NavItems />
@@ -114,7 +116,7 @@ export function MobileSidebar({
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-14 items-center justify-between border-b border-border px-5">
+        <div className="flex h-16 items-center justify-between border-b border-border px-5">
           <Brand />
           <Button
             variant="ghost"
