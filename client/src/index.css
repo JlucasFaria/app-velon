@@ -133,29 +133,29 @@
 }
 
 .dark {
-    /* ── Surfaces — Vercel-style: near-black with a blue hue, NOT navy ────
-       oklch L≈0.11 gives the true Vercel dark. Cards slightly lighter. */
-    --background: oklch(0.112 0.018 262);
+    /* ── Surfaces — dark gray, not pitch-black — more readable/accessible ─
+       L≈0.185 gives a proper dark without feeling like a terminal. */
+    --background: oklch(0.185 0.018 262);
     --foreground: oklch(0.955 0.006 265);
-    --card: oklch(0.155 0.016 262);
+    --card: oklch(0.230 0.016 262);
     --card-foreground: oklch(0.955 0.006 265);
-    --popover: oklch(0.155 0.016 262);
+    --popover: oklch(0.230 0.016 262);
     --popover-foreground: oklch(0.955 0.006 265);
 
-    /* ── Primary — bright indigo, must pop on near-black ─────────────────*/
+    /* ── Primary — bright indigo, readable on dark gray ─────────────────*/
     --primary: oklch(0.655 0.220 270);
     --primary-foreground: oklch(0.985 0 0);
 
     /* ── Secondary ────────────────────────────────────────────────────────*/
-    --secondary: oklch(0.218 0.022 262);
+    --secondary: oklch(0.275 0.020 262);
     --secondary-foreground: oklch(0.82 0.016 265);
 
     /* ── Muted ────────────────────────────────────────────────────────────*/
-    --muted: oklch(0.215 0.015 262);
-    --muted-foreground: oklch(0.612 0.020 265);
+    --muted: oklch(0.268 0.015 262);
+    --muted-foreground: oklch(0.625 0.020 265);
 
     /* ── Accent ───────────────────────────────────────────────────────────*/
-    --accent: oklch(0.235 0.055 270);
+    --accent: oklch(0.285 0.052 270);
     --accent-foreground: oklch(0.72 0.145 270);
 
     /* ── Destructive ──────────────────────────────────────────────────────*/
@@ -165,7 +165,8 @@
     --success: oklch(0.648 0.148 152);
     --success-foreground: oklch(0.985 0 0);
     --warning: oklch(0.778 0.150 65);
-    --warning-foreground: oklch(0.22 0.04 58);
+    /* warning-foreground = light amber so text is readable on tinted dark bg */
+    --warning-foreground: oklch(0.82 0.090 65);
     --info: oklch(0.655 0.220 270);
     --info-foreground: oklch(0.985 0 0);
     --danger: oklch(0.655 0.205 25);
@@ -183,12 +184,12 @@
     --chart-4: oklch(0.778 0.150 65);
     --chart-5: oklch(0.655 0.205 25);
 
-    /* ── Sidebar — very slightly lighter than bg for definition ──────────*/
-    --sidebar: oklch(0.132 0.017 262);
+    /* ── Sidebar — slightly darker than bg for subtle definition ────────*/
+    --sidebar: oklch(0.210 0.017 262);
     --sidebar-foreground: oklch(0.955 0.006 265);
     --sidebar-primary: oklch(0.655 0.220 270);
     --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.235 0.055 270);
+    --sidebar-accent: oklch(0.285 0.052 270);
     --sidebar-accent-foreground: oklch(0.72 0.145 270);
     --sidebar-border: oklch(1 0 0 / 9%);
     --sidebar-ring: oklch(0.655 0.220 270);
