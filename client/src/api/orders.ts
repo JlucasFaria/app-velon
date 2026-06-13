@@ -8,6 +8,31 @@ export type OrderStatus =
   | "COMPLETED"
   | "CANCELLED";
 
+export type PaymentStatus =
+  | "UNPAID"
+  | "PAID_PIX"
+  | "PAID_CREDIT"
+  | "PAID_DEBIT"
+  | "PAID_CASH"
+  | "PAID_TRANSFER"
+  | "PAID_OTHER";
+
+// Human labels shared by the form, list badge, and detail view.
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  UNPAID: "Não pago",
+  PAID_PIX: "Pix",
+  PAID_CREDIT: "Cartão de crédito",
+  PAID_DEBIT: "Cartão de débito",
+  PAID_CASH: "Dinheiro",
+  PAID_TRANSFER: "Transferência",
+  PAID_OTHER: "Outro",
+};
+
+// A payment counts as settled for any non-UNPAID status.
+export function isPaid(status: PaymentStatus): boolean {
+  return status !== "UNPAID";
+}
+
 export interface OrderItem {
   id: number;
   description: string;
@@ -30,6 +55,8 @@ export interface Order {
   description: string;
   value: string;
   status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  paymentNote: string | null;
   assignedUserId: number | null;
   clientId: number;
   createdAt: string;
@@ -65,12 +92,16 @@ export interface OrderInput {
   items: OrderItemInput[];
   clientId: number;
   assignedUserId?: number;
+  paymentStatus?: PaymentStatus;
+  paymentNote?: string;
 }
 
 export interface UpdateOrderInput {
   description?: string;
   items?: OrderItemInput[];
   assignedUserId?: number | null;
+  paymentStatus?: PaymentStatus;
+  paymentNote?: string | null;
 }
 
 // List rows embed the client's id + name (see backend ORDER_LIST_SELECT) so the
