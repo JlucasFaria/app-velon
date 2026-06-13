@@ -70,16 +70,16 @@ export function ReportsPage() {
         </p>
       </div>
 
-      <div className="border-b flex">
+      <div className="border-b flex gap-1">
         {(["monthly", "all"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={cn(
-              "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+              "px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-all",
               tab === t
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border",
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
             )}
           >
             {t === "monthly" ? "Concluídas no mês" : "Todas as OSs"}
