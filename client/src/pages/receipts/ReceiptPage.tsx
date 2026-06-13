@@ -70,11 +70,11 @@ export function ReceiptPage() {
           asChild
         >
           <Link to={`/orders/${receipt.order.id}`}>
-            <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
+            <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
         <Button onClick={() => window.print()} size="sm">
-          <Printer className="mr-2 h-4 w-4" strokeWidth={1.75} />
+          <Printer className="mr-2 h-4 w-4" />
           Imprimir
         </Button>
       </div>

@@ -64,10 +64,9 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
               )}
               <Icon
                 className={cn(
-                  "h-4 w-4 shrink-0 transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground group-hover:text-accent-foreground",
+                  "h-5 w-5 shrink-0 transition-colors",
+                  isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
                 )}
-                strokeWidth={1.75}
               />
               <span>{label}</span>
             </>
@@ -127,7 +126,7 @@ export function MobileSidebar({
             aria-label="Fechar menu"
             onClick={onClose}
           >
-            <X className="h-4 w-4" strokeWidth={1.75} />
+            <X className="h-5 w-5" />
           </Button>
         </div>
         <NavItems onNavigate={onClose} />
