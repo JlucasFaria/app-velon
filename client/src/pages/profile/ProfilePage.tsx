@@ -188,42 +188,21 @@ export function ProfilePage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex border-b">
-        <button
-          onClick={() => setActiveTab("empresa")}
-          className={[
-            "px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors",
-            activeTab === "empresa"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground",
-          ].join(" ")}
-        >
-          Empresa
-        </button>
-        <button
-          onClick={() => setActiveTab("modelos")}
-          className={[
-            "px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors",
-            activeTab === "modelos"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground",
-          ].join(" ")}
-        >
-          Modelos
-        </button>
-        {isAdmin && (
+      <div className="flex gap-1 border-b">
+        {(["empresa", "modelos", ...(isAdmin ? ["membros"] : [])] as Tab[]).map((tab) => (
           <button
-            onClick={() => setActiveTab("membros")}
+            key={tab}
+            onClick={() => setActiveTab(tab)}
             className={[
-              "px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors",
-              activeTab === "membros"
+              "px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-all capitalize",
+              activeTab === tab
                 ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
             ].join(" ")}
           >
-            Membros
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
-        )}
+        ))}
       </div>
 
       {error && (

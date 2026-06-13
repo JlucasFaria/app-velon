@@ -10,8 +10,8 @@ import {
   type MemberRole,
   type MemberStatus,
 } from "@/api/company";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -33,21 +33,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ROLE_LABELS } from "./member-constants";
+import { ROLE_LABELS, ROLE_BADGE_CLASSES } from "./member-constants";
 
-const STATUS_CONFIG: Record<
-  MemberStatus,
-  { label: string; variant: "default" | "secondary" | "outline" }
-> = {
-  ACTIVE: { label: "Ativo", variant: "default" },
-  PENDING: { label: "Convite pendente", variant: "secondary" },
-  REVOKED: { label: "Revogado", variant: "outline" },
+const STATUS_BADGE_CLASSES: Record<MemberStatus, string> = {
+  ACTIVE: "bg-success/12 text-success border border-success/20",
+  PENDING: "bg-warning/15 text-warning-foreground border border-warning/25",
+  REVOKED: "bg-muted text-muted-foreground border border-border",
 };
 
-const ROLE_VARIANT: Record<MemberRole, "default" | "secondary" | "outline"> = {
-  ADMIN: "default",
-  OPERATOR: "secondary",
-  VIEWER: "outline",
+const STATUS_LABELS: Record<MemberStatus, string> = {
+  ACTIVE: "Ativo",
+  PENDING: "Pendente",
+  REVOKED: "Revogado",
 };
 
 interface MemberListProps {
@@ -154,10 +151,9 @@ export function MemberList({
           const displayName =
             m.user?.name ?? m.user?.email ?? m.invitedEmail ?? "—";
           const displayEmail = m.user?.email ?? m.invitedEmail ?? "";
-          const statusCfg = STATUS_CONFIG[m.status];
 
           return (
-            <div key={m.id} className="flex items-center justify-between py-3">
+            <div key={m.id} className="flex items-center justify-between py-3.5">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{displayName}</p>
                 {displayEmail && displayName !== displayEmail && (
@@ -167,10 +163,12 @@ export function MemberList({
                 )}
               </div>
               <div className="ml-4 flex shrink-0 items-center gap-2">
-                <Badge variant={ROLE_VARIANT[m.role]}>
+                <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium", ROLE_BADGE_CLASSES[m.role])}>
                   {ROLE_LABELS[m.role]}
-                </Badge>
-                <Badge variant={statusCfg.variant}>{statusCfg.label}</Badge>
+                </span>
+                <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium", STATUS_BADGE_CLASSES[m.status])}>
+                  {STATUS_LABELS[m.status]}
+                </span>
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
