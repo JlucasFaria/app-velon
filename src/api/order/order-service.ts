@@ -4,6 +4,7 @@ import type {
   PrismaClient,
   OrderStatus,
   ClientType,
+  PaymentStatus,
 } from "../../../generated/prisma";
 import {
   getPaginationParams,
@@ -56,6 +57,37 @@ function computeTotalCents(items: OrderItemInput[]): number {
   );
 }
 
+// The free-text note only describes a PAID_OTHER payment, so it is cleared for
+// every other status — keeping the column meaningful and not stale.
+function resolvePaymentNote(
+  status: PaymentStatus,
+  note: string | null | undefined,
+): string | null {
+  return status === "PAID_OTHER" ? (note ?? null) : null;
+}
+
+// Maps the `?payment=paid|unpaid|all` filter to a Prisma where clause. "paid"
+// means any non-UNPAID status.
+function paymentFilterWhere(payment?: "paid" | "unpaid" | "all") {
+  if (payment === "paid") return { paymentStatus: { not: "UNPAID" as const } };
+  if (payment === "unpaid") return { paymentStatus: "UNPAID" as const };
+  return {};
+}
+
+// Builds the payment fields for an update. The note is always coupled to the
+// status: it is re-resolved against the new status (cleared unless PAID_OTHER),
+// so an order can never carry a stale note for a non-PAID_OTHER status.
+function buildPaymentUpdate(data: UpdateOrderInput): {
+  paymentStatus?: PaymentStatus;
+  paymentNote?: string | null;
+} {
+  if (data.paymentStatus === undefined) return {};
+  return {
+    paymentStatus: data.paymentStatus,
+    paymentNote: resolvePaymentNote(data.paymentStatus, data.paymentNote),
+  };
+}
+
 const ITEMS_SELECT = {
   id: true,
   description: true,
@@ -71,6 +103,8 @@ const ORDER_SELECT = {
   description: true,
   value: true,
   status: true,
+  paymentStatus: true,
+  paymentNote: true,
   assignedUserId: true,
   clientId: true,
   createdAt: true,
@@ -168,12 +202,15 @@ export class OrderService {
 
     const orderNumber = await this.generateOrderNumber(companyId);
     const totalValue = centsToDecimalString(totalCents);
+    const paymentStatus = data.paymentStatus ?? "UNPAID";
 
     return await this.prisma.serviceOrder.create({
       data: {
         orderNumber,
         description: data.description,
         value: totalValue,
+        paymentStatus,
+        paymentNote: resolvePaymentNote(paymentStatus, data.paymentNote),
         clientId: data.clientId,
         companyId,
         assignedUserId: data.assignedUserId ?? null,
@@ -198,6 +235,7 @@ export class OrderService {
     status?: OrderStatus,
     clientType?: ClientType,
     search?: string,
+    payment?: "paid" | "unpaid" | "all",
   ) {
     const params = getPaginationParams(page, limit);
 
@@ -205,6 +243,7 @@ export class OrderService {
       companyId,
       ...(status ? { status } : {}),
       ...(clientType ? { client: { clientType } } : {}),
+      ...paymentFilterWhere(payment),
       ...(search
         ? {
             OR: [
@@ -289,6 +328,8 @@ export class OrderService {
     });
     if (!owned) return null;
 
+    const paymentUpdate = buildPaymentUpdate(data);
+
     if (data.items !== undefined) {
       const totalCents = computeTotalCents(data.items);
       assertTotalWithinCeiling(totalCents);
@@ -304,6 +345,7 @@ export class OrderService {
               ? { description: data.description }
               : {}),
             value: totalValue,
+            ...paymentUpdate,
             ...("assignedUserId" in data
               ? { assignedUserId: data.assignedUserId }
               : {}),
@@ -322,6 +364,7 @@ export class OrderService {
         ...(data.description !== undefined
           ? { description: data.description }
           : {}),
+        ...paymentUpdate,
         ...("assignedUserId" in data
           ? { assignedUserId: data.assignedUserId }
           : {}),

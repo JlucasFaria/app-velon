@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { getOrder, type OrderDetail } from "@/api/orders";
 import { generateReceipt, getReceipt, type Receipt } from "@/api/receipts";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
+import { PaymentBadge } from "@/components/orders/PaymentBadge";
 import { StatusChangeDialog } from "@/components/orders/StatusChangeDialog";
 import { StatusTimeline } from "@/components/orders/StatusTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -151,6 +152,10 @@ export function OrderDetailPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <OrderStatusBadge status={order.status} />
+            <PaymentBadge
+              status={order.paymentStatus}
+              note={order.paymentNote}
+            />
             {canWrite && (
               <Button
                 variant="outline"

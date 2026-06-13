@@ -195,6 +195,32 @@ describe("Order Routes", () => {
       expect(res.status).toBe(201);
       expect(body.data.assignedUserId).toBe(testUserId);
     });
+
+    it("should default paymentStatus to UNPAID", async () => {
+      const res = await post(basePayload());
+      const body = (await res.json()) as {
+        data: { paymentStatus: string; paymentNote: string | null };
+      };
+
+      expect(res.status).toBe(201);
+      expect(body.data.paymentStatus).toBe("UNPAID");
+      expect(body.data.paymentNote).toBeNull();
+    });
+
+    it("should persist a PAID_OTHER payment with its note", async () => {
+      const res = await post({
+        ...basePayload(),
+        paymentStatus: "PAID_OTHER",
+        paymentNote: "Cheque",
+      });
+      const body = (await res.json()) as {
+        data: { paymentStatus: string; paymentNote: string | null };
+      };
+
+      expect(res.status).toBe(201);
+      expect(body.data.paymentStatus).toBe("PAID_OTHER");
+      expect(body.data.paymentNote).toBe("Cheque");
+    });
   });
 
   // ─── GET /api/orders ──────────────────────────────────────────────
@@ -291,6 +317,22 @@ describe("Order Routes", () => {
       expect(body.data.orders.length).toBe(1);
       expect(body.data.pagination.total).toBe(2);
       expect(body.data.pagination.totalPages).toBe(2);
+    });
+
+    it("should filter by payment situation", async () => {
+      await post(basePayload());
+      await post({ ...basePayload(), paymentStatus: "PAID_PIX" });
+
+      const res = await app.request("/api/orders?payment=paid", {
+        headers: h(),
+      });
+      const body = (await res.json()) as {
+        data: { orders: Array<{ paymentStatus: string }> };
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.data.orders.length).toBe(1);
+      expect(body.data.orders[0]?.paymentStatus).toBe("PAID_PIX");
     });
   });
 

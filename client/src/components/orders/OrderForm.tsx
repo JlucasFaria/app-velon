@@ -5,7 +5,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2 } from "lucide-react";
-import { createOrder } from "@/api/orders";
+import {
+  createOrder,
+  PAYMENT_STATUS_LABELS,
+  type PaymentStatus,
+} from "@/api/orders";
 import { createClient, type ClientInput } from "@/api/clients";
 import { getTemplates, type ServiceTemplate } from "@/api/templates";
 import { ClientCombobox } from "@/components/clients/ClientCombobox";
@@ -54,6 +58,16 @@ const itemSchema = z.object({
     .max(QUANTITY_MAX, "Muito alto"),
 });
 
+const PAYMENT_STATUS_VALUES = [
+  "UNPAID",
+  "PAID_PIX",
+  "PAID_CREDIT",
+  "PAID_DEBIT",
+  "PAID_CASH",
+  "PAID_TRANSFER",
+  "PAID_OTHER",
+] as const satisfies readonly PaymentStatus[];
+
 const schema = z.object({
   clientId: z
     .number({ error: "Selecione um cliente" })
@@ -63,6 +77,8 @@ const schema = z.object({
     .string()
     .min(3, "A descrição deve ter ao menos 3 caracteres"),
   items: z.array(itemSchema).min(1, "Adicione ao menos um item"),
+  paymentStatus: z.enum(PAYMENT_STATUS_VALUES),
+  paymentNote: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -110,7 +126,12 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { description: "", items: [emptyItem()] },
+    defaultValues: {
+      description: "",
+      items: [emptyItem()],
+      paymentStatus: "UNPAID",
+      paymentNote: "",
+    },
   });
 
   const { isSubmitting } = form.formState;
@@ -121,6 +142,10 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
   });
 
   const watchedItems = useWatch({ control: form.control, name: "items" });
+  const watchedPaymentStatus = useWatch({
+    control: form.control,
+    name: "paymentStatus",
+  });
 
   // Reset transient React state on each open/close transition during render
   // (guarded by wasOpen) rather than in an effect, avoiding cascading renders.
@@ -141,6 +166,8 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
         clientId: undefined,
         description: "",
         items: [emptyItem()],
+        paymentStatus: "UNPAID",
+        paymentNote: "",
       });
     }
   }, [open, form]);
@@ -217,6 +244,11 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
           unitValue: item.unitValue.replace(",", "."),
           quantity: item.quantity,
         })),
+        paymentStatus: data.paymentStatus,
+        paymentNote:
+          data.paymentStatus === "PAID_OTHER"
+            ? data.paymentNote?.trim() || undefined
+            : undefined,
       });
       toast.success("Ordem criada com sucesso");
       onOpenChange(false);
@@ -455,6 +487,51 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
                   <p className="text-sm text-destructive">
                     {form.formState.errors.items.root.message}
                   </p>
+                )}
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="paymentStatus"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pagamento</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {PAYMENT_STATUS_VALUES.map((value) => (
+                            <SelectItem key={value} value={value}>
+                              {PAYMENT_STATUS_LABELS[value]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {watchedPaymentStatus === "PAID_OTHER" && (
+                  <FormField
+                    control={form.control}
+                    name="paymentNote"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Forma de pagamento</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ex.: cheque, boleto…" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
               </div>
 

@@ -667,6 +667,157 @@ describe("OrderService", () => {
     });
   });
 
+  describe("payment status", () => {
+    it("should default paymentStatus to UNPAID with no note", async () => {
+      const order = await orderService.create(
+        baseOrder(),
+        testUserId,
+        companyId,
+      );
+
+      expect(order.paymentStatus).toBe("UNPAID");
+      expect(order.paymentNote).toBeNull();
+    });
+
+    it("should persist an explicit paid status", async () => {
+      const order = await orderService.create(
+        { ...baseOrder(), paymentStatus: "PAID_PIX" },
+        testUserId,
+        companyId,
+      );
+
+      expect(order.paymentStatus).toBe("PAID_PIX");
+      expect(order.paymentNote).toBeNull();
+    });
+
+    it("should keep the note only for PAID_OTHER", async () => {
+      const order = await orderService.create(
+        {
+          ...baseOrder(),
+          paymentStatus: "PAID_OTHER",
+          paymentNote: "Cheque",
+        },
+        testUserId,
+        companyId,
+      );
+
+      expect(order.paymentStatus).toBe("PAID_OTHER");
+      expect(order.paymentNote).toBe("Cheque");
+    });
+
+    it("should drop the note when status is not PAID_OTHER", async () => {
+      const order = await orderService.create(
+        {
+          ...baseOrder(),
+          paymentStatus: "PAID_CASH",
+          paymentNote: "ignored",
+        },
+        testUserId,
+        companyId,
+      );
+
+      expect(order.paymentNote).toBeNull();
+    });
+
+    it("should update the payment status", async () => {
+      const order = await orderService.create(
+        baseOrder(),
+        testUserId,
+        companyId,
+      );
+
+      const updated = await orderService.update(order.id, companyId, {
+        paymentStatus: "PAID_DEBIT",
+      });
+
+      expect(updated?.paymentStatus).toBe("PAID_DEBIT");
+    });
+
+    it("should clear the note when moving away from PAID_OTHER", async () => {
+      const order = await orderService.create(
+        {
+          ...baseOrder(),
+          paymentStatus: "PAID_OTHER",
+          paymentNote: "Cheque",
+        },
+        testUserId,
+        companyId,
+      );
+
+      const updated = await orderService.update(order.id, companyId, {
+        paymentStatus: "PAID_PIX",
+      });
+
+      expect(updated?.paymentStatus).toBe("PAID_PIX");
+      expect(updated?.paymentNote).toBeNull();
+    });
+
+    it("should filter paid orders (any non-UNPAID status)", async () => {
+      await orderService.create(baseOrder(), testUserId, companyId);
+      await orderService.create(
+        { ...baseOrder(), paymentStatus: "PAID_PIX" },
+        testUserId,
+        companyId,
+      );
+
+      const result = await orderService.getAll(
+        companyId,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        "paid",
+      );
+
+      expect(result.orders.length).toBe(1);
+      expect(result.orders[0]?.paymentStatus).toBe("PAID_PIX");
+    });
+
+    it("should filter unpaid orders", async () => {
+      await orderService.create(baseOrder(), testUserId, companyId);
+      await orderService.create(
+        { ...baseOrder(), paymentStatus: "PAID_CASH" },
+        testUserId,
+        companyId,
+      );
+
+      const result = await orderService.getAll(
+        companyId,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        "unpaid",
+      );
+
+      expect(result.orders.length).toBe(1);
+      expect(result.orders[0]?.paymentStatus).toBe("UNPAID");
+    });
+
+    it("should return both when payment filter is all", async () => {
+      await orderService.create(baseOrder(), testUserId, companyId);
+      await orderService.create(
+        { ...baseOrder(), paymentStatus: "PAID_PIX" },
+        testUserId,
+        companyId,
+      );
+
+      const result = await orderService.getAll(
+        companyId,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        "all",
+      );
+
+      expect(result.orders.length).toBe(2);
+    });
+  });
+
   describe("clientExists", () => {
     it("should return true for an existing client", async () => {
       expect(await orderService.clientExists(testClientId, companyId)).toBe(
