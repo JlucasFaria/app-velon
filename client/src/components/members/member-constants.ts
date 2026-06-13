@@ -5,3 +5,9 @@ export const ROLE_LABELS: Record<MemberRole, string> = {
   OPERATOR: "Operador",
   VIEWER: "Leitor",
 };
+
+export const ROLE_BADGE_CLASSES: Record<MemberRole, string> = {
+  ADMIN: "bg-primary/12 text-primary border border-primary/20",
+  OPERATOR: "bg-warning/15 text-warning-foreground border border-warning/25",
+  VIEWER: "bg-muted text-muted-foreground border border-border",
+};

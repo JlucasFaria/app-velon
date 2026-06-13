@@ -8,17 +8,29 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   CANCELLED: "Cancelada",
 };
 
-// Semantic chip colors per status. Solid background + paired `-foreground`
-// token guarantees legible contrast in both light and dark themes.
+// Soft pill styles per status — muted background tones harmonized with the
+// teal+terracotta palette. Each entry is [pill classes, dot color class].
 export const ORDER_STATUS_BADGE_CLASSES: Record<OrderStatus, string> = {
-  PENDING: "border border-border bg-secondary text-secondary-foreground",
-  IN_PROGRESS: "bg-info text-info-foreground",
-  AWAITING_CLIENT: "bg-warning text-warning-foreground",
-  COMPLETED: "bg-success text-success-foreground",
-  CANCELLED: "bg-danger text-danger-foreground",
+  PENDING:
+    "bg-muted text-muted-foreground border border-border",
+  IN_PROGRESS:
+    "bg-info/12 text-info border border-info/20",
+  AWAITING_CLIENT:
+    "bg-warning/15 text-warning-foreground border border-warning/25",
+  COMPLETED:
+    "bg-success/12 text-success border border-success/20",
+  CANCELLED:
+    "bg-danger/10 text-danger border border-danger/20",
 };
 
-// Ordered list for status dropdowns (filters, status-change control).
+export const ORDER_STATUS_DOT_CLASSES: Record<OrderStatus, string> = {
+  PENDING: "bg-muted-foreground",
+  IN_PROGRESS: "bg-info",
+  AWAITING_CLIENT: "bg-warning",
+  COMPLETED: "bg-success",
+  CANCELLED: "bg-danger",
+};
+
 export const ORDER_STATUSES = Object.keys(
   ORDER_STATUS_LABELS,
 ) as OrderStatus[];

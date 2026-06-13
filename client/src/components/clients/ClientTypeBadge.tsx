@@ -1,5 +1,5 @@
 import type { ClientType } from "@/api/clients";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 const labels: Record<ClientType, string> = {
   COUNTER: "Balcão",
@@ -7,10 +7,19 @@ const labels: Record<ClientType, string> = {
 };
 
 const classes: Record<ClientType, string> = {
-  PARTNER: "bg-primary text-primary-foreground",
-  COUNTER: "border border-border bg-secondary text-secondary-foreground",
+  PARTNER: "bg-primary/12 text-primary border border-primary/20",
+  COUNTER: "bg-muted text-muted-foreground border border-border",
 };
 
 export function ClientTypeBadge({ type }: { type: ClientType }) {
-  return <Badge className={classes[type]}>{labels[type]}</Badge>;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+        classes[type],
+      )}
+    >
+      {labels[type]}
+    </span>
+  );
 }

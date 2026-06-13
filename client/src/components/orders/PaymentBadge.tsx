@@ -3,11 +3,10 @@ import {
   isPaid,
   type PaymentStatus,
 } from "@/api/orders";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface PaymentBadgeProps {
   status: PaymentStatus;
-  // For PAID_OTHER, the free-text note is shown instead of the generic label.
   note?: string | null;
 }
 
@@ -17,15 +16,24 @@ export function PaymentBadge({ status, note }: PaymentBadgeProps) {
       ? note.trim()
       : PAYMENT_STATUS_LABELS[status];
 
+  const paid = isPaid(status);
+
   return (
-    <Badge
-      className={
-        isPaid(status)
-          ? "bg-success text-success-foreground"
-          : "border border-border bg-secondary text-secondary-foreground"
-      }
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+        paid
+          ? "bg-success/12 text-success border border-success/20"
+          : "bg-muted text-muted-foreground border border-border",
+      )}
     >
+      <span
+        className={cn(
+          "h-1.5 w-1.5 rounded-full shrink-0",
+          paid ? "bg-success" : "bg-muted-foreground",
+        )}
+      />
       {label}
-    </Badge>
+    </span>
   );
 }
