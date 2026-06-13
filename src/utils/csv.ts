@@ -1,22 +1,5 @@
 import type { OrderStatus, PaymentStatus } from "../../generated/prisma";
-
-const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  PENDING: "Pendente",
-  IN_PROGRESS: "Em andamento",
-  AWAITING_CLIENT: "Aguardando cliente",
-  COMPLETED: "Concluída",
-  CANCELLED: "Cancelada",
-};
-
-const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
-  UNPAID: "Não pago",
-  PAID_PIX: "Pago — Pix",
-  PAID_CREDIT: "Pago — Cartão de crédito",
-  PAID_DEBIT: "Pago — Cartão de débito",
-  PAID_CASH: "Pago — Dinheiro",
-  PAID_TRANSFER: "Pago — Transferência",
-  PAID_OTHER: "Pago — Outro",
-};
+import { ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from "../config/labels";
 
 export interface CsvReportRow {
   orderNumber: string;

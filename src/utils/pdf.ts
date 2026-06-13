@@ -12,6 +12,11 @@ import type {
   ClientType,
 } from "../../generated/prisma";
 import { UPLOADS_DIR, UPLOADS_URL_PREFIX } from "../config/constants";
+import {
+  ORDER_STATUS_LABELS,
+  PAYMENT_STATUS_LABELS,
+  CLIENT_TYPE_LABELS,
+} from "../config/labels";
 
 export interface OrderPdfItem {
   description: string;
@@ -50,29 +55,6 @@ export interface OrderPdfData {
   client: OrderPdfClient;
   company: OrderPdfCompany;
 }
-
-const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  PENDING: "Pendente",
-  IN_PROGRESS: "Em andamento",
-  AWAITING_CLIENT: "Aguardando cliente",
-  COMPLETED: "Concluída",
-  CANCELLED: "Cancelada",
-};
-
-const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
-  UNPAID: "Não pago",
-  PAID_PIX: "Pago — Pix",
-  PAID_CREDIT: "Pago — Cartão de crédito",
-  PAID_DEBIT: "Pago — Cartão de débito",
-  PAID_CASH: "Pago — Dinheiro",
-  PAID_TRANSFER: "Pago — Transferência",
-  PAID_OTHER: "Pago — Outro",
-};
-
-const CLIENT_TYPE_LABELS: Record<ClientType, string> = {
-  COUNTER: "Balcão",
-  PARTNER: "Parceiro",
-};
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
