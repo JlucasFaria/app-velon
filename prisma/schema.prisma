@@ -32,6 +32,16 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum PaymentStatus {
+  UNPAID
+  PAID_PIX
+  PAID_CREDIT
+  PAID_DEBIT
+  PAID_CASH
+  PAID_TRANSFER
+  PAID_OTHER
+}
+
 model Company {
   id          Int            @id @default(autoincrement())
   name        String
@@ -106,6 +116,8 @@ model ServiceOrder {
   description    String
   value          Decimal         @db.Decimal(10, 2)
   status         OrderStatus     @default(PENDING)
+  paymentStatus  PaymentStatus   @default(UNPAID)
+  paymentNote    String?
   clientId       Int
   client         Client          @relation(fields: [clientId], references: [id])
   companyId      Int
