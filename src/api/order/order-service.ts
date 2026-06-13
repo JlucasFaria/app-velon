@@ -247,7 +247,12 @@ export class OrderService {
     const clientFilter = {
       ...(clientType ? { clientType } : {}),
       ...(partnerName
-        ? { partnerName: { contains: partnerName, mode: "insensitive" as const } }
+        ? {
+            partnerName: {
+              contains: partnerName,
+              mode: "insensitive" as const,
+            },
+          }
         : {}),
     };
 
