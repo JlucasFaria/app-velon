@@ -74,23 +74,18 @@ function paymentFilterWhere(payment?: "paid" | "unpaid" | "all") {
   return {};
 }
 
-// Builds the payment fields for an update: when the status changes, the note is
-// re-resolved against it (cleared unless PAID_OTHER); a note-only update is
-// passed through untouched.
+// Builds the payment fields for an update. The note is always coupled to the
+// status: it is re-resolved against the new status (cleared unless PAID_OTHER),
+// so an order can never carry a stale note for a non-PAID_OTHER status.
 function buildPaymentUpdate(data: UpdateOrderInput): {
   paymentStatus?: PaymentStatus;
   paymentNote?: string | null;
 } {
-  if (data.paymentStatus !== undefined) {
-    return {
-      paymentStatus: data.paymentStatus,
-      paymentNote: resolvePaymentNote(data.paymentStatus, data.paymentNote),
-    };
-  }
-  if (data.paymentNote !== undefined) {
-    return { paymentNote: data.paymentNote };
-  }
-  return {};
+  if (data.paymentStatus === undefined) return {};
+  return {
+    paymentStatus: data.paymentStatus,
+    paymentNote: resolvePaymentNote(data.paymentStatus, data.paymentNote),
+  };
 }
 
 const ITEMS_SELECT = {
