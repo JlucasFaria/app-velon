@@ -338,17 +338,15 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
 
               <div className="space-y-2">
                 <FormLabel>Itens</FormLabel>
-                <div className="overflow-x-auto rounded-md border">
+                <div className="overflow-x-auto rounded-xl border border-border/70">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
-                        <th className="px-2 py-2 font-medium">Descrição</th>
-                        <th className="px-2 py-2 font-medium">Categoria</th>
-                        <th className="px-2 py-2 font-medium">Vlr. Unit.</th>
-                        <th className="px-2 py-2 font-medium">Qtd</th>
-                        <th className="px-2 py-2 text-right font-medium">
-                          Subtotal
-                        </th>
+                      <tr className="border-b bg-muted/40 text-left">
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Descrição</th>
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Categoria</th>
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Vlr. Unit.</th>
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Qtd</th>
+                        <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Subtotal</th>
                         <th className="w-8" />
                       </tr>
                     </thead>
@@ -469,15 +467,15 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-8 gap-1 px-2 text-sm"
+                    className="h-8 gap-1.5 px-2 text-sm text-muted-foreground hover:text-foreground"
                     onClick={() => append(emptyItem())}
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Adicionar item
                   </Button>
-                  <p className="text-sm">
+                  <p className="text-sm text-muted-foreground">
                     Total:{" "}
-                    <span className="font-semibold">
+                    <span className="font-semibold text-foreground">
                       R$ {formatAmount(total)}
                     </span>
                   </p>

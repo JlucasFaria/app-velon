@@ -7,6 +7,7 @@ import {
   type OrderStatus,
 } from "@/api/orders";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/order-status";
+import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -80,8 +81,13 @@ export function StatusChangeDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Alterar status</DialogTitle>
-          <DialogDescription>
-            Selecione o novo status e, se quiser, registre uma observação.
+          <DialogDescription asChild>
+            <div className="flex flex-col gap-2">
+              <span>Selecione o novo status e, se quiser, registre uma observação.</span>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                Status atual: <OrderStatusBadge status={currentStatus} />
+              </div>
+            </div>
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
