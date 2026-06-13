@@ -25,7 +25,8 @@ const billingOrderSchema = z.object({
   description: z.string().openapi({ example: "Screen replacement" }),
   value: z.string().openapi({ example: "250.00" }),
   honorario: z.string().openapi({
-    description: "Service-fee total for this order (items in the Honorário category)",
+    description:
+      "Service-fee total for this order (items in the Honorário category)",
     example: "100.00",
   }),
   completedAt: z
