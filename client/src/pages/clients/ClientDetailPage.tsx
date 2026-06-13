@@ -7,6 +7,7 @@ import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TH, TH_RIGHT, TD, TD_RIGHT, TABLE_WRAP } from "@/lib/table-classes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -143,32 +144,32 @@ export function ClientDetailPage() {
             description="Este cliente ainda não possui ordens de serviço."
           />
         ) : (
-          <div className="overflow-x-auto rounded-md border bg-card shadow-card">
+          <div className={TABLE_WRAP}>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ordem</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className={TH}>Ordem</TableHead>
+                  <TableHead className={TH}>Data</TableHead>
+                  <TableHead className={TH}>Status</TableHead>
+                  <TableHead className={TH_RIGHT}>Valor</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {client.orders.map((order) => (
                   <TableRow key={order.id}>
-                    <TableCell>
+                    <TableCell className={`${TD} font-medium`}>
                       <Link
                         to={`/orders/${order.id}`}
-                        className="font-medium text-primary hover:underline"
+                        className="text-primary hover:underline"
                       >
                         {order.orderNumber}
                       </Link>
                     </TableCell>
-                    <TableCell>{formatDate(order.createdAt)}</TableCell>
-                    <TableCell>
+                    <TableCell className={TD}>{formatDate(order.createdAt)}</TableCell>
+                    <TableCell className={TD}>
                       <OrderStatusBadge status={order.status} />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className={TD_RIGHT}>
                       {formatCurrency(order.value)}
                     </TableCell>
                   </TableRow>
