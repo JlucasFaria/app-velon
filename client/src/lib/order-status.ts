@@ -16,7 +16,7 @@ export const ORDER_STATUS_BADGE_CLASSES: Record<OrderStatus, string> = {
   IN_PROGRESS:
     "bg-info/12 text-info border border-info/20",
   AWAITING_CLIENT:
-    "bg-warning/15 text-warning-foreground border border-warning/25",
+    "bg-warning/15 text-warning border border-warning/30",
   COMPLETED:
     "bg-success/12 text-success border border-success/20",
   CANCELLED:

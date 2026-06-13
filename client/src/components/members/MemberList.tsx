@@ -37,7 +37,7 @@ import { ROLE_LABELS, ROLE_BADGE_CLASSES } from "./member-constants";
 
 const STATUS_BADGE_CLASSES: Record<MemberStatus, string> = {
   ACTIVE: "bg-success/12 text-success border border-success/20",
-  PENDING: "bg-warning/15 text-warning-foreground border border-warning/25",
+  PENDING: "bg-warning/15 text-warning border border-warning/30",
   REVOKED: "bg-muted text-muted-foreground border border-border",
 };
 
