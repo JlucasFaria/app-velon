@@ -232,6 +232,7 @@ export function ClientsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className={TH}>Nº</TableHead>
                 <TableHead className={TH}>Nome</TableHead>
                 <TableHead className={TH}>Documento</TableHead>
                 <TableHead className={TH}>Telefone</TableHead>
@@ -243,6 +244,9 @@ export function ClientsPage() {
               {loading
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
+                      <TableCell className={TD}>
+                        <Skeleton className="h-4 w-8" />
+                      </TableCell>
                       <TableCell className={TD}>
                         <Skeleton className="h-4 w-32" />
                       </TableCell>
@@ -262,6 +266,9 @@ export function ClientsPage() {
                   ))
                 : data?.clients.map((client) => (
                     <TableRow key={client.id}>
+                      <TableCell className={`${TD} text-muted-foreground tabular-nums`}>
+                        {client.registrationNumber != null ? `#${client.registrationNumber}` : "—"}
+                      </TableCell>
                       <TableCell className={`${TD} font-medium`}>
                         <Link
                           to={`/clients/${client.id}`}
