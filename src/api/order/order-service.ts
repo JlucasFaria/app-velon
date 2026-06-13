@@ -375,9 +375,10 @@ export class OrderService {
   }
 
   // Assembles the fully-resolved data the PDF renderer needs, scoped by company.
-  // completedAt is the timestamp of the most recent COMPLETED transition (not
-  // updatedAt), matching how billing reads completion elsewhere. Returns null
-  // when the order or its company is missing, so callers map it to a 404.
+  // The company is pulled through the order's relation in the same query (one
+  // round-trip). completedAt is the timestamp of the most recent COMPLETED
+  // transition (not updatedAt), matching how billing reads completion
+  // elsewhere. Returns null when the order is missing, so callers map it to 404.
   async getPdfData(
     id: number,
     companyId: number,
@@ -405,6 +406,17 @@ export class OrderService {
         client: {
           select: { name: true, document: true, clientType: true },
         },
+        company: {
+          select: {
+            name: true,
+            document: true,
+            phone: true,
+            email: true,
+            address: true,
+            logoUrl: true,
+            footerNote: true,
+          },
+        },
         statusHistory: {
           where: { toStatus: "COMPLETED" },
           orderBy: { changedAt: "desc" },
@@ -414,20 +426,6 @@ export class OrderService {
       },
     });
     if (!order) return null;
-
-    const company = await this.prisma.company.findUnique({
-      where: { id: companyId },
-      select: {
-        name: true,
-        document: true,
-        phone: true,
-        email: true,
-        address: true,
-        logoUrl: true,
-        footerNote: true,
-      },
-    });
-    if (!company) return null;
 
     return {
       orderNumber: order.orderNumber,
@@ -446,7 +444,7 @@ export class OrderService {
         subtotal: item.subtotal.toString(),
       })),
       client: order.client,
-      company,
+      company: order.company,
     };
   }
 
