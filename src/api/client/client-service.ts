@@ -58,12 +58,16 @@ export class ClientService {
     limit?: string | number,
     clientType?: ClientType,
     search?: string,
+    partnerName?: string,
   ) {
     const params = getPaginationParams(page, limit);
 
     const where = {
       companyId,
       ...(clientType ? { clientType } : {}),
+      ...(partnerName
+        ? { partnerName: { contains: partnerName, mode: "insensitive" as const } }
+        : {}),
       ...(search
         ? {
             OR: [

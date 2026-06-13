@@ -9,6 +9,7 @@ import {
 } from "@/api/orders";
 import type { ClientType } from "@/api/clients";
 import { usePaginatedList } from "@/hooks/usePaginatedList";
+import { PartnerNameFilter } from "@/components/clients/PartnerNameFilter";
 import { OrderForm } from "@/components/orders/OrderForm";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { PaymentBadge } from "@/components/orders/PaymentBadge";
@@ -44,6 +45,7 @@ export function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "">("");
   const [typeFilter, setTypeFilter] = useState<ClientType | "">("");
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter | "">("");
+  const [partnerFilter, setPartnerFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
 
   const { data, loading, error, searchInput, setSearchInput, changePage } =
@@ -53,11 +55,13 @@ export function OrdersPage() {
         status?: OrderStatus;
         clientType?: ClientType;
         payment?: PaymentFilter;
+        partnerName?: string;
       }
     >(getOrders, {
       status: statusFilter || undefined,
       clientType: typeFilter || undefined,
       payment: paymentFilter || undefined,
+      partnerName: partnerFilter || undefined,
     });
 
   const pagination = data?.pagination;
@@ -66,7 +70,8 @@ export function OrdersPage() {
     searchInput.trim() !== "" ||
     statusFilter !== "" ||
     typeFilter !== "" ||
-    paymentFilter !== "";
+    paymentFilter !== "" ||
+    partnerFilter !== "";
   const isEmpty = !loading && data !== null && data.orders.length === 0;
 
   return (
@@ -156,6 +161,7 @@ export function OrdersPage() {
             <SelectItem value="unpaid">Não pagos</SelectItem>
           </SelectContent>
         </Select>
+        <PartnerNameFilter value={partnerFilter} onChange={setPartnerFilter} />
       </div>
 
       {error && (

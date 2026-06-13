@@ -33,6 +33,10 @@ const clientQuerySchema = paginationQuerySchema.extend({
     description: "Search by name or document",
     example: "João",
   }),
+  partnerName: z.string().optional().openapi({
+    description: "Filter by partner name (case-insensitive, partial match)",
+    example: "Parceiro XYZ",
+  }),
 });
 
 const idParamSchema = z.object({
@@ -282,7 +286,8 @@ export function createClientRoutes(
   });
 
   clientRoutes.openapi(listClientsRoute, async (c) => {
-    const { page, limit, clientType, search } = c.req.valid("query");
+    const { page, limit, clientType, search, partnerName } =
+      c.req.valid("query");
     const { companyId } = getCompanyContext(c);
     const result = await clientService.getAll(
       companyId,
@@ -290,6 +295,7 @@ export function createClientRoutes(
       limit,
       clientType,
       search,
+      partnerName,
     );
     return successResponse(c, result, 200, "Clients retrieved successfully");
   });

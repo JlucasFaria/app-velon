@@ -29,6 +29,7 @@ const orderClientSchema = z.object({
   name: z.string().openapi({ example: "João Silva" }),
   document: z.string().openapi({ example: "123.456.789-00" }),
   clientType: clientTypeSchema,
+  partnerName: z.string().nullable().openapi({ example: "Parceiro XYZ" }),
 });
 
 const statusHistoryEntrySchema = z.object({

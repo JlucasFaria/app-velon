@@ -151,6 +151,7 @@ const ORDER_DETAIL_SELECT = {
       name: true,
       document: true,
       clientType: true,
+      partnerName: true,
     },
   },
   statusHistory: {
@@ -237,13 +238,28 @@ export class OrderService {
     clientType?: ClientType,
     search?: string,
     payment?: "paid" | "unpaid" | "all",
+    partnerName?: string,
   ) {
     const params = getPaginationParams(page, limit);
+
+    // clientType and partnerName both scope the related client; merge them into
+    // a single nested `client` filter so they compose instead of overwriting.
+    const clientFilter = {
+      ...(clientType ? { clientType } : {}),
+      ...(partnerName
+        ? {
+            partnerName: {
+              contains: partnerName,
+              mode: "insensitive" as const,
+            },
+          }
+        : {}),
+    };
 
     const where = {
       companyId,
       ...(status ? { status } : {}),
-      ...(clientType ? { client: { clientType } } : {}),
+      ...(Object.keys(clientFilter).length > 0 ? { client: clientFilter } : {}),
       ...paymentFilterWhere(payment),
       ...(search
         ? {

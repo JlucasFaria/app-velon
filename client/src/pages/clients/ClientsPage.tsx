@@ -15,6 +15,7 @@ import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { formatRegistrationNumber } from "@/lib/format";
 import { ClientForm } from "@/components/clients/ClientForm";
 import { ClientTypeBadge } from "@/components/clients/ClientTypeBadge";
+import { PartnerNameFilter } from "@/components/clients/PartnerNameFilter";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -57,6 +58,7 @@ export function ClientsPage() {
   const canWrite = user?.role !== "VIEWER";
 
   const [typeFilter, setTypeFilter] = useState<ClientType | "">("");
+  const [partnerFilter, setPartnerFilter] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -72,10 +74,13 @@ export function ClientsPage() {
     setSearchInput,
     changePage,
     refresh,
-  } = usePaginatedList<PaginatedClients, { clientType?: ClientType }>(
-    getClients,
-    { clientType: typeFilter || undefined },
-  );
+  } = usePaginatedList<
+    PaginatedClients,
+    { clientType?: ClientType; partnerName?: string }
+  >(getClients, {
+    clientType: typeFilter || undefined,
+    partnerName: partnerFilter || undefined,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -132,7 +137,8 @@ export function ClientsPage() {
 
   const pagination = data?.pagination;
   const total = pagination?.total ?? 0;
-  const hasFilters = searchInput.trim() !== "" || typeFilter !== "";
+  const hasFilters =
+    searchInput.trim() !== "" || typeFilter !== "" || partnerFilter !== "";
   const isEmpty = !loading && data !== null && data.clients.length === 0;
 
   return (
@@ -198,6 +204,7 @@ export function ClientsPage() {
             <SelectItem value="PARTNER">Parceiro</SelectItem>
           </SelectContent>
         </Select>
+        <PartnerNameFilter value={partnerFilter} onChange={setPartnerFilter} />
       </div>
 
       {error && (

@@ -83,6 +83,7 @@ export interface OrderDetail extends Order {
     name: string;
     document: string;
     clientType: ClientType;
+    partnerName: string | null;
   };
   statusHistory: StatusHistoryEntry[];
 }
@@ -127,6 +128,7 @@ export interface ListOrdersParams {
   clientType?: ClientType;
   search?: string;
   payment?: PaymentFilter;
+  partnerName?: string;
 }
 
 export function getOrders(params: ListOrdersParams = {}) {
