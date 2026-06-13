@@ -18,6 +18,7 @@ const orderStatusSchema = z.enum([
 export const clientResponseSchema = z
   .object({
     id: z.number().openapi({ example: 1 }),
+    registrationNumber: z.number().nullable().openapi({ example: 1 }),
     name: z.string().openapi({ example: "João Silva" }),
     document: z.string().openapi({ example: "123.456.789-00" }),
     phone: z.string().nullable().openapi({ example: "(11) 91234-5678" }),

@@ -8,6 +8,7 @@ import type { CreateClientInput, UpdateClientInput } from "./client-schema";
 
 const CLIENT_SELECT = {
   id: true,
+  registrationNumber: true,
   name: true,
   document: true,
   phone: true,
@@ -31,9 +32,19 @@ const ORDER_SELECT = {
 export class ClientService {
   constructor(private prisma: PrismaClient = prismaClient) {}
 
+  private async generateRegistrationNumber(companyId: number): Promise<number> {
+    const last = await this.prisma.client.findFirst({
+      where: { companyId },
+      orderBy: { registrationNumber: "desc" },
+      select: { registrationNumber: true },
+    });
+    return (last?.registrationNumber ?? 0) + 1;
+  }
+
   async create(data: CreateClientInput, companyId: number) {
+    const registrationNumber = await this.generateRegistrationNumber(companyId);
     return await this.prisma.client.create({
-      data: { ...data, companyId },
+      data: { ...data, companyId, registrationNumber },
       select: CLIENT_SELECT,
     });
   }
