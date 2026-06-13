@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Receipt as ReceiptIcon, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  Download,
+  Loader2,
+  Receipt as ReceiptIcon,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
 import { getOrder, type OrderDetail } from "@/api/orders";
 import { generateReceipt, getReceipt, type Receipt } from "@/api/receipts";
+import { downloadOrderPdf } from "@/api/pdf";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { PaymentBadge } from "@/components/orders/PaymentBadge";
 import { StatusChangeDialog } from "@/components/orders/StatusChangeDialog";
@@ -63,6 +70,7 @@ export function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -105,6 +113,18 @@ export function OrderDetailPage() {
       cancelled = true;
     };
   }, [id]);
+
+  async function handleDownloadPdf() {
+    if (!id) return;
+    setPdfLoading(true);
+    try {
+      await downloadOrderPdf(Number(id));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao gerar o PDF");
+    } finally {
+      setPdfLoading(false);
+    }
+  }
 
   async function handleGenerateReceipt() {
     if (!id) return;
@@ -156,6 +176,18 @@ export function OrderDetailPage() {
               status={order.paymentStatus}
               note={order.paymentNote}
             />
+            <Button
+              variant="outline"
+              onClick={handleDownloadPdf}
+              disabled={pdfLoading}
+            >
+              {pdfLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              {pdfLoading ? "Gerando…" : "PDF"}
+            </Button>
             {canWrite && (
               <Button
                 variant="outline"
