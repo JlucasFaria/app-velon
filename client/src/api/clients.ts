@@ -55,6 +55,7 @@ export interface ListClientsParams {
   limit?: number;
   clientType?: ClientType;
   search?: string;
+  partnerName?: string;
 }
 
 export function getClients(params: ListClientsParams = {}) {
