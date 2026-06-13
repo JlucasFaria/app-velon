@@ -6,10 +6,18 @@ import type { AllOrdersQuery } from "./report-schema";
 // category case-insensitively. Shared by the all-orders and monthly-billing
 // reports so the service-fee figure is computed identically in both.
 function computeHonorarioCents(
-  items: Array<{ category: string | null; subtotal: { toString(): string } }>,
+  items: Array<{
+    description: string;
+    category: string | null;
+    subtotal: { toString(): string };
+  }>,
 ): number {
   return items
-    .filter((i) => i.category?.trim().toLowerCase() === "honorário")
+    .filter(
+      (i) =>
+        i.category?.trim().toLowerCase() === "honorário" ||
+        i.description.trim().toLowerCase() === "honorário",
+    )
     .reduce(
       (sum, i) => sum + Math.round(parseFloat(i.subtotal.toString()) * 100),
       0,
@@ -45,7 +53,7 @@ export class ReportService {
               select: { id: true, name: true },
             },
             items: {
-              select: { category: true, subtotal: true },
+              select: { description: true, category: true, subtotal: true },
             },
           },
         },
@@ -142,7 +150,7 @@ export class ReportService {
         paymentStatus: true,
         createdAt: true,
         client: { select: { id: true, name: true } },
-        items: { select: { category: true, subtotal: true } },
+        items: { select: { description: true, category: true, subtotal: true } },
         statusHistory: {
           where: { toStatus: "COMPLETED" },
           orderBy: { changedAt: "desc" },

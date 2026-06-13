@@ -90,6 +90,13 @@ const emptyItem = (): FormData["items"][number] => ({
   quantity: 1,
 });
 
+const honorarioItem = (): FormData["items"][number] => ({
+  description: "Serviço",
+  category: "",
+  unitValue: "15.00",
+  quantity: 1,
+});
+
 function parseAmount(v: string): number {
   const n = parseFloat(v.replace(",", "."));
   return isNaN(n) || n < 0 ? 0 : n;
@@ -128,7 +135,7 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
     resolver: zodResolver(schema),
     defaultValues: {
       description: "",
-      items: [emptyItem()],
+      items: [honorarioItem()],
       paymentStatus: "UNPAID",
       paymentNote: "",
     },
@@ -165,7 +172,7 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
       form.reset({
         clientId: undefined,
         description: "",
-        items: [emptyItem()],
+        items: [honorarioItem()],
         paymentStatus: "UNPAID",
         paymentNote: "",
       });

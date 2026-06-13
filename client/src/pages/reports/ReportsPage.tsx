@@ -194,7 +194,7 @@ function MonthlyBillingTab() {
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Honorário total
+              Serviço total
             </CardTitle>
             <span className="flex size-9 items-center justify-center rounded-xl bg-info/10 text-info">
               <Wallet className="h-5 w-5 shrink-0" />
@@ -248,7 +248,7 @@ function MonthlyBillingTab() {
                 <TableHead className={TH}>Cliente</TableHead>
                 <TableHead className={TH}>Concluída em</TableHead>
                 <TableHead className={TH_RIGHT}>Valor</TableHead>
-                <TableHead className={TH_RIGHT}>Honorário</TableHead>
+                <TableHead className={TH_RIGHT}>Serviço</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -439,7 +439,7 @@ function AllOrdersTab() {
                 <TableHead className={TH}>Criado em</TableHead>
                 <TableHead className={TH}>Concluído em</TableHead>
                 <TableHead className={TH_RIGHT}>Total</TableHead>
-                <TableHead className={TH_RIGHT}>Honorário</TableHead>
+                <TableHead className={TH_RIGHT}>Serviço</TableHead>
                 <TableHead className={TH}>Pagamento</TableHead>
                 <TableHead className={TH}>Status</TableHead>
               </TableRow>
