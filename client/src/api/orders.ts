@@ -118,12 +118,15 @@ export interface PaginatedOrders {
   pagination: Pagination;
 }
 
+export type PaymentFilter = "paid" | "unpaid" | "all";
+
 export interface ListOrdersParams {
   page?: number;
   limit?: number;
   status?: OrderStatus;
   clientType?: ClientType;
   search?: string;
+  payment?: PaymentFilter;
 }
 
 export function getOrders(params: ListOrdersParams = {}) {

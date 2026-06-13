@@ -5,11 +5,13 @@ import {
   getOrders,
   type OrderStatus,
   type PaginatedOrders,
+  type PaymentFilter,
 } from "@/api/orders";
 import type { ClientType } from "@/api/clients";
 import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { OrderForm } from "@/components/orders/OrderForm";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
+import { PaymentBadge } from "@/components/orders/PaymentBadge";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/order-status";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -40,21 +42,30 @@ export function OrdersPage() {
 
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "">("");
   const [typeFilter, setTypeFilter] = useState<ClientType | "">("");
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter | "">("");
   const [formOpen, setFormOpen] = useState(false);
 
   const { data, loading, error, searchInput, setSearchInput, changePage } =
     usePaginatedList<
       PaginatedOrders,
-      { status?: OrderStatus; clientType?: ClientType }
+      {
+        status?: OrderStatus;
+        clientType?: ClientType;
+        payment?: PaymentFilter;
+      }
     >(getOrders, {
       status: statusFilter || undefined,
       clientType: typeFilter || undefined,
+      payment: paymentFilter || undefined,
     });
 
   const pagination = data?.pagination;
   const total = pagination?.total ?? 0;
   const hasFilters =
-    searchInput.trim() !== "" || statusFilter !== "" || typeFilter !== "";
+    searchInput.trim() !== "" ||
+    statusFilter !== "" ||
+    typeFilter !== "" ||
+    paymentFilter !== "";
   const isEmpty = !loading && data !== null && data.orders.length === 0;
 
   return (
@@ -126,6 +137,24 @@ export function OrdersPage() {
             <SelectItem value="PARTNER">Parceiro</SelectItem>
           </SelectContent>
         </Select>
+        <Select
+          value={paymentFilter || "all"}
+          onValueChange={(v) =>
+            setPaymentFilter(v === "all" ? "" : (v as PaymentFilter))
+          }
+        >
+          <SelectTrigger
+            className="w-full sm:w-40"
+            aria-label="Filtrar por pagamento"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="paid">Pagos</SelectItem>
+            <SelectItem value="unpaid">Não pagos</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {error && (
@@ -164,6 +193,7 @@ export function OrdersPage() {
                 <TableHead>Ordem</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Pagamento</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead>Criada em</TableHead>
                 <TableHead className="w-16 text-right">Ações</TableHead>
@@ -181,6 +211,9 @@ export function OrdersPage() {
                       </TableCell>
                       <TableCell>
                         <Skeleton className="h-5 w-24 rounded-full" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-20 rounded-full" />
                       </TableCell>
                       <TableCell>
                         <Skeleton className="ml-auto h-4 w-16" />
@@ -213,6 +246,12 @@ export function OrdersPage() {
                       </TableCell>
                       <TableCell>
                         <OrderStatusBadge status={order.status} />
+                      </TableCell>
+                      <TableCell>
+                        <PaymentBadge
+                          status={order.paymentStatus}
+                          note={order.paymentNote}
+                        />
                       </TableCell>
                       <TableCell className="text-right">
                         {formatCurrency(order.value)}
