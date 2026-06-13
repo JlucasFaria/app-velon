@@ -1,5 +1,6 @@
 import prismaClient from "../../db/client";
 import type { PrismaClient } from "../../../generated/prisma";
+import type { AllOrdersQuery } from "./report-schema";
 
 export class ReportService {
   constructor(private prisma: PrismaClient = prismaClient) {}
@@ -77,5 +78,87 @@ export class ReportService {
     }
 
     return summary;
+  }
+
+  async getAllOrders(companyId: number, filters: AllOrdersQuery) {
+    const dateFrom = filters.dateFrom
+      ? new Date(filters.dateFrom + "T00:00:00.000Z")
+      : undefined;
+    const dateTo = filters.dateTo
+      ? new Date(filters.dateTo + "T23:59:59.999Z")
+      : undefined;
+
+    const orders = await this.prisma.serviceOrder.findMany({
+      where: {
+        companyId,
+        ...(filters.status && { status: filters.status }),
+        ...(filters.paymentStatus && { paymentStatus: filters.paymentStatus }),
+        ...(filters.clientId && { clientId: filters.clientId }),
+        ...((dateFrom ?? dateTo) && {
+          createdAt: {
+            ...(dateFrom && { gte: dateFrom }),
+            ...(dateTo && { lte: dateTo }),
+          },
+        }),
+      },
+      select: {
+        id: true,
+        orderNumber: true,
+        value: true,
+        status: true,
+        paymentStatus: true,
+        createdAt: true,
+        client: { select: { id: true, name: true } },
+        items: { select: { category: true, subtotal: true } },
+        statusHistory: {
+          where: { toStatus: "COMPLETED" },
+          orderBy: { changedAt: "desc" },
+          take: 1,
+          select: { changedAt: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    let sumTotalCents = 0;
+    let sumHonorarioCents = 0;
+    let totalReceivedCents = 0;
+
+    const rows = orders.map((o) => {
+      const totalCents = Math.round(parseFloat(o.value.toString()) * 100);
+      const honorarioCents = o.items
+        .filter((i) => i.category?.trim().toLowerCase() === "honorário")
+        .reduce(
+          (sum, i) => sum + Math.round(parseFloat(i.subtotal.toString()) * 100),
+          0,
+        );
+
+      sumTotalCents += totalCents;
+      sumHonorarioCents += honorarioCents;
+      if (o.paymentStatus !== "UNPAID") {
+        totalReceivedCents += totalCents;
+      }
+
+      return {
+        id: o.id,
+        orderNumber: o.orderNumber,
+        client: o.client,
+        createdAt: o.createdAt.toISOString(),
+        completedAt: o.statusHistory[0]?.changedAt.toISOString() ?? null,
+        total: (totalCents / 100).toFixed(2),
+        honorario: (honorarioCents / 100).toFixed(2),
+        paymentStatus: o.paymentStatus,
+        status: o.status,
+      };
+    });
+
+    return {
+      orders: rows,
+      totals: {
+        sumTotal: (sumTotalCents / 100).toFixed(2),
+        sumHonorario: (sumHonorarioCents / 100).toFixed(2),
+        totalReceived: (totalReceivedCents / 100).toFixed(2),
+      },
+    };
   }
 }

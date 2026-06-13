@@ -256,4 +256,284 @@ describe("Report Routes", () => {
       expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     });
   });
+
+  // ─── GET /api/reports/orders ──────────────────────────────────────
+
+  // Creates an order with items and optional paymentStatus for the all-orders tests.
+  const createOrderWithItems = async (
+    overrides: {
+      status?:
+        | "PENDING"
+        | "IN_PROGRESS"
+        | "AWAITING_CLIENT"
+        | "COMPLETED"
+        | "CANCELLED";
+      value?: string;
+      completedAt?: Date;
+      paymentStatus?:
+        | "UNPAID"
+        | "PAID_PIX"
+        | "PAID_CREDIT"
+        | "PAID_DEBIT"
+        | "PAID_CASH"
+        | "PAID_TRANSFER"
+        | "PAID_OTHER";
+      items?: Array<{
+        description: string;
+        category?: string | null;
+        unitValue: string;
+        quantity: number;
+        subtotal: string;
+      }>;
+    } = {},
+  ) => {
+    const seq = await prisma.serviceOrder.count();
+    const status = overrides.status ?? "PENDING";
+    const value = overrides.value ?? "100.00";
+    const completedAt = overrides.completedAt ?? JUNE_2026;
+    return prisma.serviceOrder.create({
+      data: {
+        orderNumber: `OS-RPTR-${String(seq + 1).padStart(3, "0")}`,
+        description: "Test service",
+        value,
+        clientId: testClientId,
+        companyId,
+        status,
+        paymentStatus: overrides.paymentStatus ?? "UNPAID",
+        items: {
+          create: overrides.items ?? [
+            {
+              description: "Serviço",
+              category: null,
+              unitValue: value,
+              quantity: 1,
+              subtotal: value,
+            },
+          ],
+        },
+        statusHistory: {
+          create:
+            status === "COMPLETED"
+              ? [
+                  { toStatus: "PENDING", changedById: testUserId },
+                  {
+                    fromStatus: "PENDING",
+                    toStatus: "COMPLETED",
+                    changedById: testUserId,
+                    changedAt: completedAt,
+                  },
+                ]
+              : [{ toStatus: status, changedById: testUserId }],
+        },
+      },
+    });
+  };
+
+  describe("GET /api/reports/orders", () => {
+    it("should return 401 without token", async () => {
+      const res = await app.request("/api/reports/orders", {
+        headers: { "X-Forwarded-For": IP },
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it("should return orders with totals structure", async () => {
+      await createOrderWithItems({
+        value: "150.00",
+        paymentStatus: "PAID_PIX",
+      });
+
+      const res = await app.request("/api/reports/orders", { headers: h() });
+      const body = (await res.json()) as {
+        success: boolean;
+        data: {
+          orders: Array<{
+            orderNumber: string;
+            client: { id: number; name: string };
+            createdAt: string;
+            completedAt: string | null;
+            total: string;
+            honorario: string;
+            paymentStatus: string;
+            status: string;
+          }>;
+          totals: {
+            sumTotal: string;
+            sumHonorario: string;
+            totalReceived: string;
+          };
+        };
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.data.orders).toHaveLength(1);
+      expect(body.data.orders[0]!.total).toBe("150.00");
+      expect(body.data.orders[0]!.paymentStatus).toBe("PAID_PIX");
+      expect(body.data.totals.sumTotal).toBe("150.00");
+      expect(body.data.totals.totalReceived).toBe("150.00");
+    });
+
+    it("should filter by status query param", async () => {
+      await createOrderWithItems({ status: "PENDING" });
+      await createOrderWithItems({ status: "COMPLETED" });
+
+      const res = await app.request("/api/reports/orders?status=COMPLETED", {
+        headers: h(),
+      });
+      const body = (await res.json()) as {
+        data: { orders: Array<{ status: string }> };
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.data.orders).toHaveLength(1);
+      expect(body.data.orders[0]!.status).toBe("COMPLETED");
+    });
+
+    it("should filter by paymentStatus query param", async () => {
+      await createOrderWithItems({ paymentStatus: "UNPAID" });
+      await createOrderWithItems({ paymentStatus: "PAID_CASH" });
+
+      const res = await app.request(
+        "/api/reports/orders?paymentStatus=PAID_CASH",
+        { headers: h() },
+      );
+      const body = (await res.json()) as {
+        data: { orders: Array<{ paymentStatus: string }> };
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.data.orders).toHaveLength(1);
+      expect(body.data.orders[0]!.paymentStatus).toBe("PAID_CASH");
+    });
+
+    it("should return empty orders list and zero totals when no orders match filters", async () => {
+      await createOrderWithItems({ status: "PENDING" });
+
+      const res = await app.request("/api/reports/orders?status=CANCELLED", {
+        headers: h(),
+      });
+      const body = (await res.json()) as {
+        data: { orders: unknown[]; totals: { sumTotal: string } };
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.data.orders).toHaveLength(0);
+      expect(body.data.totals.sumTotal).toBe("0.00");
+    });
+  });
+
+  // ─── GET /api/reports/orders/export/csv ──────────────────────────
+
+  describe("GET /api/reports/orders/export/csv", () => {
+    it("should return 401 without token", async () => {
+      const res = await app.request("/api/reports/orders/export/csv", {
+        headers: { "X-Forwarded-For": IP },
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it("should return CSV with correct content-type", async () => {
+      const res = await app.request("/api/reports/orders/export/csv", {
+        headers: h(),
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get("Content-Type")).toContain("text/csv");
+      expect(res.headers.get("Content-Disposition")).toContain("attachment");
+      expect(res.headers.get("Content-Disposition")).toContain(".csv");
+    });
+
+    it("should include header row in CSV", async () => {
+      const res = await app.request("/api/reports/orders/export/csv", {
+        headers: h(),
+      });
+      const text = await res.text();
+
+      expect(text).toContain("Nº OS");
+      expect(text).toContain("Cliente");
+      expect(text).toContain("Honorário");
+      expect(text).toContain("Pagamento");
+    });
+
+    it("should include order data and totals row in CSV", async () => {
+      await createOrderWithItems({
+        value: "250.00",
+        paymentStatus: "PAID_PIX",
+        items: [
+          {
+            description: "Honorário",
+            category: "Honorário",
+            unitValue: "250.00",
+            quantity: 1,
+            subtotal: "250.00",
+          },
+        ],
+      });
+
+      const res = await app.request("/api/reports/orders/export/csv", {
+        headers: h(),
+      });
+      const text = await res.text();
+
+      expect(text).toContain("250.00");
+      expect(text).toContain("Total geral");
+    });
+
+    it("should respect status filter in CSV export", async () => {
+      await createOrderWithItems({ status: "PENDING", value: "100.00" });
+      await createOrderWithItems({ status: "CANCELLED", value: "200.00" });
+
+      const res = await app.request(
+        "/api/reports/orders/export/csv?status=CANCELLED",
+        { headers: h() },
+      );
+      const text = await res.text();
+      const lines = text.split("\n").filter((l) => l.trim() !== "");
+
+      // header + 1 data row + totals row = 3 non-empty lines
+      expect(lines).toHaveLength(3);
+    });
+  });
+
+  // ─── GET /api/reports/orders/export/pdf ──────────────────────────
+
+  describe("GET /api/reports/orders/export/pdf", () => {
+    it("should return 401 without token", async () => {
+      const res = await app.request("/api/reports/orders/export/pdf", {
+        headers: { "X-Forwarded-For": IP },
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it("should return PDF with correct content-type and non-empty body", async () => {
+      const res = await app.request("/api/reports/orders/export/pdf", {
+        headers: h(),
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get("Content-Type")).toContain("application/pdf");
+      expect(res.headers.get("Content-Disposition")).toContain("attachment");
+      expect(res.headers.get("Content-Disposition")).toContain(".pdf");
+
+      const buffer = await res.arrayBuffer();
+      expect(buffer.byteLength).toBeGreaterThan(0);
+    });
+
+    it("should respect paymentStatus filter in PDF export", async () => {
+      await createOrderWithItems({
+        paymentStatus: "PAID_PIX",
+        value: "100.00",
+      });
+      await createOrderWithItems({ paymentStatus: "UNPAID", value: "200.00" });
+
+      const res = await app.request(
+        "/api/reports/orders/export/pdf?paymentStatus=PAID_PIX",
+        { headers: h() },
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get("Content-Type")).toContain("application/pdf");
+    });
+  });
 });
