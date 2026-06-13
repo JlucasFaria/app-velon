@@ -57,6 +57,27 @@ describe("ClientService", () => {
       expect(clientB.registrationNumber).toBe(1);
     });
 
+    it("should ignore clients with a null registrationNumber when computing the next number", async () => {
+      // Simulate an out-of-band insert (seed/import) that skipped the service
+      // and left registrationNumber null. MAX must skip it, not reset to 1.
+      await clientService.create(baseClient, companyId);
+      await prisma.client.create({
+        data: {
+          name: "Importado",
+          document: "987.654.321-00",
+          clientType: "COUNTER",
+          companyId,
+        },
+      });
+
+      const next = await clientService.create(
+        { name: "Pedro Lima", document: "111.222.333-44", clientType: "COUNTER" as const },
+        companyId,
+      );
+
+      expect(next.registrationNumber).toBe(2);
+    });
+
     it("should create a client with optional fields", async () => {
       const client = await clientService.create(
         {

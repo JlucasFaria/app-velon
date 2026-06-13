@@ -32,13 +32,16 @@ const ORDER_SELECT = {
 export class ClientService {
   constructor(private prisma: PrismaClient = prismaClient) {}
 
+  // Uses SQL MAX (which skips NULLs) rather than an ordered findFirst: Postgres
+  // sorts NULLS FIRST on DESC, so a client with a null registrationNumber (e.g.
+  // inserted out-of-band by a seed/import) would otherwise be read as the
+  // "latest" and reset the sequence back to 1, colliding on the unique index.
   private async generateRegistrationNumber(companyId: number): Promise<number> {
-    const last = await this.prisma.client.findFirst({
+    const result = await this.prisma.client.aggregate({
       where: { companyId },
-      orderBy: { registrationNumber: "desc" },
-      select: { registrationNumber: true },
+      _max: { registrationNumber: true },
     });
-    return (last?.registrationNumber ?? 0) + 1;
+    return (result._max.registrationNumber ?? 0) + 1;
   }
 
   async create(data: CreateClientInput, companyId: number) {
