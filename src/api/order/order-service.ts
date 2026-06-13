@@ -151,6 +151,7 @@ const ORDER_DETAIL_SELECT = {
       name: true,
       document: true,
       clientType: true,
+      partnerName: true,
     },
   },
   statusHistory: {
