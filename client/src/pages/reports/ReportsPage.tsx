@@ -10,12 +10,7 @@ import {
   type AllOrdersResult,
   type MonthlyBilling,
 } from "@/api/reports";
-import { getClients, type Client } from "@/api/clients";
-import {
-  PAYMENT_STATUS_LABELS,
-  type OrderStatus,
-  type PaymentStatus,
-} from "@/api/orders";
+import { type OrderStatus } from "@/api/orders";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/order-status";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -42,6 +37,7 @@ import {
 } from "@/components/ui/table";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { PaymentBadge } from "@/components/orders/PaymentBadge";
+import { PartnerNameFilter } from "@/components/clients/PartnerNameFilter";
 import { TH, TH_RIGHT, TD, TD_RIGHT, TABLE_WRAP } from "@/lib/table-classes";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => ({
@@ -51,10 +47,6 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => ({
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
-
-const PAYMENT_STATUSES = Object.keys(
-  PAYMENT_STATUS_LABELS,
-) as PaymentStatus[];
 
 type Tab = "monthly" | "all";
 
@@ -176,7 +168,7 @@ function MonthlyBillingTab() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -196,6 +188,28 @@ function MonthlyBillingTab() {
             )}
             <p className="text-xs text-muted-foreground">
               Apenas ordens concluídas
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Honorário total
+            </CardTitle>
+            <span className="flex size-9 items-center justify-center rounded-xl bg-info/10 text-info">
+              <Wallet className="h-5 w-5 shrink-0" />
+            </span>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-8 w-32" />
+            ) : (
+              <div className="text-2xl font-bold">
+                {formatCurrency(data?.totalHonorario ?? 0)}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Receita de serviço no mês
             </p>
           </CardContent>
         </Card>
@@ -234,6 +248,7 @@ function MonthlyBillingTab() {
                 <TableHead className={TH}>Cliente</TableHead>
                 <TableHead className={TH}>Concluída em</TableHead>
                 <TableHead className={TH_RIGHT}>Valor</TableHead>
+                <TableHead className={TH_RIGHT}>Honorário</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -248,6 +263,9 @@ function MonthlyBillingTab() {
                       </TableCell>
                       <TableCell className={TD}>
                         <Skeleton className="h-4 w-24" />
+                      </TableCell>
+                      <TableCell className={TD_RIGHT}>
+                        <Skeleton className="ml-auto h-4 w-16" />
                       </TableCell>
                       <TableCell className={TD_RIGHT}>
                         <Skeleton className="ml-auto h-4 w-16" />
@@ -269,6 +287,9 @@ function MonthlyBillingTab() {
                       <TableCell className={TD_RIGHT}>
                         {formatCurrency(order.value)}
                       </TableCell>
+                      <TableCell className={TD_RIGHT}>
+                        {formatCurrency(order.honorario)}
+                      </TableCell>
                     </TableRow>
                   ))}
             </TableBody>
@@ -283,10 +304,8 @@ function AllOrdersTab() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [status, setStatus] = useState<string>("");
-  const [paymentStatus, setPaymentStatus] = useState<string>("");
-  const [clientId, setClientId] = useState<string>("");
+  const [partnerName, setPartnerName] = useState("");
 
-  const [clients, setClients] = useState<Client[]>([]);
   const [data, setData] = useState<AllOrdersResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -297,17 +316,10 @@ function AllOrdersTab() {
       ...(dateFrom && { dateFrom }),
       ...(dateTo && { dateTo }),
       ...(status && { status: status as OrderStatus }),
-      ...(paymentStatus && { paymentStatus: paymentStatus as PaymentStatus }),
-      ...(clientId && { clientId: Number(clientId) }),
+      ...(partnerName && { partnerName }),
     }),
-    [dateFrom, dateTo, status, paymentStatus, clientId],
+    [dateFrom, dateTo, status, partnerName],
   );
-
-  useEffect(() => {
-    getClients({ limit: 100 })
-      .then((r) => setClients(r.clients))
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -380,41 +392,7 @@ function AllOrdersTab() {
               ))}
             </SelectContent>
           </Select>
-          <Select
-            value={paymentStatus || "all"}
-            onValueChange={(v) => setPaymentStatus(v === "all" ? "" : v)}
-          >
-            <SelectTrigger
-              className="w-full sm:w-48"
-              aria-label="Status de pagamento"
-            >
-              <SelectValue placeholder="Todos os pagamentos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os pagamentos</SelectItem>
-              {PAYMENT_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {PAYMENT_STATUS_LABELS[s]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={clientId || "all"}
-            onValueChange={(v) => setClientId(v === "all" ? "" : v)}
-          >
-            <SelectTrigger className="w-full sm:w-48" aria-label="Cliente">
-              <SelectValue placeholder="Todos os clientes" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os clientes</SelectItem>
-              {clients.map((c) => (
-                <SelectItem key={c.id} value={String(c.id)}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <PartnerNameFilter value={partnerName} onChange={setPartnerName} />
         </div>
 
         <div className="flex shrink-0 gap-2">
