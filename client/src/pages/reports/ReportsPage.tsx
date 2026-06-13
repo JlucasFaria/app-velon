@@ -6,7 +6,6 @@ import {
   downloadAllOrdersExport,
   getAllOrders,
   getMonthlyBilling,
-  type AllOrdersFilters,
   type AllOrdersResult,
   type MonthlyBilling,
 } from "@/api/reports";
@@ -291,27 +290,6 @@ function AllOrdersTab() {
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  const buildFilters = (): AllOrdersFilters => ({
-    ...(dateFrom && { dateFrom }),
-    ...(dateTo && { dateTo }),
-    ...(status && { status: status as OrderStatus }),
-    ...(paymentStatus && { paymentStatus: paymentStatus as PaymentStatus }),
-    ...(clientId && { clientId: Number(clientId) }),
-  });
-
-  const handleExport = async (format: "csv" | "pdf") => {
-    setExporting(true);
-    try {
-      await downloadAllOrdersExport(format, buildFilters());
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Falha ao exportar relatório",
-      );
-    } finally {
-      setExporting(false);
-    }
-  };
-
   useEffect(() => {
     getClients({ limit: 100 })
       .then((r) => setClients(r.clients))
@@ -320,9 +298,13 @@ function AllOrdersTab() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-
-    getAllOrders(buildFilters())
+    getAllOrders({
+      ...(dateFrom && { dateFrom }),
+      ...(dateTo && { dateTo }),
+      ...(status && { status: status as OrderStatus }),
+      ...(paymentStatus && { paymentStatus: paymentStatus as PaymentStatus }),
+      ...(clientId && { clientId: Number(clientId) }),
+    })
       .then((d) => {
         if (!cancelled) {
           setData(d);
@@ -338,82 +320,115 @@ function AllOrdersTab() {
           setLoading(false);
         }
       });
-
     return () => {
       cancelled = true;
     };
   }, [dateFrom, dateTo, status, paymentStatus, clientId]);
 
+  const handleExport = async (format: "csv" | "pdf") => {
+    setExporting(true);
+    try {
+      await downloadAllOrdersExport(format, {
+        ...(dateFrom && { dateFrom }),
+        ...(dateTo && { dateTo }),
+        ...(status && { status: status as OrderStatus }),
+        ...(paymentStatus && { paymentStatus: paymentStatus as PaymentStatus }),
+        ...(clientId && { clientId: Number(clientId) }),
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Falha ao exportar relatório",
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
-      <div className="flex flex-wrap gap-3">
-        <Input
-          type="date"
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          className="w-full sm:w-40"
-          aria-label="Data inicial"
-        />
-        <Input
-          type="date"
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          className="w-full sm:w-40"
-          aria-label="Data final"
-        />
-        <Select
-          value={status || "all"}
-          onValueChange={(v) => setStatus(v === "all" ? "" : v)}
-        >
-          <SelectTrigger className="w-full sm:w-48" aria-label="Status da OS">
-            <SelectValue placeholder="Todos os status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os status</SelectItem>
-            {ORDER_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {ORDER_STATUS_LABELS[s]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={paymentStatus || "all"}
-          onValueChange={(v) => setPaymentStatus(v === "all" ? "" : v)}
-        >
-          <SelectTrigger
-            className="w-full sm:w-48"
-            aria-label="Status de pagamento"
+        <div className="flex flex-wrap gap-3">
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => {
+              setLoading(true);
+              setDateFrom(e.target.value);
+            }}
+            className="w-full sm:w-40"
+            aria-label="Data inicial"
+          />
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(e) => {
+              setLoading(true);
+              setDateTo(e.target.value);
+            }}
+            className="w-full sm:w-40"
+            aria-label="Data final"
+          />
+          <Select
+            value={status || "all"}
+            onValueChange={(v) => {
+              setLoading(true);
+              setStatus(v === "all" ? "" : v);
+            }}
           >
-            <SelectValue placeholder="Todos os pagamentos" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os pagamentos</SelectItem>
-            {PAYMENT_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {PAYMENT_STATUS_LABELS[s]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={clientId || "all"}
-          onValueChange={(v) => setClientId(v === "all" ? "" : v)}
-        >
-          <SelectTrigger className="w-full sm:w-48" aria-label="Cliente">
-            <SelectValue placeholder="Todos os clientes" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os clientes</SelectItem>
-            {clients.map((c) => (
-              <SelectItem key={c.id} value={String(c.id)}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+            <SelectTrigger className="w-full sm:w-48" aria-label="Status da OS">
+              <SelectValue placeholder="Todos os status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              {ORDER_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {ORDER_STATUS_LABELS[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={paymentStatus || "all"}
+            onValueChange={(v) => {
+              setLoading(true);
+              setPaymentStatus(v === "all" ? "" : v);
+            }}
+          >
+            <SelectTrigger
+              className="w-full sm:w-48"
+              aria-label="Status de pagamento"
+            >
+              <SelectValue placeholder="Todos os pagamentos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os pagamentos</SelectItem>
+              {PAYMENT_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {PAYMENT_STATUS_LABELS[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={clientId || "all"}
+            onValueChange={(v) => {
+              setLoading(true);
+              setClientId(v === "all" ? "" : v);
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-48" aria-label="Cliente">
+              <SelectValue placeholder="Todos os clientes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os clientes</SelectItem>
+              {clients.map((c) => (
+                <SelectItem key={c.id} value={String(c.id)}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="flex shrink-0 gap-2">
           <Button
