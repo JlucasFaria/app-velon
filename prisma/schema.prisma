@@ -94,20 +94,22 @@ model User {
 }
 
 model Client {
-  id          Int            @id @default(autoincrement())
-  name        String
-  document    String
-  phone       String?
-  address     String?
-  clientType  ClientType
-  partnerName String?
-  companyId   Int
-  company     Company        @relation(fields: [companyId], references: [id])
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  orders      ServiceOrder[]
+  id                 Int            @id @default(autoincrement())
+  registrationNumber Int?
+  name               String
+  document           String
+  phone              String?
+  address            String?
+  clientType         ClientType
+  partnerName        String?
+  companyId          Int
+  company            Company        @relation(fields: [companyId], references: [id])
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  orders             ServiceOrder[]
 
   @@unique([companyId, document])
+  @@unique([companyId, registrationNumber])
 }
 
 model ServiceOrder {

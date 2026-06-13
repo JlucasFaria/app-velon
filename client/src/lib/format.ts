@@ -18,3 +18,9 @@ export function formatDateTime(iso: string) {
     timeStyle: "short",
   });
 }
+
+// Client registration number is stored as an integer; display it zero-padded to
+// at least 3 digits (001, 002, …). Numbers above 999 keep their full length.
+export function formatRegistrationNumber(n: number) {
+  return String(n).padStart(3, "0");
+}

@@ -4,6 +4,7 @@ export type ClientType = "COUNTER" | "PARTNER";
 
 export interface Client {
   id: number;
+  registrationNumber: number | null;
   name: string;
   document: string;
   phone: string | null;

@@ -31,6 +31,53 @@ describe("ClientService", () => {
       expect(client.address).toBeNull();
     });
 
+    it("should assign registrationNumber 1 to the first client", async () => {
+      const client = await clientService.create(baseClient, companyId);
+      expect(client.registrationNumber).toBe(1);
+    });
+
+    it("should increment registrationNumber sequentially within the same company", async () => {
+      const first = await clientService.create(baseClient, companyId);
+      const second = await clientService.create(
+        { name: "Maria Souza", document: "987.654.321-00", clientType: "COUNTER" as const },
+        companyId,
+      );
+      expect(first.registrationNumber).toBe(1);
+      expect(second.registrationNumber).toBe(2);
+    });
+
+    it("should scope registrationNumber per company — each company starts at 1", async () => {
+      const otherCompanyId = await createTestCompany("Other Co");
+      const clientA = await clientService.create(baseClient, companyId);
+      const clientB = await clientService.create(
+        { name: "Maria Souza", document: "987.654.321-00", clientType: "COUNTER" as const },
+        otherCompanyId,
+      );
+      expect(clientA.registrationNumber).toBe(1);
+      expect(clientB.registrationNumber).toBe(1);
+    });
+
+    it("should ignore clients with a null registrationNumber when computing the next number", async () => {
+      // Simulate an out-of-band insert (seed/import) that skipped the service
+      // and left registrationNumber null. MAX must skip it, not reset to 1.
+      await clientService.create(baseClient, companyId);
+      await prisma.client.create({
+        data: {
+          name: "Importado",
+          document: "987.654.321-00",
+          clientType: "COUNTER",
+          companyId,
+        },
+      });
+
+      const next = await clientService.create(
+        { name: "Pedro Lima", document: "111.222.333-44", clientType: "COUNTER" as const },
+        companyId,
+      );
+
+      expect(next.registrationNumber).toBe(2);
+    });
+
     it("should create a client with optional fields", async () => {
       const client = await clientService.create(
         {

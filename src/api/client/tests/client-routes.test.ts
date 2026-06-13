@@ -60,6 +60,7 @@ describe("Client Routes", () => {
           name: string;
           document: string;
           clientType: string;
+          registrationNumber: number;
         };
       };
 
@@ -68,6 +69,7 @@ describe("Client Routes", () => {
       expect(body.data.name).toBe("João Silva");
       expect(body.data.document).toBe("123.456.789-00");
       expect(body.data.clientType).toBe("COUNTER");
+      expect(body.data.registrationNumber).toBe(1);
     });
 
     it("should create a client with optional fields", async () => {
