@@ -277,28 +277,33 @@ export function OrdersPage() {
       )}
 
       {data && !isEmpty && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>
             {total} {total === 1 ? "ordem" : "ordens"}
           </span>
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!pagination.hasPrev}
-                onClick={() => changePage(-1)}
-              >
-                Anterior
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!pagination.hasNext}
-                onClick={() => changePage(1)}
-              >
-                Próxima
-              </Button>
+            <div className="flex items-center gap-3">
+              <span className="text-xs">
+                Página {pagination.page} de {pagination.totalPages}
+              </span>
+              <div className="flex gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasPrev}
+                  onClick={() => changePage(-1)}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasNext}
+                  onClick={() => changePage(1)}
+                >
+                  Próxima
+                </Button>
+              </div>
             </div>
           )}
         </div>
