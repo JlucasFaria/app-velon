@@ -31,6 +31,32 @@ describe("ClientService", () => {
       expect(client.address).toBeNull();
     });
 
+    it("should assign registrationNumber 1 to the first client", async () => {
+      const client = await clientService.create(baseClient, companyId);
+      expect(client.registrationNumber).toBe(1);
+    });
+
+    it("should increment registrationNumber sequentially within the same company", async () => {
+      const first = await clientService.create(baseClient, companyId);
+      const second = await clientService.create(
+        { name: "Maria Souza", document: "987.654.321-00", clientType: "COUNTER" as const },
+        companyId,
+      );
+      expect(first.registrationNumber).toBe(1);
+      expect(second.registrationNumber).toBe(2);
+    });
+
+    it("should scope registrationNumber per company — each company starts at 1", async () => {
+      const otherCompanyId = await createTestCompany("Other Co");
+      const clientA = await clientService.create(baseClient, companyId);
+      const clientB = await clientService.create(
+        { name: "Maria Souza", document: "987.654.321-00", clientType: "COUNTER" as const },
+        otherCompanyId,
+      );
+      expect(clientA.registrationNumber).toBe(1);
+      expect(clientB.registrationNumber).toBe(1);
+    });
+
     it("should create a client with optional fields", async () => {
       const client = await clientService.create(
         {
