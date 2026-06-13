@@ -7,6 +7,9 @@ export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 // Member invite link lifetime
 export const INVITE_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+// Public shared-PDF link lifetime (signed token expiry)
+export const PDF_SHARE_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
+
 // Database connection pool
 export const DB_POOL_MAX = 10;
 export const DB_POOL_IDLE_TIMEOUT_MS = 30_000; // 30 seconds

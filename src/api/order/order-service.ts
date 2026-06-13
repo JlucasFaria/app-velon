@@ -11,6 +11,7 @@ import {
   createPaginationMeta,
 } from "../../utils/pagination";
 import { ORDER_VALUE_MAX } from "../../config/constants";
+import type { OrderPdfData } from "../../utils/pdf";
 import type {
   CreateOrderInput,
   UpdateOrderInput,
@@ -371,6 +372,82 @@ export class OrderService {
       },
       select: ORDER_SELECT,
     });
+  }
+
+  // Assembles the fully-resolved data the PDF renderer needs, scoped by company.
+  // completedAt is the timestamp of the most recent COMPLETED transition (not
+  // updatedAt), matching how billing reads completion elsewhere. Returns null
+  // when the order or its company is missing, so callers map it to a 404.
+  async getPdfData(
+    id: number,
+    companyId: number,
+  ): Promise<OrderPdfData | null> {
+    const order = await this.prisma.serviceOrder.findFirst({
+      where: { id, companyId },
+      select: {
+        orderNumber: true,
+        description: true,
+        value: true,
+        status: true,
+        paymentStatus: true,
+        paymentNote: true,
+        createdAt: true,
+        items: {
+          select: {
+            description: true,
+            category: true,
+            unitValue: true,
+            quantity: true,
+            subtotal: true,
+          },
+          orderBy: { id: "asc" },
+        },
+        client: {
+          select: { name: true, document: true, clientType: true },
+        },
+        statusHistory: {
+          where: { toStatus: "COMPLETED" },
+          orderBy: { changedAt: "desc" },
+          take: 1,
+          select: { changedAt: true },
+        },
+      },
+    });
+    if (!order) return null;
+
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: {
+        name: true,
+        document: true,
+        phone: true,
+        email: true,
+        address: true,
+        logoUrl: true,
+        footerNote: true,
+      },
+    });
+    if (!company) return null;
+
+    return {
+      orderNumber: order.orderNumber,
+      description: order.description,
+      value: order.value.toString(),
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      paymentNote: order.paymentNote,
+      createdAt: order.createdAt,
+      completedAt: order.statusHistory[0]?.changedAt ?? null,
+      items: order.items.map((item) => ({
+        description: item.description,
+        category: item.category,
+        unitValue: item.unitValue.toString(),
+        quantity: item.quantity,
+        subtotal: item.subtotal.toString(),
+      })),
+      client: order.client,
+      company,
+    };
   }
 
   async delete(id: number, companyId: number) {
