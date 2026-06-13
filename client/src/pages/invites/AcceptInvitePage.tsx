@@ -103,60 +103,90 @@ export function AcceptInvitePage() {
 
   if (status === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-elevated">
+            V
+          </div>
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Carregando convite…</p>
+        </div>
       </div>
     );
   }
 
   if (status === "expired") {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader>
-            <CardTitle>Convite expirado</CardTitle>
-            <CardDescription>
-              Este link de convite não é mais válido. Peça ao administrador para
-              reenviar o convite.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" onClick={() => navigate("/login")}>
-              Ir para o login
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="w-full max-w-sm space-y-6 text-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-elevated">
+              V
+            </div>
+          </div>
+          <Card className="w-full shadow-elevated">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold">Convite expirado</CardTitle>
+              <CardDescription>
+                Este link de convite não é mais válido. Peça ao administrador para
+                reenviar o convite.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
+                Ir para o login
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   if (status === "error" || !info) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader>
-            <CardTitle>Convite inválido</CardTitle>
-            <CardDescription>
-              Este link de convite não foi encontrado ou já foi utilizado.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" onClick={() => navigate("/login")}>
-              Ir para o login
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="w-full max-w-sm space-y-6 text-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-elevated">
+              V
+            </div>
+          </div>
+          <Card className="w-full shadow-elevated">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold">Convite inválido</CardTitle>
+              <CardDescription>
+                Este link de convite não foi encontrado ou já foi utilizado.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
+                Ir para o login
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Você foi convidado</CardTitle>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-elevated">
+            V
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight text-primary">Velon</h1>
+            <p className="text-sm text-muted-foreground">Você foi convidado</p>
+          </div>
+        </div>
+      <Card className="w-full shadow-elevated">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold">Aceitar convite</CardTitle>
           <CardDescription>
-            Você recebeu um convite para ingressar em{" "}
+            Ingresse em{" "}
             <span className="font-medium text-foreground">{info.companyName}</span>{" "}
             como <span className="font-medium text-foreground">{ROLE_LABELS[info.role]}</span>.
           </CardDescription>
@@ -216,6 +246,7 @@ export function AcceptInvitePage() {
           </Form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
