@@ -168,7 +168,77 @@ describe("ReportService", () => {
       expect(result.year).toBe(2026);
       expect(result.orderCount).toBe(0);
       expect(result.totalRevenue).toBe("0.00");
+      expect(result.totalHonorario).toBe("0.00");
       expect(result.orders).toHaveLength(0);
+    });
+
+    it("should aggregate honorário per order and in totalHonorario", async () => {
+      await createOrderFull({
+        status: "COMPLETED",
+        completedAt: JUNE_2026,
+        value: "250.00",
+        items: [
+          {
+            description: "Honorário",
+            category: "Honorário",
+            unitValue: "100.00",
+            quantity: 1,
+            subtotal: "100.00",
+          },
+          {
+            description: "Peça",
+            category: "Peças",
+            unitValue: "150.00",
+            quantity: 1,
+            subtotal: "150.00",
+          },
+        ],
+      });
+      await createOrderFull({
+        status: "COMPLETED",
+        completedAt: JUNE_2026,
+        value: "80.00",
+        items: [
+          {
+            description: "Honorário",
+            category: "honorário",
+            unitValue: "80.00",
+            quantity: 1,
+            subtotal: "80.00",
+          },
+        ],
+      });
+
+      const result = await reportService.getMonthlyBilling(companyId, 6, 2026);
+
+      expect(result.orderCount).toBe(2);
+      expect(result.totalRevenue).toBe("330.00");
+      expect(result.totalHonorario).toBe("180.00");
+      const honorarios = result.orders.map((o) => o.honorario);
+      expect(honorarios).toContain("100.00");
+      expect(honorarios).toContain("80.00");
+    });
+
+    it("should return honorário 0.00 for an order without Honorário items", async () => {
+      await createOrderFull({
+        status: "COMPLETED",
+        completedAt: JUNE_2026,
+        value: "100.00",
+        items: [
+          {
+            description: "Peça",
+            category: "Peças",
+            unitValue: "100.00",
+            quantity: 1,
+            subtotal: "100.00",
+          },
+        ],
+      });
+
+      const result = await reportService.getMonthlyBilling(companyId, 6, 2026);
+
+      expect(result.totalHonorario).toBe("0.00");
+      expect(result.orders[0]!.honorario).toBe("0.00");
     });
 
     it("should return only COMPLETED orders for the given month", async () => {
@@ -375,37 +445,26 @@ describe("ReportService", () => {
       expect(result.orders[0]!.status).toBe("PENDING");
     });
 
-    it("should filter by paymentStatus", async () => {
-      await createOrderFull({ paymentStatus: "UNPAID" });
-      await createOrderFull({ paymentStatus: "PAID_PIX" });
-
-      const result = await reportService.getAllOrders(companyId, {
-        paymentStatus: "PAID_PIX",
-      });
-
-      expect(result.orders).toHaveLength(1);
-      expect(result.orders[0]!.paymentStatus).toBe("PAID_PIX");
-    });
-
-    it("should filter by clientId", async () => {
-      const secondClient = await prisma.client.create({
+    it("should filter by partnerName (case-insensitive, via the client relation)", async () => {
+      const partnerClient = await prisma.client.create({
         data: {
-          name: "Second Client",
-          document: `second-doc-${crypto.randomUUID()}`,
-          clientType: "COUNTER",
+          name: "Partner Co",
+          document: `partner-doc-${crypto.randomUUID()}`,
+          clientType: "PARTNER",
+          partnerName: "Alpha Partner",
           companyId,
         },
       });
 
-      await createOrderFull({ clientId: testClientId });
-      await createOrderFull({ clientId: secondClient.id });
+      await createOrderFull({ clientId: testClientId }); // COUNTER, no partner
+      await createOrderFull({ clientId: partnerClient.id });
 
       const result = await reportService.getAllOrders(companyId, {
-        clientId: secondClient.id,
+        partnerName: "alpha",
       });
 
       expect(result.orders).toHaveLength(1);
-      expect(result.orders[0]!.client.id).toBe(secondClient.id);
+      expect(result.orders[0]!.client.id).toBe(partnerClient.id);
     });
 
     it("should filter by dateFrom", async () => {
