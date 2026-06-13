@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/table";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { PaymentBadge } from "@/components/orders/PaymentBadge";
+import { TH, TH_RIGHT, TD, TD_RIGHT, TABLE_WRAP } from "@/lib/table-classes";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => ({
   value: i + 1,
@@ -69,16 +70,16 @@ export function ReportsPage() {
         </p>
       </div>
 
-      <div className="border-b flex">
+      <div className="border-b flex gap-1">
         {(["monthly", "all"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={cn(
-              "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+              "px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-all",
               tab === t
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border",
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
             )}
           >
             {t === "monthly" ? "Concluídas no mês" : "Todas as OSs"}
@@ -181,8 +182,8 @@ function MonthlyBillingTab() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Faturamento total
             </CardTitle>
-            <span className="flex size-8 items-center justify-center rounded-md bg-success/10 text-success">
-              <Wallet className="h-4 w-4" />
+            <span className="flex size-9 items-center justify-center rounded-xl bg-success/10 text-success">
+              <Wallet className="h-5 w-5 shrink-0" />
             </span>
           </CardHeader>
           <CardContent>
@@ -203,8 +204,8 @@ function MonthlyBillingTab() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Ordens concluídas
             </CardTitle>
-            <span className="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <CheckCircle2 className="h-4 w-4" />
+            <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <CheckCircle2 className="h-5 w-5 shrink-0" />
             </span>
           </CardHeader>
           <CardContent>
@@ -225,37 +226,37 @@ function MonthlyBillingTab() {
           description="Não há ordens concluídas no período selecionado."
         />
       ) : (
-        <div className="overflow-x-auto rounded-md border bg-card shadow-card">
+        <div className={TABLE_WRAP}>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Ordem</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Concluída em</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
+                <TableHead className={TH}>Ordem</TableHead>
+                <TableHead className={TH}>Cliente</TableHead>
+                <TableHead className={TH}>Concluída em</TableHead>
+                <TableHead className={TH_RIGHT}>Valor</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading
                 ? Array.from({ length: 4 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell>
+                      <TableCell className={TD}>
                         <Skeleton className="h-4 w-20" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={TD}>
                         <Skeleton className="h-4 w-32" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={TD}>
                         <Skeleton className="h-4 w-24" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={TD_RIGHT}>
                         <Skeleton className="ml-auto h-4 w-16" />
                       </TableCell>
                     </TableRow>
                   ))
                 : data?.orders.map((order) => (
                     <TableRow key={order.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className={`${TD} font-medium`}>
                         <Link
                           to={`/orders/${order.id}`}
                           className="text-primary hover:underline"
@@ -263,9 +264,9 @@ function MonthlyBillingTab() {
                           {order.orderNumber}
                         </Link>
                       </TableCell>
-                      <TableCell>{order.client.name}</TableCell>
-                      <TableCell>{formatDate(order.completedAt)}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className={TD}>{order.client.name}</TableCell>
+                      <TableCell className={TD}>{formatDate(order.completedAt)}</TableCell>
+                      <TableCell className={TD_RIGHT}>
                         {formatCurrency(order.value)}
                       </TableCell>
                     </TableRow>
@@ -451,18 +452,18 @@ function AllOrdersTab() {
           description="Nenhuma ordem corresponde aos filtros selecionados."
         />
       ) : (
-        <div className="overflow-x-auto rounded-md border bg-card shadow-card">
+        <div className={TABLE_WRAP}>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nº OS</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Criado em</TableHead>
-                <TableHead>Concluído em</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right">Honorário</TableHead>
-                <TableHead>Pagamento</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className={TH}>Nº OS</TableHead>
+                <TableHead className={TH}>Cliente</TableHead>
+                <TableHead className={TH}>Criado em</TableHead>
+                <TableHead className={TH}>Concluído em</TableHead>
+                <TableHead className={TH_RIGHT}>Total</TableHead>
+                <TableHead className={TH_RIGHT}>Honorário</TableHead>
+                <TableHead className={TH}>Pagamento</TableHead>
+                <TableHead className={TH}>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -470,7 +471,7 @@ function AllOrdersTab() {
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
                       {Array.from({ length: 8 }).map((__, j) => (
-                        <TableCell key={j}>
+                        <TableCell key={j} className={TD}>
                           <Skeleton className="h-4 w-full" />
                         </TableCell>
                       ))}
@@ -478,7 +479,7 @@ function AllOrdersTab() {
                   ))
                 : data?.orders.map((order) => (
                     <TableRow key={order.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className={`${TD} font-medium`}>
                         <Link
                           to={`/orders/${order.id}`}
                           className="text-primary hover:underline"
@@ -486,23 +487,23 @@ function AllOrdersTab() {
                           {order.orderNumber}
                         </Link>
                       </TableCell>
-                      <TableCell>{order.client.name}</TableCell>
-                      <TableCell>{formatDate(order.createdAt)}</TableCell>
-                      <TableCell>
+                      <TableCell className={TD}>{order.client.name}</TableCell>
+                      <TableCell className={TD}>{formatDate(order.createdAt)}</TableCell>
+                      <TableCell className={TD}>
                         {order.completedAt
                           ? formatDate(order.completedAt)
                           : "—"}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className={TD_RIGHT}>
                         {formatCurrency(order.total)}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className={TD_RIGHT}>
                         {formatCurrency(order.honorario)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={TD}>
                         <PaymentBadge status={order.paymentStatus} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={TD}>
                         <OrderStatusBadge status={order.status} />
                       </TableCell>
                     </TableRow>
@@ -513,19 +514,19 @@ function AllOrdersTab() {
                 <TableRow>
                   <TableCell
                     colSpan={4}
-                    className="font-medium text-muted-foreground"
+                    className={`${TD} font-medium text-muted-foreground`}
                   >
                     Totais
                   </TableCell>
-                  <TableCell className="text-right font-bold">
+                  <TableCell className={`${TD_RIGHT} font-bold`}>
                     {formatCurrency(data.totals.sumTotal)}
                   </TableCell>
-                  <TableCell className="text-right font-bold">
+                  <TableCell className={`${TD_RIGHT} font-bold`}>
                     {formatCurrency(data.totals.sumHonorario)}
                   </TableCell>
                   <TableCell
                     colSpan={2}
-                    className="text-sm text-muted-foreground"
+                    className={`${TD} text-sm text-muted-foreground`}
                   >
                     Recebido: {formatCurrency(data.totals.totalReceived)}
                   </TableCell>

@@ -34,7 +34,7 @@ function BackButton() {
       asChild
     >
       <Link to="/orders">
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-5 w-5" />
       </Link>
     </Button>
   );
@@ -255,55 +255,35 @@ export function OrderDetailPage() {
               </div>
             </div>
             <div>
-              <p className="mb-2 text-muted-foreground">Itens</p>
-              <div className="overflow-x-auto rounded-md border">
+              <p className="mb-2 text-sm font-medium text-muted-foreground">Itens</p>
+              <div className="overflow-x-auto rounded-xl border border-border/70">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
-                      <th className="px-3 py-2 font-medium">Descrição</th>
-                      <th className="px-3 py-2 font-medium">Categoria</th>
-                      <th className="px-3 py-2 text-right font-medium">Qtd</th>
-                      <th className="px-3 py-2 text-right font-medium">
-                        Vlr. Unit.
-                      </th>
-                      <th className="px-3 py-2 text-right font-medium">
-                        Subtotal
-                      </th>
+                    <tr className="border-b bg-muted/40">
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Descrição</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Categoria</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Qtd</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Vlr. Unit.</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Subtotal</th>
                     </tr>
                   </thead>
                   <tbody>
                     {order.items.map((item) => (
-                      <tr
-                        key={item.id}
-                        className="border-b last:border-0"
-                      >
-                        <td className="px-3 py-2">{item.description}</td>
-                        <td className="px-3 py-2 text-muted-foreground">
+                      <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3">{item.description}</td>
+                        <td className="px-4 py-3 text-muted-foreground">
                           {item.category ?? "—"}
                         </td>
-                        <td className="px-3 py-2 text-right">
-                          {item.quantity}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          {formatCurrency(item.unitValue)}
-                        </td>
-                        <td className="px-3 py-2 text-right font-medium">
-                          {formatCurrency(item.subtotal)}
-                        </td>
+                        <td className="px-4 py-3 text-right">{item.quantity}</td>
+                        <td className="px-4 py-3 text-right">{formatCurrency(item.unitValue)}</td>
+                        <td className="px-4 py-3 text-right font-medium">{formatCurrency(item.subtotal)}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t bg-muted/50">
-                      <td
-                        colSpan={4}
-                        className="px-3 py-2 text-right font-semibold"
-                      >
-                        Total
-                      </td>
-                      <td className="px-3 py-2 text-right font-bold">
-                        {formatCurrency(order.value)}
-                      </td>
+                    <tr className="border-t bg-muted/40">
+                      <td colSpan={4} className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total</td>
+                      <td className="px-4 py-3 text-right font-bold text-foreground">{formatCurrency(order.value)}</td>
                     </tr>
                   </tfoot>
                 </table>

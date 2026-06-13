@@ -48,6 +48,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/contexts/auth-context";
+import { TH, TH_RIGHT, TD, TD_RIGHT, TABLE_WRAP } from "@/lib/table-classes";
 
 export function ClientsPage() {
   const navigate = useNavigate();
@@ -227,41 +228,41 @@ export function ClientsPage() {
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-md border bg-card shadow-card">
+        <div className={TABLE_WRAP}>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Documento</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="w-16 text-right">Ações</TableHead>
+                <TableHead className={TH}>Nome</TableHead>
+                <TableHead className={TH}>Documento</TableHead>
+                <TableHead className={TH}>Telefone</TableHead>
+                <TableHead className={TH}>Tipo</TableHead>
+                <TableHead className={`w-16 ${TH_RIGHT}`}>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell>
+                      <TableCell className={TD}>
                         <Skeleton className="h-4 w-32" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={TD}>
                         <Skeleton className="h-4 w-28" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={TD}>
                         <Skeleton className="h-4 w-24" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={TD}>
                         <Skeleton className="h-5 w-16 rounded-full" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={TD_RIGHT}>
                         <Skeleton className="ml-auto h-8 w-8" />
                       </TableCell>
                     </TableRow>
                   ))
                 : data?.clients.map((client) => (
                     <TableRow key={client.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className={`${TD} font-medium`}>
                         <Link
                           to={`/clients/${client.id}`}
                           className="underline-offset-2 transition-colors hover:text-primary hover:underline"
@@ -269,12 +270,12 @@ export function ClientsPage() {
                           {client.name}
                         </Link>
                       </TableCell>
-                      <TableCell>{client.document}</TableCell>
-                      <TableCell>{client.phone ?? "—"}</TableCell>
-                      <TableCell>
+                      <TableCell className={TD}>{client.document}</TableCell>
+                      <TableCell className={TD}>{client.phone ?? "—"}</TableCell>
+                      <TableCell className={TD}>
                         <ClientTypeBadge type={client.clientType} />
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className={TD_RIGHT}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
@@ -324,28 +325,33 @@ export function ClientsPage() {
       )}
 
       {data && !isEmpty && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>
             {total} {total === 1 ? "cliente" : "clientes"}
           </span>
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!pagination.hasPrev}
-                onClick={() => changePage(-1)}
-              >
-                Anterior
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!pagination.hasNext}
-                onClick={() => changePage(1)}
-              >
-                Próxima
-              </Button>
+            <div className="flex items-center gap-3">
+              <span className="text-xs">
+                Página {pagination.page} de {pagination.totalPages}
+              </span>
+              <div className="flex gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasPrev}
+                  onClick={() => changePage(-1)}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasNext}
+                  onClick={() => changePage(1)}
+                >
+                  Próxima
+                </Button>
+              </div>
             </div>
           )}
         </div>

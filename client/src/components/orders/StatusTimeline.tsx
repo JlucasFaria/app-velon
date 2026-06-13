@@ -1,5 +1,7 @@
 import type { StatusHistoryEntry } from "@/api/orders";
 import { formatDateTime } from "@/lib/format";
+import { ORDER_STATUS_DOT_CLASSES } from "@/lib/order-status";
+import { cn } from "@/lib/utils";
 import { OrderStatusBadge } from "./OrderStatusBadge";
 
 export function StatusTimeline({
@@ -15,19 +17,23 @@ export function StatusTimeline({
     );
   }
 
-  // Most recent change first.
   const ordered = [...entries].reverse();
 
   return (
-    <ol className="relative space-y-6 border-l border-border pl-6">
+    <ol className="relative space-y-5 border-l border-border pl-5">
       {ordered.map((entry) => (
-        <li key={entry.id} className="relative space-y-1">
-          <span className="absolute top-1 -left-[1.6875rem] h-2.5 w-2.5 rounded-full border-2 border-card bg-primary" />
-          <div className="flex flex-wrap items-center gap-2">
+        <li key={entry.id} className="relative space-y-1.5">
+          <span
+            className={cn(
+              "absolute top-1.5 -left-[1.4375rem] h-2.5 w-2.5 rounded-full border-2 border-card",
+              ORDER_STATUS_DOT_CLASSES[entry.toStatus as keyof typeof ORDER_STATUS_DOT_CLASSES] ?? "bg-primary",
+            )}
+          />
+          <div className="flex flex-wrap items-center gap-1.5">
             {entry.fromStatus ? (
               <>
                 <OrderStatusBadge status={entry.fromStatus} />
-                <span className="text-muted-foreground">→</span>
+                <span className="text-xs text-muted-foreground">→</span>
                 <OrderStatusBadge status={entry.toStatus} />
               </>
             ) : (
@@ -38,7 +44,11 @@ export function StatusTimeline({
             {entry.changedBy.name ?? entry.changedBy.email} ·{" "}
             {formatDateTime(entry.changedAt)}
           </p>
-          {entry.note && <p className="text-sm">{entry.note}</p>}
+          {entry.note && (
+            <p className="rounded-md bg-muted/50 px-2.5 py-1.5 text-xs text-foreground">
+              {entry.note}
+            </p>
+          )}
         </li>
       ))}
     </ol>

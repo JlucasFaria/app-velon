@@ -28,18 +28,20 @@ const navItems: NavItem[] = [
 
 function Brand() {
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex size-8 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
+    <div className="flex items-center gap-3">
+      <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm">
         V
       </div>
-      <span className="text-lg font-semibold tracking-tight">Velon</span>
+      <span className="text-xl font-bold tracking-tight text-foreground">
+        Velon
+      </span>
     </div>
   );
 }
 
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <nav className="flex flex-1 flex-col gap-1 p-3">
+    <nav className="flex flex-1 flex-col gap-0.5 px-3 py-4">
       {navItems.map(({ to, label, icon: Icon, end = false }) => (
         <NavLink
           key={to}
@@ -48,26 +50,36 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
               isActive
                 ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
             )
           }
         >
-          <Icon className="h-4 w-4" />
-          {label}
+          {({ isActive }) => (
+            <>
+              <Icon
+                className={cn(
+                  "h-5 w-5 shrink-0 transition-colors",
+                  isActive
+                    ? "text-primary-foreground"
+                    : "text-muted-foreground group-hover:text-foreground",
+                )}
+              />
+              <span>{label}</span>
+            </>
+          )}
         </NavLink>
       ))}
     </nav>
   );
 }
 
-/** Static sidebar shown on tablet/desktop (md and up). */
 export function Sidebar() {
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r bg-card md:flex print:hidden">
-      <div className="flex h-14 items-center border-b px-6">
+    <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-sidebar md:flex print:hidden">
+      <div className="flex h-16 items-center border-b border-border px-5">
         <Brand />
       </div>
       <NavItems />
@@ -75,7 +87,6 @@ export function Sidebar() {
   );
 }
 
-/** Off-canvas navigation drawer for mobile (below md). */
 export function MobileSidebar({
   open,
   onClose,
@@ -91,7 +102,7 @@ export function MobileSidebar({
       <div
         onClick={onClose}
         className={cn(
-          "absolute inset-0 bg-black/50 transition-opacity duration-200",
+          "absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-200",
           open ? "opacity-100" : "opacity-0",
         )}
       />
@@ -101,16 +112,16 @@ export function MobileSidebar({
         aria-label="Menu de navegação"
         inert={!open}
         className={cn(
-          "absolute inset-y-0 left-0 flex w-64 flex-col border-r bg-card shadow-overlay transition-transform duration-200",
+          "absolute inset-y-0 left-0 flex w-64 flex-col border-r border-border bg-sidebar shadow-overlay transition-transform duration-200",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-14 items-center justify-between border-b px-4">
+        <div className="flex h-16 items-center justify-between border-b border-border px-5">
           <Brand />
           <Button
             variant="ghost"
             size="icon"
-            className="min-h-11 min-w-11"
+            className="min-h-9 min-w-9"
             aria-label="Fechar menu"
             onClick={onClose}
           >

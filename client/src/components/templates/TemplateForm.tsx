@@ -193,11 +193,11 @@ export function TemplateForm({
                 <div className="overflow-x-auto rounded-md border">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
-                        <th className="px-2 py-2 font-medium">Descrição</th>
-                        <th className="px-2 py-2 font-medium">Categoria</th>
-                        <th className="px-2 py-2 font-medium">Vlr. Sugerido</th>
-                        <th className="px-2 py-2 font-medium">Qtd</th>
+                      <tr className="border-b bg-muted/40 text-left">
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Descrição</th>
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Categoria</th>
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Vlr. Sugerido</th>
+                        <th className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Qtd</th>
                         <th className="w-8" />
                       </tr>
                     </thead>
@@ -294,7 +294,7 @@ export function TemplateForm({
                               onClick={() => remove(index)}
                               aria-label="Remover item"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </td>
                         </tr>
@@ -311,7 +311,7 @@ export function TemplateForm({
                 className="h-8 gap-1 px-2 text-sm"
                 onClick={() => append(emptyItem())}
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-4 w-4" />
                 Adicionar item
               </Button>
             </div>

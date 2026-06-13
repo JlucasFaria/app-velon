@@ -53,16 +53,21 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm shadow-elevated">
-        <CardHeader className="items-center space-y-3 text-center">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-xl font-bold text-primary-foreground">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-elevated">
             V
           </div>
           <div className="space-y-1">
-            <CardTitle className="text-2xl tracking-tight">Velon</CardTitle>
-            <CardDescription>Acesse o painel de gestão</CardDescription>
+            <h1 className="text-2xl font-semibold tracking-tight text-primary">Velon</h1>
+            <p className="text-sm text-muted-foreground">Acesse o painel de gestão</p>
           </div>
+        </div>
+      <Card className="w-full shadow-elevated">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold">Entrar na conta</CardTitle>
+          <CardDescription className="text-sm">Informe suas credenciais abaixo</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -139,6 +144,7 @@ export function LoginPage() {
           </Form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

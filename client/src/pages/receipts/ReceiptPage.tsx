@@ -49,7 +49,7 @@ export function ReceiptPage() {
           asChild
         >
           <Link to="/orders">
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
         <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
@@ -65,15 +65,15 @@ export function ReceiptPage() {
         <Button
           variant="ghost"
           size="icon"
-          className="min-h-11 min-w-11"
+          className="min-h-11 min-w-11 shrink-0"
           aria-label="Voltar para a ordem"
           asChild
         >
           <Link to={`/orders/${receipt.order.id}`}>
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
-        <Button onClick={() => window.print()}>
+        <Button onClick={() => window.print()} size="sm">
           <Printer className="mr-2 h-4 w-4" />
           Imprimir
         </Button>
@@ -83,11 +83,11 @@ export function ReceiptPage() {
       <div className="rounded-lg border border-gray-200 bg-white p-8 text-gray-900 shadow-card print:shadow-none">
         <div className="flex items-start justify-between border-b border-gray-200 pb-4">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-md border-2 border-blue-600 text-lg font-bold text-blue-600">
+            <div className="flex size-10 items-center justify-center rounded-lg border-2 border-indigo-700 text-lg font-bold text-indigo-700">
               V
             </div>
             <div>
-              <h1 className="text-2xl font-bold leading-none">Velon</h1>
+              <h1 className="text-2xl font-bold leading-none text-indigo-700">Velon</h1>
               <p className="mt-1 text-sm text-gray-500">Recibo de serviço</p>
             </div>
           </div>

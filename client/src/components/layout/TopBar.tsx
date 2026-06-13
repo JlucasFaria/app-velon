@@ -7,6 +7,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -17,48 +18,68 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
 
   return (
-    <header className="flex h-14 items-center justify-between gap-1 border-b bg-card px-4 md:px-6 print:hidden">
+    <header className="flex h-16 items-center justify-between gap-2 border-b border-border bg-card px-4 md:px-6 print:hidden">
+      {/* Mobile brand + menu toggle */}
       <div className="flex items-center gap-2 md:hidden">
         <Button
           variant="ghost"
           size="icon"
-          className="min-h-11 min-w-11"
+          className="min-h-9 min-w-9"
           aria-label="Abrir menu"
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <span className="text-base font-semibold tracking-tight">Velon</span>
+        <span className="text-sm font-semibold tracking-tight text-primary">Velon</span>
       </div>
+
+      {/* Spacer so actions stay right-aligned on desktop too */}
+      <div className="hidden md:flex flex-1" />
+
+      {/* Right actions */}
       <div className="flex items-center gap-1">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="relative min-h-11 min-w-11"
-        aria-label={isDark ? "Ativar tema claro" : "Ativar tema escuro"}
-        title={isDark ? "Tema claro" : "Tema escuro"}
-        onClick={() => setTheme(isDark ? "light" : "dark")}
-      >
-        <Sun className="h-5 w-5 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
-        <Moon className="absolute h-5 w-5 scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0" />
-        <span className="sr-only">Alternar tema</span>
-      </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="flex items-center gap-2 px-2">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-            </Avatar>
-            <span className="max-w-48 truncate text-sm">{user?.email}</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => void logout()}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Sair
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative min-h-9 min-w-9 text-muted-foreground hover:text-foreground"
+          aria-label={isDark ? "Ativar tema claro" : "Ativar tema escuro"}
+          onClick={() => setTheme(isDark ? "light" : "dark")}
+        >
+          <Sun className="h-4 w-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+          <Moon className="absolute h-4 w-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+          <span className="sr-only">Alternar tema</span>
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 px-2 h-9 text-muted-foreground hover:text-foreground"
+            >
+              <Avatar className="h-7 w-7">
+                <AvatarFallback className="text-[10px] font-semibold bg-primary/10 text-primary">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <span className="hidden max-w-40 truncate text-xs sm:block">
+                {user?.email}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-44">
+            <div className="px-2 py-1.5">
+              <p className="text-xs font-medium text-foreground truncate">{user?.email}</p>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+              onClick={() => void logout()}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

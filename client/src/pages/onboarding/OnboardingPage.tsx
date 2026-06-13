@@ -86,20 +86,23 @@ export function OnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-md shadow-elevated">
-        <CardHeader className="items-center space-y-3 text-center">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-xl font-bold text-primary-foreground">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-elevated">
             V
           </div>
           <div className="space-y-1">
-            <CardTitle className="text-2xl tracking-tight">
-              Configure sua empresa
-            </CardTitle>
-            <CardDescription>
-              Informe os dados do seu negócio para começar a usar o Velon
-            </CardDescription>
+            <h1 className="text-2xl font-semibold tracking-tight text-primary">Velon</h1>
+            <p className="text-sm text-muted-foreground">Configure sua empresa para começar</p>
           </div>
+        </div>
+      <Card className="w-full shadow-elevated">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold">Dados da empresa</CardTitle>
+          <CardDescription className="text-sm">
+            Informe os dados do seu negócio. Você pode atualizar depois no perfil.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -187,6 +190,7 @@ export function OnboardingPage() {
           </Form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

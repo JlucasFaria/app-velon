@@ -21,28 +21,37 @@ interface StatCardProps {
   value: number;
   description: string;
   icon: ElementType;
-  accent: string;
+  iconAccent: string;
+  stripColor: string;
+  gradientOverlay: string;
 }
 
-function StatCard({ title, value, description, icon: Icon, accent }: StatCardProps) {
+function StatCard({
+  title,
+  value,
+  description,
+  icon: Icon,
+  iconAccent,
+  stripColor,
+  gradientOverlay,
+}: StatCardProps) {
   return (
-    <Card className="shadow-card">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+    <Card className="relative overflow-hidden shadow-card transition-shadow hover:shadow-elevated">
+      {/* Subtle gradient overlay — light mode only */}
+      <div aria-hidden="true" className={cn("pointer-events-none absolute inset-0 dark:hidden", gradientOverlay)} />
+      {/* Left accent strip */}
+      <div aria-hidden="true" className={cn("absolute inset-y-0 left-0 w-[3px]", stripColor)} />
+      <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 pl-5">
+        <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground/80">
           {title}
         </CardTitle>
-        <span
-          className={cn(
-            "flex size-8 items-center justify-center rounded-md",
-            accent,
-          )}
-        >
-          <Icon className="h-4 w-4" />
+        <span className={cn("flex size-9 items-center justify-center rounded-xl", iconAccent)}>
+          <Icon className="h-5 w-5 shrink-0" />
         </span>
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
+      <CardContent className="relative pl-5">
+        <div className="text-3xl font-bold tracking-tight">{value}</div>
+        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
       </CardContent>
     </Card>
   );
@@ -53,7 +62,7 @@ function StatCardSkeleton() {
     <Card className="shadow-card">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <Skeleton className="h-4 w-24" />
-        <Skeleton className="size-8 rounded-md" />
+        <Skeleton className="size-9 rounded-xl" />
       </CardHeader>
       <CardContent>
         <Skeleton className="h-8 w-12" />
@@ -95,53 +104,70 @@ export function DashboardPage() {
           value: total,
           description: "Desde o início",
           icon: ClipboardList,
-          accent: "bg-primary/10 text-primary",
+          iconAccent: "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400",
+          stripColor: "bg-indigo-500",
+          gradientOverlay: "bg-gradient-to-br from-white to-indigo-50/70",
         },
         {
           title: "Pendentes",
           value: summary.PENDING,
           description: "Aguardando início",
           icon: Clock,
-          accent: "bg-muted text-muted-foreground",
+          iconAccent: "bg-slate-100 text-slate-500 dark:bg-slate-700/40 dark:text-slate-400",
+          stripColor: "bg-slate-400",
+          gradientOverlay: "bg-gradient-to-br from-white to-slate-50/80",
         },
         {
           title: "Em andamento",
           value: summary.IN_PROGRESS,
           description: "Sendo executadas",
           icon: Wrench,
-          accent: "bg-info/10 text-info",
+          iconAccent: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400",
+          stripColor: "bg-blue-500",
+          gradientOverlay: "bg-gradient-to-br from-white to-blue-50/70",
         },
         {
           title: "Aguardando cliente",
           value: summary.AWAITING_CLIENT,
           description: "Esperando retorno do cliente",
           icon: HourglassIcon,
-          accent: "bg-warning/15 text-warning-foreground",
+          iconAccent: "bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400",
+          stripColor: "bg-amber-400",
+          gradientOverlay: "bg-gradient-to-br from-white to-amber-50/70",
         },
         {
           title: "Concluídas",
           value: summary.COMPLETED,
           description: "Desde o início",
           icon: CheckCircle2,
-          accent: "bg-success/10 text-success",
+          iconAccent: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400",
+          stripColor: "bg-emerald-500",
+          gradientOverlay: "bg-gradient-to-br from-white to-emerald-50/70",
         },
         {
           title: "Canceladas",
           value: summary.CANCELLED,
           description: "Desde o início",
           icon: XCircle,
-          accent: "bg-danger/10 text-danger",
+          iconAccent: "bg-rose-50 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400",
+          stripColor: "bg-rose-500",
+          gradientOverlay: "bg-gradient-to-br from-white to-rose-50/70",
         },
       ]
     : [];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Painel</h1>
-        <p className="text-sm text-muted-foreground">
-          Visão geral das ordens de serviço
-        </p>
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Painel</h1>
+          <p className="text-sm text-muted-foreground">
+            Visão geral das ordens de serviço
+          </p>
+        </div>
+        <Button asChild variant="default" size="sm">
+          <Link to="/orders">Ver todas as ordens</Link>
+        </Button>
       </div>
 
       {error && (
@@ -151,7 +177,7 @@ export function DashboardPage() {
       )}
 
       {isLoading && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <StatCardSkeleton key={i} />
           ))}
@@ -172,7 +198,7 @@ export function DashboardPage() {
       )}
 
       {summary && total > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {stats.map((stat) => (
             <StatCard key={stat.title} {...stat} />
           ))}
