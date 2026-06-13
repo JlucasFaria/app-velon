@@ -21,26 +21,23 @@ interface StatCardProps {
   value: number;
   description: string;
   icon: ElementType;
-  accent: string;
+  iconAccent: string;
+  stripColor: string;
 }
 
-function StatCard({ title, value, description, icon: Icon, accent }: StatCardProps) {
+function StatCard({ title, value, description, icon: Icon, iconAccent, stripColor }: StatCardProps) {
   return (
-    <Card className="shadow-card transition-shadow hover:shadow-elevated">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card className="relative overflow-hidden shadow-card transition-shadow hover:shadow-elevated">
+      <div className={cn("absolute inset-y-0 left-0 w-1 rounded-l-lg", stripColor)} />
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pl-6">
         <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
           {title}
         </CardTitle>
-        <span
-          className={cn(
-            "flex size-9 items-center justify-center rounded-xl",
-            accent,
-          )}
-        >
+        <span className={cn("flex size-9 items-center justify-center rounded-xl", iconAccent)}>
           <Icon className="h-4 w-4" />
         </span>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pl-6">
         <div className="text-3xl font-bold tracking-tight">{value}</div>
         <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
       </CardContent>
@@ -95,42 +92,48 @@ export function DashboardPage() {
           value: total,
           description: "Desde o início",
           icon: ClipboardList,
-          accent: "bg-primary/10 text-primary",
+          iconAccent: "bg-primary/10 text-primary",
+          stripColor: "bg-primary",
         },
         {
           title: "Pendentes",
           value: summary.PENDING,
           description: "Aguardando início",
           icon: Clock,
-          accent: "bg-muted text-muted-foreground",
+          iconAccent: "bg-muted text-muted-foreground",
+          stripColor: "bg-muted-foreground/40",
         },
         {
           title: "Em andamento",
           value: summary.IN_PROGRESS,
           description: "Sendo executadas",
           icon: Wrench,
-          accent: "bg-info/10 text-info",
+          iconAccent: "bg-info/10 text-info",
+          stripColor: "bg-info",
         },
         {
           title: "Aguardando cliente",
           value: summary.AWAITING_CLIENT,
           description: "Esperando retorno do cliente",
           icon: HourglassIcon,
-          accent: "bg-warning/15 text-warning-foreground",
+          iconAccent: "bg-warning/15 text-warning-foreground",
+          stripColor: "bg-warning",
         },
         {
           title: "Concluídas",
           value: summary.COMPLETED,
           description: "Desde o início",
           icon: CheckCircle2,
-          accent: "bg-success/10 text-success",
+          iconAccent: "bg-success/10 text-success",
+          stripColor: "bg-success",
         },
         {
           title: "Canceladas",
           value: summary.CANCELLED,
           description: "Desde o início",
           icon: XCircle,
-          accent: "bg-danger/10 text-danger",
+          iconAccent: "bg-danger/10 text-danger",
+          stripColor: "bg-danger",
         },
       ]
     : [];
