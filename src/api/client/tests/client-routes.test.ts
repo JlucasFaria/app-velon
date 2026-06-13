@@ -7,6 +7,10 @@ describe("Client Routes", () => {
   let token: string;
   let companyId: number;
 
+  // Dedicated IP so this file's requests use their own rate-limit bucket,
+  // isolated from other test files sharing the "unknown" bucket.
+  const IP = "127.0.0.21";
+
   beforeEach(async () => {
     // Delete in FK-safe order: orders reference clients.
     await prisma.serviceOrder.deleteMany();
@@ -21,7 +25,10 @@ describe("Client Routes", () => {
     clientType: "COUNTER",
   };
 
-  const authHeader = () => ({ Authorization: `Bearer ${token}` });
+  const authHeader = () => ({
+    Authorization: `Bearer ${token}`,
+    "X-Forwarded-For": IP,
+  });
 
   const post = (body: object) =>
     app.request("/api/clients", {
@@ -34,7 +41,9 @@ describe("Client Routes", () => {
 
   describe("auth guard", () => {
     it("should return 401 on GET /api/clients without token", async () => {
-      const res = await app.request("/api/clients");
+      const res = await app.request("/api/clients", {
+        headers: { "X-Forwarded-For": IP },
+      });
       expect(res.status).toBe(401);
     });
 
@@ -42,7 +51,7 @@ describe("Client Routes", () => {
       const res = await app.request("/api/clients", {
         method: "POST",
         body: JSON.stringify(basePayload),
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Forwarded-For": IP },
       });
       expect(res.status).toBe(401);
     });
@@ -199,6 +208,33 @@ describe("Client Routes", () => {
       expect(body.data.clients.length).toBe(1);
       expect(body.data.pagination.total).toBe(2);
       expect(body.data.pagination.totalPages).toBe(2);
+    });
+
+    it("should filter by partnerName (case-insensitive, partial match)", async () => {
+      await post({
+        name: "Empresa Alpha",
+        document: "11111111111111",
+        clientType: "PARTNER",
+        partnerName: "Alpha Partner",
+      });
+      await post({
+        name: "Empresa Beta",
+        document: "22222222222222",
+        clientType: "PARTNER",
+        partnerName: "Beta Partner",
+      });
+      await post(basePayload); // COUNTER, no partner
+
+      const res = await app.request("/api/clients?partnerName=alpha", {
+        headers: authHeader(),
+      });
+      const body = (await res.json()) as {
+        data: { clients: Array<{ partnerName: string | null }> };
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.data.clients.length).toBe(1);
+      expect(body.data.clients[0]?.partnerName).toBe("Alpha Partner");
     });
   });
 
@@ -388,7 +424,9 @@ describe("Client Routes", () => {
 
   describe("GET /api/clients/search", () => {
     it("should return 401 without token", async () => {
-      const res = await app.request("/api/clients/search?q=João");
+      const res = await app.request("/api/clients/search?q=João", {
+        headers: { "X-Forwarded-For": IP },
+      });
       expect(res.status).toBe(401);
     });
 
@@ -467,7 +505,9 @@ describe("Client Routes", () => {
 
   describe("GET /api/clients/partner-names", () => {
     it("should return 401 without token", async () => {
-      const res = await app.request("/api/clients/partner-names");
+      const res = await app.request("/api/clients/partner-names", {
+        headers: { "X-Forwarded-For": IP },
+      });
       expect(res.status).toBe(401);
     });
 
@@ -530,7 +570,9 @@ describe("Client Routes", () => {
 
   describe("security headers", () => {
     it("should include X-Content-Type-Options: nosniff", async () => {
-      const res = await app.request("/api/clients");
+      const res = await app.request("/api/clients", {
+        headers: { "X-Forwarded-For": IP },
+      });
       expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     });
   });

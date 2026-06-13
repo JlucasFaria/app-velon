@@ -334,6 +334,34 @@ describe("Order Routes", () => {
       expect(body.data.orders.length).toBe(1);
       expect(body.data.orders[0]?.paymentStatus).toBe("PAID_PIX");
     });
+
+    it("should filter orders by the client's partnerName", async () => {
+      // Default order belongs to the COUNTER client (no partner).
+      await post(basePayload());
+
+      // A second order belongs to a PARTNER client.
+      const partner = await prisma.client.create({
+        data: {
+          name: "Partner Client",
+          document: "order-routes-partner-doc",
+          clientType: "PARTNER",
+          partnerName: "Acme Partner",
+          companyId,
+        },
+      });
+      await post({ ...basePayload(), clientId: partner.id });
+
+      const res = await app.request("/api/orders?partnerName=Acme", {
+        headers: h(),
+      });
+      const body = (await res.json()) as {
+        data: { orders: Array<{ clientId: number }> };
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.data.orders.length).toBe(1);
+      expect(body.data.orders[0]?.clientId).toBe(partner.id);
+    });
   });
 
   // ─── GET /api/orders/:id ──────────────────────────────────────────
@@ -367,6 +395,32 @@ describe("Order Routes", () => {
     it("should return 404 for a non-existent id", async () => {
       const res = await app.request("/api/orders/999999", { headers: h() });
       expect(res.status).toBe(404);
+    });
+
+    it("should include the client's partnerName in detail for a PARTNER client", async () => {
+      const partner = await prisma.client.create({
+        data: {
+          name: "Partner Detail Client",
+          document: "order-routes-partner-detail-doc",
+          clientType: "PARTNER",
+          partnerName: "Beta Partner",
+          companyId,
+        },
+      });
+      const created = (await (
+        await post({ ...basePayload(), clientId: partner.id })
+      ).json()) as { data: { id: number } };
+
+      const res = await app.request(`/api/orders/${created.data.id}`, {
+        headers: h(),
+      });
+      const body = (await res.json()) as {
+        data: { client: { clientType: string; partnerName: string | null } };
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.data.client.clientType).toBe("PARTNER");
+      expect(body.data.client.partnerName).toBe("Beta Partner");
     });
   });
 
