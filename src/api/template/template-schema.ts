@@ -58,7 +58,7 @@ export const createTemplateSchema = z
       description: "Template name (unique per company)",
       example: "Formatação de computador",
     }),
-    defaultDescription: z.string().min(1).openapi({
+    defaultDescription: z.string().min(3).openapi({
       description: "Description that pre-fills the order",
       example: "Formatação completa com backup dos dados",
     }),
@@ -75,7 +75,7 @@ export const updateTemplateSchema = z
       description: "Template name (unique per company)",
       example: "Formatação de computador",
     }),
-    defaultDescription: z.string().min(1).optional().openapi({
+    defaultDescription: z.string().min(3).optional().openapi({
       description: "Description that pre-fills the order",
       example: "Formatação completa com backup dos dados",
     }),

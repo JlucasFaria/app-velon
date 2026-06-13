@@ -49,7 +49,9 @@ const itemSchema = z.object({
 
 const schema = z.object({
   name: z.string().min(2, "Informe um nome com ao menos 2 caracteres"),
-  defaultDescription: z.string().min(1, "Informe uma descrição"),
+  defaultDescription: z
+    .string()
+    .min(3, "A descrição deve ter ao menos 3 caracteres"),
   items: z.array(itemSchema),
 });
 

@@ -160,11 +160,14 @@ describe("Template Routes", () => {
       expect(res.status).toBe(400);
     });
 
-    it("should return 409 when name is already in use in the company", async () => {
+    it("should return 409 with a pt-BR message when name is already in use", async () => {
       const payload = basePayload();
       await post(payload);
       const res = await post(payload);
+      const body = (await res.json()) as { success: boolean; error: string };
+
       expect(res.status).toBe(409);
+      expect(body.error).toBe("Já existe um modelo com esse nome");
     });
   });
 

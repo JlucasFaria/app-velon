@@ -34,10 +34,6 @@ export function getTemplates() {
   return apiRequest<ServiceTemplate[]>("/templates");
 }
 
-export function getTemplate(id: number) {
-  return apiRequest<ServiceTemplate>(`/templates/${id}`);
-}
-
 export function createTemplate(input: TemplateInput) {
   return apiRequest<ServiceTemplate>("/templates", {
     method: "POST",
