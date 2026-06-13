@@ -1,7 +1,7 @@
-// Service-order PDF rendering. Builds a one-page A4 document programmatically
-// with PDFKit (no headless browser), so it stays light in Docker/CI and produces
-// identical output everywhere. The renderer is pure: it takes already-resolved
-// order/company data and returns a Buffer, leaving querying to the service layer.
+// PDF rendering utilities — service-order PDF and all-orders report PDF.
+// Built with PDFKit (no headless browser): light in Docker/CI, identical output
+// everywhere. All renderers are pure: they take already-resolved data and return
+// a Buffer, leaving querying to the service layer.
 
 import PDFDocument from "pdfkit";
 import path from "node:path";
@@ -314,6 +314,193 @@ function drawFooter(doc: Doc, footerNote: string | null): void {
       align: "center",
     });
 }
+
+// ─── All-orders report PDF ─────────────────────────────────────────────────────
+
+export interface ReportPdfRow {
+  orderNumber: string;
+  client: { name: string };
+  createdAt: string;
+  completedAt: string | null;
+  total: string;
+  honorario: string;
+  paymentStatus: PaymentStatus;
+  status: OrderStatus;
+}
+
+export interface ReportPdfTotals {
+  sumTotal: string;
+  sumHonorario: string;
+  totalReceived: string;
+}
+
+export interface ReportPdfData {
+  rows: ReportPdfRow[];
+  totals: ReportPdfTotals;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+// Portrait A4, 8pt rows — column x offsets and widths summing to 495pt (content width).
+const RCOL = {
+  os: { x: CONTENT_LEFT, w: 52 },
+  client: { x: CONTENT_LEFT + 57, w: 105 },
+  createdAt: { x: CONTENT_LEFT + 167, w: 52 },
+  completedAt: { x: CONTENT_LEFT + 224, w: 58 },
+  total: { x: CONTENT_LEFT + 287, w: 50 },
+  honorario: { x: CONTENT_LEFT + 342, w: 50 },
+  payment: { x: CONTENT_LEFT + 397, w: 68 },
+  status: { x: CONTENT_LEFT + 470, w: 25 },
+} as const;
+
+const ROW_HEIGHT = 14;
+const HEADER_HEIGHT = 16;
+// Reserve space for the totals row + small padding at the bottom of each page.
+const PAGE_BOTTOM_LIMIT = 841.89 - MARGIN - ROW_HEIGHT * 2 - 20;
+
+function drawReportCell(
+  doc: Doc,
+  text: string,
+  col: { x: number; w: number },
+  y: number,
+  align: "left" | "right" = "left",
+): void {
+  doc.text(text, col.x, y, { width: col.w, align, lineBreak: false });
+}
+
+function drawReportHeaders(doc: Doc, y: number): void {
+  doc.fillColor(GRAY).font("Helvetica-Bold").fontSize(7);
+  drawReportCell(doc, "Nº OS", RCOL.os, y);
+  drawReportCell(doc, "Cliente", RCOL.client, y);
+  drawReportCell(doc, "Criado em", RCOL.createdAt, y);
+  drawReportCell(doc, "Concluído em", RCOL.completedAt, y);
+  drawReportCell(doc, "Total", RCOL.total, y, "right");
+  drawReportCell(doc, "Honorário", RCOL.honorario, y, "right");
+  drawReportCell(doc, "Pagamento", RCOL.payment, y);
+  drawReportCell(doc, "Status", RCOL.status, y);
+  drawDivider(doc, y + HEADER_HEIGHT - 2);
+}
+
+function drawReportTotalsRow(
+  doc: Doc,
+  totals: ReportPdfTotals,
+  y: number,
+): void {
+  drawDivider(doc, y - 4);
+  doc.fillColor(DARK).font("Helvetica-Bold").fontSize(8);
+  drawReportCell(doc, "Total", RCOL.os, y);
+  drawReportCell(doc, formatCurrency(totals.sumTotal), RCOL.total, y, "right");
+  drawReportCell(
+    doc,
+    formatCurrency(totals.sumHonorario),
+    RCOL.honorario,
+    y,
+    "right",
+  );
+  doc.fillColor(GRAY).font("Helvetica").fontSize(7);
+  drawReportCell(
+    doc,
+    `Recebido: ${formatCurrency(totals.totalReceived)}`,
+    RCOL.payment,
+    y,
+  );
+}
+
+export function renderReportPdf(data: ReportPdfData): Promise<Buffer> {
+  const doc = new PDFDocument({ size: "A4", margin: MARGIN });
+  const chunks: Buffer[] = [];
+
+  const done = new Promise<Buffer>((resolve, reject) => {
+    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+  });
+
+  // Title block
+  doc
+    .fillColor(DARK)
+    .font("Helvetica-Bold")
+    .fontSize(13)
+    .text("Relatório — Todas as Ordens de Serviço", CONTENT_LEFT, MARGIN);
+
+  if (data.dateFrom ?? data.dateTo) {
+    const range = [
+      data.dateFrom ? `de ${formatDate(new Date(data.dateFrom))}` : "",
+      data.dateTo ? `até ${formatDate(new Date(data.dateTo))}` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    doc
+      .fillColor(GRAY)
+      .font("Helvetica")
+      .fontSize(9)
+      .text(range, CONTENT_LEFT, doc.y + 2);
+  }
+
+  let y = doc.y + 10;
+  drawDivider(doc, y);
+  y += 10;
+
+  drawReportHeaders(doc, y);
+  y += HEADER_HEIGHT;
+
+  const paymentLabel: Record<PaymentStatus, string> = {
+    UNPAID: "Não pago",
+    PAID_PIX: "Pix",
+    PAID_CREDIT: "Crédito",
+    PAID_DEBIT: "Débito",
+    PAID_CASH: "Dinheiro",
+    PAID_TRANSFER: "Transfer.",
+    PAID_OTHER: "Outro",
+  };
+
+  const statusLabel: Record<OrderStatus, string> = {
+    PENDING: "Pend.",
+    IN_PROGRESS: "Andamento",
+    AWAITING_CLIENT: "Ag. cliente",
+    COMPLETED: "Concluída",
+    CANCELLED: "Cancelada",
+  };
+
+  for (const row of data.rows) {
+    if (y > PAGE_BOTTOM_LIMIT) {
+      doc.addPage();
+      y = MARGIN;
+      drawReportHeaders(doc, y);
+      y += HEADER_HEIGHT;
+    }
+
+    doc.fillColor(DARK).font("Helvetica").fontSize(8);
+    drawReportCell(doc, row.orderNumber, RCOL.os, y);
+    drawReportCell(doc, row.client.name, RCOL.client, y);
+    drawReportCell(doc, formatDate(new Date(row.createdAt)), RCOL.createdAt, y);
+    drawReportCell(
+      doc,
+      row.completedAt ? formatDate(new Date(row.completedAt)) : "—",
+      RCOL.completedAt,
+      y,
+    );
+    drawReportCell(doc, formatCurrency(row.total), RCOL.total, y, "right");
+    drawReportCell(
+      doc,
+      formatCurrency(row.honorario),
+      RCOL.honorario,
+      y,
+      "right",
+    );
+    drawReportCell(doc, paymentLabel[row.paymentStatus], RCOL.payment, y);
+    drawReportCell(doc, statusLabel[row.status], RCOL.status, y);
+
+    y += ROW_HEIGHT;
+  }
+
+  drawReportTotalsRow(doc, data.totals, y + 4);
+
+  doc.end();
+  return done;
+}
+
+// ─── Service-order PDF ────────────────────────────────────────────────────────
 
 export function renderOrderPdf(data: OrderPdfData): Promise<Buffer> {
   const doc = new PDFDocument({ size: "A4", margin: MARGIN });

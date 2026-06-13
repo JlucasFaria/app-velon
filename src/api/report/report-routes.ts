@@ -4,7 +4,7 @@ import {
   getCompanyContext,
   type AuthVariables,
 } from "../../middlewares/auth";
-import { successResponse } from "../../utils/response";
+import { errorResponse, successResponse } from "../../utils/response";
 import { errorResponseSchema } from "../../schemas/response";
 import { ReportService } from "./report-service";
 import {
@@ -14,6 +14,8 @@ import {
   monthlyBillingResponseSchema,
   ordersSummaryResponseSchema,
 } from "./report-schema";
+import { generateReportCsv } from "../../utils/csv";
+import { renderReportPdf } from "../../utils/pdf";
 
 export function createReportRoutes(
   reportService: ReportService = new ReportService(),
@@ -128,6 +130,52 @@ export function createReportRoutes(
       200,
       "All orders report retrieved successfully",
     );
+  });
+
+  // ─── Export routes (binary responses — plain .get() handlers) ────────
+
+  reportRoutes.get("/orders/export/csv", async (c) => {
+    const parsed = allOrdersQuerySchema.safeParse(c.req.query());
+    if (!parsed.success)
+      return errorResponse(c, "Invalid query parameters", 400);
+
+    const { companyId } = getCompanyContext(c);
+    const { orders, totals } = await reportService.getAllOrders(
+      companyId,
+      parsed.data,
+    );
+    const csv = generateReportCsv(orders, totals);
+
+    const filename = `relatorio-os-${new Date().toISOString().slice(0, 10)}.csv`;
+    return c.body(csv, 200, {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+    });
+  });
+
+  reportRoutes.get("/orders/export/pdf", async (c) => {
+    const parsed = allOrdersQuerySchema.safeParse(c.req.query());
+    if (!parsed.success)
+      return errorResponse(c, "Invalid query parameters", 400);
+
+    const { companyId } = getCompanyContext(c);
+    const { orders, totals } = await reportService.getAllOrders(
+      companyId,
+      parsed.data,
+    );
+
+    const pdf = await renderReportPdf({
+      rows: orders,
+      totals,
+      dateFrom: parsed.data.dateFrom,
+      dateTo: parsed.data.dateTo,
+    });
+
+    const filename = `relatorio-os-${new Date().toISOString().slice(0, 10)}.pdf`;
+    return c.body(new Uint8Array(pdf), 200, {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+    });
   });
 
   return reportRoutes;
