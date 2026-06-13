@@ -8,6 +8,8 @@ import { successResponse } from "../../utils/response";
 import { errorResponseSchema } from "../../schemas/response";
 import { ReportService } from "./report-service";
 import {
+  allOrdersQuerySchema,
+  allOrdersResponseSchema,
   billingQuerySchema,
   monthlyBillingResponseSchema,
   ordersSummaryResponseSchema,
@@ -63,6 +65,26 @@ export function createReportRoutes(
     },
   });
 
+  const allOrdersRoute = createRoute({
+    method: "get",
+    path: "/orders",
+    tags: ["Reports"],
+    security: [{ bearerAuth: [] }],
+    request: { query: allOrdersQuerySchema },
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: allOrdersResponseSchema },
+        },
+        description: "All orders report retrieved successfully",
+      },
+      401: {
+        content: { "application/json": { schema: errorResponseSchema } },
+        description: "Missing or invalid authentication token",
+      },
+    },
+  });
+
   // ─── Middleware ─────────────────────────────────────────────────
 
   reportRoutes.use("/*", authMiddleware);
@@ -93,6 +115,18 @@ export function createReportRoutes(
       summary,
       200,
       "Orders summary retrieved successfully",
+    );
+  });
+
+  reportRoutes.openapi(allOrdersRoute, async (c) => {
+    const filters = c.req.valid("query");
+    const { companyId } = getCompanyContext(c);
+    const result = await reportService.getAllOrders(companyId, filters);
+    return successResponse(
+      c,
+      result,
+      200,
+      "All orders report retrieved successfully",
     );
   });
 
