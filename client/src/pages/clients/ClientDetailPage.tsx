@@ -4,7 +4,11 @@ import { ArrowLeft, ClipboardList } from "lucide-react";
 import { getClient, type ClientDetail } from "@/api/clients";
 import { ClientTypeBadge } from "@/components/clients/ClientTypeBadge";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
-import { formatCurrency, formatDate } from "@/lib/format";
+import {
+  formatCurrency,
+  formatDate,
+  formatRegistrationNumber,
+} from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TH, TH_RIGHT, TD, TD_RIGHT, TABLE_WRAP } from "@/lib/table-classes";
@@ -119,7 +123,9 @@ export function ClientDetailPage() {
           {client.registrationNumber != null && (
             <div>
               <p className="text-muted-foreground">Nº de cadastro</p>
-              <p className="font-medium">#{client.registrationNumber}</p>
+              <p className="font-medium tabular-nums">
+                {formatRegistrationNumber(client.registrationNumber)}
+              </p>
             </div>
           )}
           <div>

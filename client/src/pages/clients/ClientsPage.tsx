@@ -12,6 +12,7 @@ import {
   type PaginatedClients,
 } from "@/api/clients";
 import { usePaginatedList } from "@/hooks/usePaginatedList";
+import { formatRegistrationNumber } from "@/lib/format";
 import { ClientForm } from "@/components/clients/ClientForm";
 import { ClientTypeBadge } from "@/components/clients/ClientTypeBadge";
 import { Button } from "@/components/ui/button";
@@ -267,7 +268,9 @@ export function ClientsPage() {
                 : data?.clients.map((client) => (
                     <TableRow key={client.id}>
                       <TableCell className={`${TD} text-muted-foreground tabular-nums`}>
-                        {client.registrationNumber != null ? `#${client.registrationNumber}` : "—"}
+                        {client.registrationNumber != null
+                          ? formatRegistrationNumber(client.registrationNumber)
+                          : "—"}
                       </TableCell>
                       <TableCell className={`${TD} font-medium`}>
                         <Link
