@@ -4,32 +4,19 @@ import {
   ArrowLeft,
   Download,
   Loader2,
-  Mail,
-  MessageCircle,
-  MoreHorizontal,
   Receipt as ReceiptIcon,
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getOrder, type OrderDetail } from "@/api/orders";
 import { generateReceipt, getReceipt, type Receipt } from "@/api/receipts";
-import {
-  downloadOrderPdf,
-  getOrderShareLink,
-} from "@/api/pdf";
+import { downloadOrderPdf } from "@/api/pdf";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { PaymentBadge } from "@/components/orders/PaymentBadge";
-import { SendEmailDialog } from "@/components/orders/SendEmailDialog";
 import { StatusChangeDialog } from "@/components/orders/StatusChangeDialog";
 import { StatusTimeline } from "@/components/orders/StatusTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { useAuth } from "@/contexts/auth-context";
@@ -83,7 +70,6 @@ export function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
-  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
@@ -137,28 +123,6 @@ export function OrderDetailPage() {
       toast.error(err instanceof Error ? err.message : "Falha ao gerar o PDF");
     } finally {
       setPdfLoading(false);
-    }
-  }
-
-  async function handleWhatsApp() {
-    if (!id || !order) return;
-    try {
-      const { url } = await getOrderShareLink(Number(id));
-      const text = `Olá! Segue o link da Ordem de Serviço ${order.orderNumber}: ${url}`;
-      if (navigator.share) {
-        await navigator.share({ title: order.orderNumber, text, url });
-      } else {
-        window.open(
-          `https://wa.me/?text=${encodeURIComponent(text)}`,
-          "_blank",
-          "noopener,noreferrer",
-        );
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") return;
-      toast.error(
-        err instanceof Error ? err.message : "Falha ao gerar o link",
-      );
     }
   }
 
@@ -224,23 +188,6 @@ export function OrderDetailPage() {
               )}
               {pdfLoading ? "Gerando…" : "PDF"}
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label="Compartilhar">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setEmailDialogOpen(true)}>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Enviar por e-mail
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleWhatsApp}>
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Compartilhar no WhatsApp
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
             {canWrite && (
               <Button
                 variant="outline"
@@ -381,12 +328,6 @@ export function OrderDetailPage() {
         orderId={order.id}
         currentStatus={order.status}
         onUpdated={setOrder}
-      />
-      <SendEmailDialog
-        open={emailDialogOpen}
-        onOpenChange={setEmailDialogOpen}
-        orderId={order.id}
-        orderNumber={order.orderNumber}
       />
     </div>
   );

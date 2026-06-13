@@ -1,10 +1,3 @@
-import { apiRequest } from "./client";
-
-export interface PdfShareResult {
-  url: string;
-  expiresAt: string;
-}
-
 // Fetches the OS PDF as a Blob and triggers a browser file download.
 // Uses fetch directly because apiRequest unwraps JSON; PDFs are binary.
 export async function downloadOrderPdf(orderId: number): Promise<void> {
@@ -35,26 +28,4 @@ export async function downloadOrderPdf(orderId: number): Promise<void> {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
-}
-
-export function getOrderShareLink(orderId: number): Promise<PdfShareResult> {
-  return apiRequest<PdfShareResult>(`/pdf/orders/${orderId}/share`, {
-    method: "POST",
-  });
-}
-
-export interface SendEmailInput {
-  to: string;
-  subject?: string;
-  body?: string;
-}
-
-export function sendOrderByEmail(
-  orderId: number,
-  input: SendEmailInput,
-): Promise<PdfShareResult> {
-  return apiRequest<PdfShareResult>(`/pdf/orders/${orderId}/email`, {
-    method: "POST",
-    body: input,
-  });
 }
