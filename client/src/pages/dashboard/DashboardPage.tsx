@@ -26,14 +26,14 @@ interface StatCardProps {
 
 function StatCard({ title, value, description, icon: Icon, accent }: StatCardProps) {
   return (
-    <Card className="shadow-card">
+    <Card className="shadow-card transition-shadow hover:shadow-elevated">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+        <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
           {title}
         </CardTitle>
         <span
           className={cn(
-            "flex size-8 items-center justify-center rounded-md",
+            "flex size-9 items-center justify-center rounded-xl",
             accent,
           )}
         >
@@ -41,8 +41,8 @@ function StatCard({ title, value, description, icon: Icon, accent }: StatCardPro
         </span>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <div className="text-3xl font-bold tracking-tight">{value}</div>
+        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
       </CardContent>
     </Card>
   );
@@ -137,11 +137,16 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Painel</h1>
-        <p className="text-sm text-muted-foreground">
-          Visão geral das ordens de serviço
-        </p>
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Painel</h1>
+          <p className="text-sm text-muted-foreground">
+            Visão geral das ordens de serviço
+          </p>
+        </div>
+        <Button asChild variant="default" size="sm">
+          <Link to="/orders">Ver todas as ordens</Link>
+        </Button>
       </div>
 
       {error && (
