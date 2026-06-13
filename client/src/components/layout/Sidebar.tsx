@@ -28,11 +28,11 @@ const navItems: NavItem[] = [
 
 function Brand() {
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground shadow-sm">
+    <div className="flex items-center gap-3">
+      <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm">
         V
       </div>
-      <span className="text-base font-semibold tracking-tight text-primary">
+      <span className="text-lg font-bold tracking-tight text-foreground">
         Velon
       </span>
     </div>
@@ -41,7 +41,7 @@ function Brand() {
 
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <nav className="flex flex-1 flex-col gap-0.5 px-3 py-4">
+    <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
       {navItems.map(({ to, label, icon: Icon, end = false }) => (
         <NavLink
           key={to}
@@ -50,18 +50,15 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
           className={({ isActive }) =>
             cn(
-              "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150",
+              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
               isActive
                 ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
             )
           }
         >
           {({ isActive }) => (
             <>
-              {isActive && (
-                <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary" />
-              )}
               <Icon
                 className={cn(
                   "h-5 w-5 shrink-0 transition-colors",
