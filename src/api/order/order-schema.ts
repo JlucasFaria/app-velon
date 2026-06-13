@@ -7,6 +7,18 @@ export const orderStatusSchema = z
   .enum(["PENDING", "IN_PROGRESS", "AWAITING_CLIENT", "COMPLETED", "CANCELLED"])
   .openapi({ description: "Service order status", example: "PENDING" });
 
+export const paymentStatusSchema = z
+  .enum([
+    "UNPAID",
+    "PAID_PIX",
+    "PAID_CREDIT",
+    "PAID_DEBIT",
+    "PAID_CASH",
+    "PAID_TRANSFER",
+    "PAID_OTHER",
+  ])
+  .openapi({ description: "Payment status", example: "UNPAID" });
+
 const clientTypeSchema = z.enum(["COUNTER", "PARTNER"]).openapi({
   description: "Client type",
   example: "COUNTER",
@@ -81,6 +93,11 @@ export const orderResponseSchema = z
     description: z.string().openapi({ example: "Screen replacement" }),
     value: z.string().openapi({ example: "250.00" }),
     status: orderStatusSchema,
+    paymentStatus: paymentStatusSchema,
+    paymentNote: z
+      .string()
+      .nullable()
+      .openapi({ description: "Free text for PAID_OTHER", example: "Cheque" }),
     assignedUserId: z.number().nullable().openapi({ example: 1 }),
     clientId: z.number().openapi({ example: 1 }),
     createdAt: z.string().datetime().openapi({ description: "Creation date" }),
@@ -119,6 +136,13 @@ export const createOrderSchema = z
       .array()
       .min(1, "Informe ao menos um item")
       .openapi({ description: "Order line items" }),
+    paymentStatus: paymentStatusSchema.optional().openapi({
+      description: "Payment status (defaults to UNPAID)",
+    }),
+    paymentNote: z.string().optional().openapi({
+      description: "Free text describing the payment (used when PAID_OTHER)",
+      example: "Cheque",
+    }),
     clientId: z.number().int().positive().openapi({
       description: "Client ID",
       example: 1,
@@ -141,6 +165,13 @@ export const updateOrderSchema = z
       .min(1, "Informe ao menos um item")
       .optional()
       .openapi({ description: "Replace all line items" }),
+    paymentStatus: paymentStatusSchema.optional().openapi({
+      description: "Payment status",
+    }),
+    paymentNote: z.string().nullable().optional().openapi({
+      description: "Free text describing the payment (used when PAID_OTHER)",
+      example: "Cheque",
+    }),
     assignedUserId: z.number().int().positive().nullable().optional().openapi({
       description: "Assigned technician user ID (null to unassign)",
       example: 1,
