@@ -260,7 +260,7 @@ export function OrdersPage() {
                         <ClientTypeBadge type={order.client.clientType} />
                         {order.client.clientType === "PARTNER" &&
                           order.client.partner && (
-                            <span className="mt-0.5 block text-xs text-muted-foreground">
+                            <span className="mt-0.5 block pl-2.5 text-xs text-muted-foreground">
                               {order.client.partner.name}
                             </span>
                           )}
