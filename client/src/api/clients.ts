@@ -90,9 +90,3 @@ export function searchClients(q: string) {
     `/clients/search${buildQuery({ q })}`,
   );
 }
-
-export function getPartnerNameSuggestions(q?: string) {
-  return apiRequest<string[]>(
-    `/clients/partner-names${buildQuery({ q })}`,
-  );
-}
