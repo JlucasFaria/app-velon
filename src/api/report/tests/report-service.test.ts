@@ -1,4 +1,11 @@
-import { describe, it, expect, beforeEach, beforeAll } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  beforeAll,
+  afterAll,
+} from "bun:test";
 import { ReportService } from "../report-service";
 import prisma from "../../../db/client";
 import { createTestCompany } from "../../../test-utils/company";
@@ -13,8 +20,18 @@ let companyId: number;
 const JUNE_2026 = new Date(2026, 5, 15); // June 15
 const MAY_2026 = new Date(2026, 4, 10); // May 10
 
+// Track every company this file creates so afterAll removes only its own rows. A
+// global deleteMany() would wipe data created by test files running in parallel
+// against the shared DB.
+const createdCompanyIds: number[] = [];
+async function freshCompany(name?: string): Promise<number> {
+  const id = await createTestCompany(name);
+  createdCompanyIds.push(id);
+  return id;
+}
+
 beforeAll(async () => {
-  companyId = await createTestCompany("Report Service Company");
+  companyId = await freshCompany("Report Service Company");
 
   const user = await prisma.user.upsert({
     where: { email: "report-svc-test@example.com" },
@@ -39,7 +56,18 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await prisma.serviceOrder.deleteMany();
+  // Scoped to this file's company so the per-test reset never touches orders
+  // created by parallel test files.
+  await prisma.serviceOrder.deleteMany({ where: { companyId } });
+});
+
+afterAll(async () => {
+  if (createdCompanyIds.length === 0) return;
+  const scope = { where: { companyId: { in: createdCompanyIds } } };
+  // FK-safe order: orders → clients, then the companies (cascades memberships).
+  await prisma.serviceOrder.deleteMany(scope);
+  await prisma.client.deleteMany(scope);
+  await prisma.company.deleteMany({ where: { id: { in: createdCompanyIds } } });
 });
 
 // Creates an order; when status is COMPLETED, records a COMPLETED StatusHistory
@@ -447,7 +475,7 @@ describe("ReportService", () => {
     it("should scope orders to the requesting company", async () => {
       await createOrderFull({ value: "100.00" });
 
-      const otherCompanyId = await createTestCompany("Scoping Other Company");
+      const otherCompanyId = await freshCompany("Scoping Other Company");
       const otherClient = await prisma.client.create({
         data: {
           name: "Scoping Other Client",

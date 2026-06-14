@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import app from "../../../../src/index";
 import prisma from "../../../db/client";
 import { signTestToken, createTestCompany } from "../../../test-utils/company";
@@ -13,12 +13,20 @@ describe("Order Routes", () => {
   // isolated from other test files.
   const IP = "127.0.0.12";
 
+  // Track every company this file creates so afterEach removes only its own
+  // rows. A global deleteMany() would wipe data created by test files running in
+  // parallel against the shared DB.
+  const createdCompanyIds: number[] = [];
+  async function freshCompany(name?: string): Promise<number> {
+    const id = await createTestCompany(name);
+    createdCompanyIds.push(id);
+    return id;
+  }
+
   // Fresh company + client before each test; the user is upserted so it always
   // exists even if user-routes.test.ts runs deleteMany().
   beforeEach(async () => {
-    await prisma.serviceOrder.deleteMany();
-
-    companyId = await createTestCompany("Order Routes Company");
+    companyId = await freshCompany("Order Routes Company");
 
     const user = await prisma.user.upsert({
       where: { email: "order-routes-test@example.com" },
@@ -49,6 +57,18 @@ describe("Order Routes", () => {
     testClientId = client.id;
 
     token = await signTestToken(testUserId, user.email, companyId, "ADMIN");
+  });
+
+  afterEach(async () => {
+    if (createdCompanyIds.length === 0) return;
+    const scope = { where: { companyId: { in: createdCompanyIds } } };
+    // FK-safe order: orders → clients, then the companies (cascades memberships).
+    await prisma.serviceOrder.deleteMany(scope);
+    await prisma.client.deleteMany(scope);
+    await prisma.company.deleteMany({
+      where: { id: { in: createdCompanyIds } },
+    });
+    createdCompanyIds.length = 0;
   });
 
   const basePayload = () => ({
