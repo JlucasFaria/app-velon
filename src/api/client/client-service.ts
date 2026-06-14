@@ -14,7 +14,7 @@ const CLIENT_SELECT = {
   phone: true,
   address: true,
   clientType: true,
-  partnerName: true,
+  partner: { select: { id: true, name: true } },
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -66,7 +66,11 @@ export class ClientService {
       companyId,
       ...(clientType ? { clientType } : {}),
       ...(partnerName
-        ? { partnerName: { contains: partnerName, mode: "insensitive" as const } }
+        ? {
+            partner: {
+              name: { contains: partnerName, mode: "insensitive" as const },
+            },
+          }
         : {}),
       ...(search
         ? {
@@ -120,8 +124,7 @@ export class ClientService {
       where: { id },
       data: {
         ...data,
-        // Changing to COUNTER must clear partnerName; Prisma ignores undefined.
-        ...(data.clientType === "COUNTER" ? { partnerName: null } : {}),
+        ...(data.clientType === "COUNTER" ? { partnerId: null } : {}),
       },
       select: CLIENT_SELECT,
     });
@@ -140,19 +143,15 @@ export class ClientService {
   }
 
   async getPartnerNameSuggestions(companyId: number, q?: string) {
-    const clients = await this.prisma.client.findMany({
+    const partners = await this.prisma.partner.findMany({
       where: {
         companyId,
-        clientType: "PARTNER",
-        partnerName: q
-          ? { contains: q, mode: "insensitive" }
-          : { not: null },
+        ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
       },
-      select: { partnerName: true },
-      distinct: ["partnerName"],
-      orderBy: { partnerName: "asc" },
+      select: { name: true },
+      orderBy: { name: "asc" },
     });
-    return clients.map((c) => c.partnerName as string);
+    return partners.map((p) => p.name);
   }
 
   async delete(id: number, companyId: number) {

@@ -128,9 +128,11 @@ export class ReportService {
         ...(filters.status && { status: filters.status }),
         ...(filters.partnerName && {
           client: {
-            partnerName: {
-              contains: filters.partnerName,
-              mode: "insensitive" as const,
+            partner: {
+              name: {
+                contains: filters.partnerName,
+                mode: "insensitive" as const,
+              },
             },
           },
         }),
