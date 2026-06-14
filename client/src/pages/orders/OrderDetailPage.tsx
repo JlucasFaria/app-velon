@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Download,
   Loader2,
+  Pencil,
   Receipt as ReceiptIcon,
   RefreshCw,
   Wallet,
@@ -16,6 +17,7 @@ import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { PaymentBadge } from "@/components/orders/PaymentBadge";
 import { StatusChangeDialog } from "@/components/orders/StatusChangeDialog";
 import { PaymentChangeDialog } from "@/components/orders/PaymentChangeDialog";
+import { OrderEditDialog } from "@/components/orders/OrderEditDialog";
 import { StatusTimeline } from "@/components/orders/StatusTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +27,10 @@ import { useAuth } from "@/contexts/auth-context";
 
 // Receipts can only be issued once work has progressed past the initial state.
 const RECEIPT_BLOCKED_STATUSES = ["PENDING", "CANCELLED"];
+
+// Editing an order's content is locked once it is completed or cancelled, to
+// preserve the historical record (the backend enforces this too — UX only).
+const EDIT_BLOCKED_STATUSES = ["COMPLETED", "CANCELLED"];
 
 function BackButton() {
   return (
@@ -73,6 +79,7 @@ export function OrderDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
@@ -191,6 +198,12 @@ export function OrderDetailPage() {
               )}
               {pdfLoading ? "Gerando…" : "PDF"}
             </Button>
+            {canWrite && !EDIT_BLOCKED_STATUSES.includes(order.status) && (
+              <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar OS
+              </Button>
+            )}
             {canWrite && (
               <Button
                 variant="outline"
@@ -273,35 +286,63 @@ export function OrderDetailPage() {
               </div>
             </div>
             <div>
-              <p className="mb-2 text-sm font-medium text-muted-foreground">Itens</p>
+              <p className="mb-2 text-sm font-medium text-muted-foreground">
+                Itens
+              </p>
               <div className="overflow-x-auto rounded-xl border border-border/70">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/40">
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Descrição</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Categoria</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Qtd</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Vlr. Unit.</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Subtotal</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
+                        Descrição
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
+                        Categoria
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
+                        Qtd
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
+                        Vlr. Unit.
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
+                        Subtotal
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {order.items.map((item) => (
-                      <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                      <tr
+                        key={item.id}
+                        className="border-b last:border-0 hover:bg-muted/30 transition-colors"
+                      >
                         <td className="px-4 py-3">{item.description}</td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {item.category ?? "—"}
                         </td>
-                        <td className="px-4 py-3 text-right">{item.quantity}</td>
-                        <td className="px-4 py-3 text-right">{formatCurrency(item.unitValue)}</td>
-                        <td className="px-4 py-3 text-right font-medium">{formatCurrency(item.subtotal)}</td>
+                        <td className="px-4 py-3 text-right">
+                          {item.quantity}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {formatCurrency(item.unitValue)}
+                        </td>
+                        <td className="px-4 py-3 text-right font-medium">
+                          {formatCurrency(item.subtotal)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr className="border-t bg-muted/40">
-                      <td colSpan={4} className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total</td>
-                      <td className="px-4 py-3 text-right font-bold text-foreground">{formatCurrency(order.value)}</td>
+                      <td
+                        colSpan={4}
+                        className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                      >
+                        Total
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-foreground">
+                        {formatCurrency(order.value)}
+                      </td>
                     </tr>
                   </tfoot>
                 </table>
@@ -338,6 +379,15 @@ export function OrderDetailPage() {
           setOrder((prev) =>
             prev ? { ...prev, paymentStatus, paymentNote } : prev,
           )
+        }
+      />
+
+      <OrderEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        order={order}
+        onUpdated={(updated) =>
+          setOrder((prev) => (prev ? { ...prev, ...updated } : prev))
         }
       />
     </div>
