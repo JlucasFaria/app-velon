@@ -1,5 +1,6 @@
 // User routes: list (paginated, protected) and create (public registration)
 import { UserService } from "./user-service";
+import { AuthService } from "../auth/auth-service";
 import {
   createUserSchema,
   createUserResponseSchema,
@@ -21,7 +22,10 @@ import {
   validationErrorResponseSchema,
 } from "../../schemas/response";
 
-export function createUserRoutes(userService: UserService = new UserService()) {
+export function createUserRoutes(
+  userService: UserService = new UserService(),
+  authService: AuthService = new AuthService(),
+) {
   const userRoutes = new OpenAPIHono<{ Variables: AuthVariables }>();
 
   // ─── Route Definitions ──────────────────────────────────────────
@@ -145,6 +149,10 @@ export function createUserRoutes(userService: UserService = new UserService()) {
     const { id } = getAuthPayload(c);
     const body = c.req.valid("json");
     const updated = await userService.updateMe(id, body);
+    // A password change invalidates every existing session: revoke all refresh
+    // tokens so a compromised session can't refresh back into access. The user
+    // must log in again with the new password.
+    if (body.newPassword) await authService.revokeAllUserTokens(id);
     return successResponse(c, updated, 200, "Profile updated successfully");
   });
 

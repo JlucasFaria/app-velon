@@ -539,6 +539,87 @@ describe("PATCH /api/users/me", () => {
     expect(loginRes.status).toBe(200);
   });
 
+  it("should revoke existing refresh tokens after a password change", async () => {
+    const { email, token } = await makeUser("Secret1234");
+
+    // Capture a refresh token from a real login before changing the password.
+    const loginRes = await app.request("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password: "Secret1234" }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    const loginBody = (await loginRes.json()) as {
+      data: { refreshToken: string };
+    };
+    const oldRefreshToken = loginBody.data.refreshToken;
+
+    const patchRes = await app.request("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({
+        currentPassword: "Secret1234",
+        newPassword: "NewPass5678",
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    expect(patchRes.status).toBe(200);
+
+    // The pre-change refresh token must no longer be accepted.
+    const refreshRes = await app.request("/api/auth/refresh", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken: oldRefreshToken }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    expect(refreshRes.status).toBe(401);
+  });
+
+  it("should not revoke refresh tokens on a name-only change", async () => {
+    const { email, token } = await makeUser("Secret1234");
+
+    const loginRes = await app.request("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password: "Secret1234" }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    const loginBody = (await loginRes.json()) as {
+      data: { refreshToken: string };
+    };
+    const refreshToken = loginBody.data.refreshToken;
+
+    await app.request("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({ name: "Renamed" }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+
+    // The refresh token is still valid because no password change occurred.
+    const refreshRes = await app.request("/api/auth/refresh", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    expect(refreshRes.status).toBe(200);
+  });
+
   it("should return 401 when wrong currentPassword is provided for password change", async () => {
     const { token } = await makeUser("Secret1234");
 
