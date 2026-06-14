@@ -40,7 +40,7 @@ export interface ClientInput {
   phone?: string;
   address?: string;
   clientType: ClientType;
-  partnerName?: string;
+  partnerId?: number;
 }
 
 export interface ClientSearchResult {

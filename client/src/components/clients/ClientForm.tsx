@@ -1,16 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import {
-  createClient,
-  updateClient,
-  getPartnerNameSuggestions,
-  type Client,
-} from "@/api/clients";
+import { createClient, updateClient, type Client } from "@/api/clients";
 import { ApiError } from "@/api/client";
+import { PartnerCombobox } from "@/components/clients/PartnerCombobox";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -43,11 +39,11 @@ const schema = z
     phone: z.string().optional(),
     address: z.string().optional(),
     clientType: z.enum(["COUNTER", "PARTNER"]),
-    partnerName: z.string().optional(),
+    partnerId: z.number().optional(),
   })
-  .refine((d) => d.clientType !== "PARTNER" || !!d.partnerName, {
-    message: "Informe o nome do parceiro",
-    path: ["partnerName"],
+  .refine((d) => d.clientType !== "PARTNER" || d.partnerId != null, {
+    message: "Selecione o parceiro",
+    path: ["partnerId"],
   });
 
 type FormData = z.infer<typeof schema>;
@@ -58,7 +54,7 @@ const EMPTY_VALUES: FormData = {
   phone: "",
   address: "",
   clientType: "COUNTER",
-  partnerName: "",
+  partnerId: undefined,
 };
 
 interface ClientFormProps {
@@ -75,8 +71,6 @@ export function ClientForm({
   onSuccess,
 }: ClientFormProps) {
   const isEditing = !!client;
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -94,24 +88,9 @@ export function ClientForm({
       ? "Criando…"
       : "Criar cliente";
 
-  const fetchSuggestions = useCallback(async (q: string) => {
-    if (!q.trim()) {
-      setSuggestions([]);
-      return;
-    }
-    try {
-      const names = await getPartnerNameSuggestions(q);
-      setSuggestions(names);
-    } catch {
-      setSuggestions([]);
-    }
-  }, []);
-
   useEffect(() => {
     if (!open) return;
     const t = setTimeout(() => {
-      setSuggestions([]);
-      setShowSuggestions(false);
       form.reset(
         client
           ? {
@@ -120,7 +99,7 @@ export function ClientForm({
               phone: client.phone ?? "",
               address: client.address ?? "",
               clientType: client.clientType,
-              partnerName: client.partner?.name ?? "",
+              partnerId: client.partner?.id,
             }
           : EMPTY_VALUES,
       );
@@ -131,13 +110,13 @@ export function ClientForm({
   async function onSubmit(data: FormData) {
     try {
       const input = {
-        ...data,
+        name: data.name,
+        document: data.document,
         phone: data.phone || undefined,
         address: data.address || undefined,
-        partnerName:
-          data.clientType === "PARTNER"
-            ? data.partnerName || undefined
-            : undefined,
+        clientType: data.clientType,
+        partnerId:
+          data.clientType === "PARTNER" ? data.partnerId : undefined,
       };
       if (isEditing) {
         await updateClient(client.id, input);
@@ -237,50 +216,16 @@ export function ClientForm({
             {clientType === "PARTNER" && (
               <FormField
                 control={form.control}
-                name="partnerName"
+                name="partnerId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome do parceiro</FormLabel>
+                    <FormLabel>Parceiro</FormLabel>
                     <FormControl>
-                      <div className="relative">
-                        <Input
-                          placeholder="Nome do parceiro"
-                          {...field}
-                          value={field.value ?? ""}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            void fetchSuggestions(e.target.value);
-                            setShowSuggestions(true);
-                          }}
-                          onFocus={() => {
-                            if (field.value) {
-                              void fetchSuggestions(field.value);
-                              setShowSuggestions(true);
-                            }
-                          }}
-                          onBlur={() => {
-                            field.onBlur();
-                            setTimeout(() => setShowSuggestions(false), 150);
-                          }}
-                        />
-                        {showSuggestions && suggestions.length > 0 && (
-                          <ul className="absolute z-10 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md">
-                            {suggestions.map((name) => (
-                              <li
-                                key={name}
-                                className="cursor-pointer px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                                onMouseDown={() => {
-                                  field.onChange(name);
-                                  setSuggestions([]);
-                                  setShowSuggestions(false);
-                                }}
-                              >
-                                {name}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
+                      <PartnerCombobox
+                        value={field.value}
+                        onChange={field.onChange}
+                        initialLabel={client?.partner?.name}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
