@@ -93,8 +93,7 @@ export const updateMeSchema = z
     ) {
       ctx.addIssue({
         code: "custom",
-        message:
-          "currentPassword is required when changing email or password",
+        message: "currentPassword is required when changing email or password",
         path: ["currentPassword"],
       });
     }

@@ -438,7 +438,10 @@ describe("PATCH /api/users/me", () => {
       },
     });
 
-    const body = (await res.json()) as { success: boolean; data: { name: string } };
+    const body = (await res.json()) as {
+      success: boolean;
+      data: { name: string };
+    };
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
     expect(body.data.name).toBe("Updated Name");
@@ -462,7 +465,10 @@ describe("PATCH /api/users/me", () => {
       },
     });
 
-    const body = (await res.json()) as { success: boolean; data: { email: string } };
+    const body = (await res.json()) as {
+      success: boolean;
+      data: { email: string };
+    };
     expect(res.status).toBe(200);
     expect(body.data.email).toBe(newEmail.toLowerCase());
   });
@@ -491,7 +497,9 @@ describe("PATCH /api/users/me", () => {
 
     const res = await app.request("/api/users/me", {
       method: "PATCH",
-      body: JSON.stringify({ email: `no-pass-${crypto.randomUUID()}@test.com` }),
+      body: JSON.stringify({
+        email: `no-pass-${crypto.randomUUID()}@test.com`,
+      }),
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,

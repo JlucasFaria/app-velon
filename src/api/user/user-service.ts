@@ -121,7 +121,10 @@ export class UserService {
         select: { password: true },
       });
       if (!user) throw new HTTPException(404, { message: "User not found" });
-      const valid = await Bun.password.verify(data.currentPassword!, user.password);
+      const valid = await Bun.password.verify(
+        data.currentPassword!,
+        user.password,
+      );
       if (!valid)
         throw new HTTPException(401, { message: "Senha atual incorreta" });
     }
