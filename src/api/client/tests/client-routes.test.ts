@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import app from "../../../../src/index";
 import prisma from "../../../db/client";
 import { signTestToken, createTestCompany } from "../../../test-utils/company";
@@ -11,12 +11,32 @@ describe("Client Routes", () => {
   // isolated from other test files sharing the "unknown" bucket.
   const IP = "127.0.0.21";
 
+  // Track every company this file creates so afterEach removes only its own
+  // rows. A global deleteMany() would wipe data created by test files running in
+  // parallel against the shared DB; a fresh company per test keeps every scoped
+  // query isolated without touching other tenants.
+  const createdCompanyIds: number[] = [];
+  async function freshCompany(name?: string): Promise<number> {
+    const id = await createTestCompany(name);
+    createdCompanyIds.push(id);
+    return id;
+  }
+
   beforeEach(async () => {
-    // Delete in FK-safe order: orders reference clients.
-    await prisma.serviceOrder.deleteMany();
-    await prisma.client.deleteMany();
-    companyId = await createTestCompany();
+    companyId = await freshCompany();
     token = await signTestToken(1, "test@example.com", companyId, "ADMIN");
+  });
+
+  afterEach(async () => {
+    if (createdCompanyIds.length === 0) return;
+    const scope = { where: { companyId: { in: createdCompanyIds } } };
+    // FK-safe order: orders → clients, then the companies (cascades partners).
+    await prisma.serviceOrder.deleteMany(scope);
+    await prisma.client.deleteMany(scope);
+    await prisma.company.deleteMany({
+      where: { id: { in: createdCompanyIds } },
+    });
+    createdCompanyIds.length = 0;
   });
 
   const basePayload = {
@@ -491,7 +511,7 @@ describe("Client Routes", () => {
 
     it("should not return clients from another company", async () => {
       await post(basePayload);
-      const otherCompanyId = await createTestCompany("Other Co Search");
+      const otherCompanyId = await freshCompany("Other Co Search");
       await prisma.client.create({
         data: {
           name: "João Outro",
@@ -554,7 +574,7 @@ describe("Client Routes", () => {
 
     it("should not return names from another company", async () => {
       await prisma.partner.create({ data: { name: "Meu Parceiro", companyId } });
-      const otherCompanyId = await createTestCompany("Other Co Names");
+      const otherCompanyId = await freshCompany("Other Co Names");
       await prisma.partner.create({ data: { name: "Outro Parceiro", companyId: otherCompanyId } });
 
       const res = await app.request("/api/clients/partner-names", {

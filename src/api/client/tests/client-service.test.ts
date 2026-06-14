@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ClientService } from "../client-service";
 import prisma from "../../../db/client";
 import { createTestCompany } from "../../../test-utils/company";
@@ -14,9 +14,31 @@ const baseClient = {
 describe("ClientService", () => {
   let companyId: number;
 
+  // Track every company this file creates so afterEach removes only its own
+  // rows. A global deleteMany() would wipe data created by test files running in
+  // parallel against the shared DB; a fresh company per test keeps every scoped
+  // query isolated without touching other tenants.
+  const createdCompanyIds: number[] = [];
+  async function freshCompany(name?: string): Promise<number> {
+    const id = await createTestCompany(name);
+    createdCompanyIds.push(id);
+    return id;
+  }
+
   beforeEach(async () => {
-    await prisma.client.deleteMany();
-    companyId = await createTestCompany();
+    companyId = await freshCompany();
+  });
+
+  afterEach(async () => {
+    if (createdCompanyIds.length === 0) return;
+    const scope = { where: { companyId: { in: createdCompanyIds } } };
+    // FK-safe order: orders → clients, then the companies (cascades partners).
+    await prisma.serviceOrder.deleteMany(scope);
+    await prisma.client.deleteMany(scope);
+    await prisma.company.deleteMany({
+      where: { id: { in: createdCompanyIds } },
+    });
+    createdCompanyIds.length = 0;
   });
 
   describe("create", () => {
@@ -47,7 +69,7 @@ describe("ClientService", () => {
     });
 
     it("should scope registrationNumber per company — each company starts at 1", async () => {
-      const otherCompanyId = await createTestCompany("Other Co");
+      const otherCompanyId = await freshCompany("Other Co");
       const clientA = await clientService.create(baseClient, companyId);
       const clientB = await clientService.create(
         { name: "Maria Souza", document: "987.654.321-00", clientType: "COUNTER" as const },
@@ -109,7 +131,7 @@ describe("ClientService", () => {
     });
 
     it("should reject a partnerId that belongs to another company (404)", async () => {
-      const otherCompanyId = await createTestCompany("Foreign Partner Co");
+      const otherCompanyId = await freshCompany("Foreign Partner Co");
       const foreignPartner = await prisma.partner.create({
         data: { name: "Foreign Partner", companyId: otherCompanyId },
       });
@@ -256,7 +278,7 @@ describe("ClientService", () => {
 
     it("should not return clients from another company", async () => {
       await clientService.create(baseClient, companyId);
-      const otherCompanyId = await createTestCompany("Other Company");
+      const otherCompanyId = await freshCompany("Other Company");
       await clientService.create(
         {
           name: "Maria Souza",
@@ -291,7 +313,7 @@ describe("ClientService", () => {
 
     it("should return null for a client owned by another company", async () => {
       const created = await clientService.create(baseClient, companyId);
-      const otherCompanyId = await createTestCompany("Other Company");
+      const otherCompanyId = await freshCompany("Other Company");
 
       const found = await clientService.findById(created.id, otherCompanyId);
 
@@ -314,7 +336,7 @@ describe("ClientService", () => {
 
     it("should return null when updating a client from another company", async () => {
       const created = await clientService.create(baseClient, companyId);
-      const otherCompanyId = await createTestCompany("Other Company");
+      const otherCompanyId = await freshCompany("Other Company");
 
       const updated = await clientService.update(created.id, otherCompanyId, {
         name: "Hacked",
@@ -349,7 +371,7 @@ describe("ClientService", () => {
 
     it("should reject updating to a partnerId from another company (404)", async () => {
       const created = await clientService.create(baseClient, companyId);
-      const otherCompanyId = await createTestCompany("Foreign Update Co");
+      const otherCompanyId = await freshCompany("Foreign Update Co");
       const foreignPartner = await prisma.partner.create({
         data: { name: "Foreign Update Partner", companyId: otherCompanyId },
       });
@@ -378,7 +400,7 @@ describe("ClientService", () => {
 
     it("should return null when deleting a client from another company", async () => {
       const created = await clientService.create(baseClient, companyId);
-      const otherCompanyId = await createTestCompany("Other Company");
+      const otherCompanyId = await freshCompany("Other Company");
 
       const deleted = await clientService.delete(created.id, otherCompanyId);
       expect(deleted).toBeNull();
@@ -435,7 +457,7 @@ describe("ClientService", () => {
 
     it("should not return clients from another company", async () => {
       await clientService.create(baseClient, companyId);
-      const otherCompanyId = await createTestCompany("Other Co Search");
+      const otherCompanyId = await freshCompany("Other Co Search");
       await clientService.create(
         { name: "João Outro", document: "98765432100", clientType: "COUNTER" as const },
         otherCompanyId,
@@ -482,7 +504,7 @@ describe("ClientService", () => {
 
     it("should not return names from another company", async () => {
       await prisma.partner.create({ data: { name: "Meu Parceiro", companyId } });
-      const otherCompanyId = await createTestCompany("Other Co Names");
+      const otherCompanyId = await freshCompany("Other Co Names");
       await prisma.partner.create({ data: { name: "Outro Parceiro", companyId: otherCompanyId } });
 
       const names = await clientService.getPartnerNameSuggestions(companyId);
