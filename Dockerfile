@@ -32,9 +32,12 @@ COPY --from=build /app/node_modules ./node_modules
 # Generated Prisma client
 COPY --from=build /app/generated ./generated
 
-# Application source and Prisma schema/migrations
+# Application source and Prisma schema/migrations.
+# prisma.config.ts is required by `prisma migrate deploy`: it supplies the
+# datasource url (env DATABASE_URL), which the schema's datasource block omits.
 COPY src ./src
 COPY package.json ./
+COPY prisma.config.ts ./
 COPY prisma ./prisma
 
 # Built frontend, served by the backend (see src/index.ts)
