@@ -105,12 +105,15 @@ export interface UpdateOrderInput {
   paymentNote?: string | null;
 }
 
-// List rows embed the client's id + name (see backend ORDER_LIST_SELECT) so the
-// orders table can show the client without an extra fetch per row.
+// List rows embed the client's id, name, type, and partner (see backend
+// ORDER_LIST_SELECT) so the orders table can show the order's origin without an
+// extra fetch per row.
 export interface OrderListItem extends Order {
   client: {
     id: number;
     name: string;
+    clientType: ClientType;
+    partner: Partner | null;
   };
 }
 
