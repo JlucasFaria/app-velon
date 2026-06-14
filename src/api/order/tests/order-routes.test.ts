@@ -517,6 +517,79 @@ describe("Order Routes", () => {
       expect(body.data.description).toBe("Updated description");
     });
 
+    it("should update description and items on a PENDING order", async () => {
+      const created = (await (await post(basePayload())).json()) as {
+        data: { id: number };
+      };
+
+      const res = await app.request(`/api/orders/${created.data.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          description: "Reworked service",
+          items: [
+            { description: "New part", unitValue: "100.00", quantity: 2 },
+          ],
+        }),
+        headers: h({ "Content-Type": "application/json" }),
+      });
+      const body = (await res.json()) as {
+        data: {
+          description: string;
+          value: string;
+          items: Array<{ description: string; subtotal: string }>;
+        };
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.data.description).toBe("Reworked service");
+      expect(body.data.items.length).toBe(1);
+      expect(body.data.items[0]?.description).toBe("New part");
+      expect(Number(body.data.items[0]?.subtotal)).toBe(200);
+      expect(Number(body.data.value)).toBe(200);
+    });
+
+    it("should return 409 when editing a COMPLETED order", async () => {
+      const created = (await (await post(basePayload())).json()) as {
+        data: { id: number };
+      };
+
+      await app.request(`/api/orders/${created.data.id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "COMPLETED" }),
+        headers: h({ "Content-Type": "application/json" }),
+      });
+
+      const res = await app.request(`/api/orders/${created.data.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ description: "Too late to edit" }),
+        headers: h({ "Content-Type": "application/json" }),
+      });
+
+      expect(res.status).toBe(409);
+    });
+
+    it("should return 409 when editing a CANCELLED order", async () => {
+      const created = (await (await post(basePayload())).json()) as {
+        data: { id: number };
+      };
+
+      await app.request(`/api/orders/${created.data.id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "CANCELLED" }),
+        headers: h({ "Content-Type": "application/json" }),
+      });
+
+      const res = await app.request(`/api/orders/${created.data.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          items: [{ description: "Part", unitValue: "10.00", quantity: 1 }],
+        }),
+        headers: h({ "Content-Type": "application/json" }),
+      });
+
+      expect(res.status).toBe(409);
+    });
+
     it("should return 404 when updating a non-existent order", async () => {
       const res = await app.request("/api/orders/999999", {
         method: "PUT",
