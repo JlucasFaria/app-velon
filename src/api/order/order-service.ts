@@ -340,9 +340,26 @@ export class OrderService {
   async update(id: number, companyId: number, data: UpdateOrderInput) {
     const owned = await this.prisma.serviceOrder.findFirst({
       where: { id, companyId },
-      select: { id: true },
+      select: { id: true, status: true },
     });
     if (!owned) return null;
+
+    // Editing the order's content (description / items / assignment) is locked
+    // once it is COMPLETED or CANCELLED, preserving the historical record. A
+    // pure payment-status change is still allowed (e.g. collecting payment after
+    // the work is finished), so the guard only fires for content edits.
+    const editsContent =
+      data.description !== undefined ||
+      data.items !== undefined ||
+      "assignedUserId" in data;
+    if (
+      editsContent &&
+      (owned.status === "COMPLETED" || owned.status === "CANCELLED")
+    ) {
+      throw new HTTPException(409, {
+        message: "Não é possível editar uma ordem concluída ou cancelada",
+      });
+    }
 
     const paymentUpdate = buildPaymentUpdate(data);
 
