@@ -13,6 +13,7 @@ import {
   type CompanyInput,
   type Member,
 } from "@/api/company";
+import { me, updateMe } from "@/api/auth";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +31,8 @@ import { InviteMemberDialog } from "@/components/members/InviteMemberDialog";
 import { MemberList } from "@/components/members/MemberList";
 import { TemplatesSection } from "@/components/templates/TemplatesSection";
 
+// ─── Company form schema ────────────────────────────────────────────────────
+
 const schema = z.object({
   name: z.string().min(2, "Informe o nome da empresa"),
   document: z.string().optional(),
@@ -44,6 +47,37 @@ const schema = z.object({
 });
 
 type FormData = z.infer<typeof schema>;
+
+// ─── Personal profile form schemas ──────────────────────────────────────────
+
+const nameSchema = z.object({
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+});
+
+const emailSchema = z.object({
+  email: z.string().email("E-mail inválido"),
+  currentPassword: z.string().min(1, "Informe a senha atual"),
+});
+
+const passwordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Informe a senha atual"),
+    newPassword: z
+      .string()
+      .min(8, "Mínimo 8 caracteres")
+      .regex(/[A-Z]/, "Deve conter pelo menos uma letra maiúscula")
+      .regex(/[a-z]/, "Deve conter pelo menos uma letra minúscula")
+      .regex(/[0-9]/, "Deve conter pelo menos um número"),
+    confirmPassword: z.string().min(1, "Confirme a nova senha"),
+  })
+  .refine((d) => d.newPassword === d.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  });
+
+type NameForm = z.infer<typeof nameSchema>;
+type EmailForm = z.infer<typeof emailSchema>;
+type PasswordForm = z.infer<typeof passwordSchema>;
 
 const EMPTY_VALUES: FormData = {
   name: "",
@@ -65,7 +99,7 @@ function toFormValues(company: Company): FormData {
   };
 }
 
-type Tab = "empresa" | "modelos" | "membros";
+type Tab = "perfil" | "empresa" | "modelos" | "membros";
 
 export function ProfilePage() {
   const { user } = useAuth();
@@ -81,12 +115,31 @@ export function ProfilePage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
 
+  // Personal profile data (fetched when the Dados Pessoais tab is opened)
+  const [profileName, setProfileName] = useState<string>("");
+  const [profileEmail, setProfileEmail] = useState<string>("");
+
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: EMPTY_VALUES,
   });
 
   const { isSubmitting } = form.formState;
+
+  const nameForm = useForm<NameForm>({
+    resolver: zodResolver(nameSchema),
+    defaultValues: { name: "" },
+  });
+
+  const emailForm = useForm<EmailForm>({
+    resolver: zodResolver(emailSchema),
+    defaultValues: { email: "", currentPassword: "" },
+  });
+
+  const passwordForm = useForm<PasswordForm>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -114,6 +167,26 @@ export function ProfilePage() {
     };
   }, [form]);
 
+  // Load personal profile data when the Dados Pessoais tab is first opened.
+  useEffect(() => {
+    if (activeTab !== "perfil") return;
+    let cancelled = false;
+    me()
+      .then((data) => {
+        if (!cancelled) {
+          setProfileName(data.name ?? "");
+          setProfileEmail(data.email);
+          nameForm.reset({ name: data.name ?? "" });
+          emailForm.reset({ email: data.email, currentPassword: "" });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
   // Load members when the Membros tab is first opened.
   useEffect(() => {
     if (activeTab !== "membros" || !isAdmin) return;
@@ -137,6 +210,44 @@ export function ProfilePage() {
       clearTimeout(t);
     };
   }, [activeTab, isAdmin]);
+
+  async function onNameSubmit(data: NameForm) {
+    try {
+      const updated = await updateMe({ name: data.name });
+      setProfileName(updated.name ?? "");
+      nameForm.reset({ name: updated.name ?? "" });
+      toast.success("Nome atualizado");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Algo deu errado");
+    }
+  }
+
+  async function onEmailSubmit(data: EmailForm) {
+    try {
+      const updated = await updateMe({
+        email: data.email,
+        currentPassword: data.currentPassword,
+      });
+      setProfileEmail(updated.email);
+      emailForm.reset({ email: updated.email, currentPassword: "" });
+      toast.success("E-mail atualizado");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Algo deu errado");
+    }
+  }
+
+  async function onPasswordSubmit(data: PasswordForm) {
+    try {
+      await updateMe({
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+      });
+      passwordForm.reset();
+      toast.success("Senha atualizada");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Algo deu errado");
+    }
+  }
 
   async function onSubmit(data: FormData) {
     const orNull = (v?: string) => (v?.trim() ? v.trim() : null);
@@ -189,25 +300,233 @@ export function ProfilePage() {
 
       {/* Tab bar */}
       <div className="flex gap-1 border-b">
-        {(["empresa", "modelos", ...(isAdmin ? ["membros"] : [])] as Tab[]).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={[
-              "px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-all capitalize",
-              activeTab === tab
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
-            ].join(" ")}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
-        ))}
+        {(
+          [
+            "perfil",
+            "empresa",
+            "modelos",
+            ...(isAdmin ? ["membros"] : []),
+          ] as Tab[]
+        ).map((tab) => {
+          const labels: Record<Tab, string> = {
+            perfil: "Dados Pessoais",
+            empresa: "Empresa",
+            modelos: "Modelos",
+            membros: "Membros",
+          };
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={[
+                "px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-all",
+                activeTab === tab
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
+              ].join(" ")}
+            >
+              {labels[tab]}
+            </button>
+          );
+        })}
       </div>
 
       {error && (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {error}
+        </div>
+      )}
+
+      {/* ─── Dados Pessoais tab ──────────────────────────────────────────── */}
+      {activeTab === "perfil" && (
+        <div className="space-y-4">
+          {/* Name */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="text-base">Nome</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Nome atual:{" "}
+                <span className="font-medium text-foreground">
+                  {profileName || "—"}
+                </span>
+              </p>
+              <Form {...nameForm}>
+                <form
+                  onSubmit={nameForm.handleSubmit(onNameSubmit)}
+                  className="flex gap-3"
+                >
+                  <FormField
+                    control={nameForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormControl>
+                          <Input placeholder="Novo nome" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    disabled={nameForm.formState.isSubmitting}
+                  >
+                    {nameForm.formState.isSubmitting && (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    )}
+                    Salvar
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+
+          {/* Email */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="text-base">E-mail</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-sm text-muted-foreground">
+                E-mail atual:{" "}
+                <span className="font-medium text-foreground">
+                  {profileEmail || "—"}
+                </span>
+              </p>
+              <Form {...emailForm}>
+                <form
+                  onSubmit={emailForm.handleSubmit(onEmailSubmit)}
+                  className="space-y-3"
+                >
+                  <FormField
+                    control={emailForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Novo e-mail</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="novo@email.com"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={emailForm.control}
+                    name="currentPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Senha atual</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder="••••••••"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex justify-end pt-1">
+                    <Button
+                      type="submit"
+                      disabled={emailForm.formState.isSubmitting}
+                    >
+                      {emailForm.formState.isSubmitting && (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      )}
+                      Atualizar e-mail
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+
+          {/* Password */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="text-base">Alterar senha</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Form {...passwordForm}>
+                <form
+                  onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
+                  className="space-y-3"
+                >
+                  <FormField
+                    control={passwordForm.control}
+                    name="currentPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Senha atual</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder="••••••••"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={passwordForm.control}
+                    name="newPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nova senha</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder="••••••••"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={passwordForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirmar nova senha</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder="••••••••"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex justify-end pt-1">
+                    <Button
+                      type="submit"
+                      disabled={passwordForm.formState.isSubmitting}
+                    >
+                      {passwordForm.formState.isSubmitting && (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      )}
+                      Alterar senha
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
         </div>
       )}
 
