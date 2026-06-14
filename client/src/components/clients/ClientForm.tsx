@@ -120,7 +120,7 @@ export function ClientForm({
               phone: client.phone ?? "",
               address: client.address ?? "",
               clientType: client.clientType,
-              partnerName: client.partnerName ?? "",
+              partnerName: client.partner?.name ?? "",
             }
           : EMPTY_VALUES,
       );

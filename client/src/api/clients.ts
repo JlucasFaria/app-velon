@@ -2,6 +2,11 @@ import { apiRequest, buildQuery, type Pagination } from "./client";
 
 export type ClientType = "COUNTER" | "PARTNER";
 
+export interface Partner {
+  id: number;
+  name: string;
+}
+
 export interface Client {
   id: number;
   registrationNumber: number | null;
@@ -10,7 +15,7 @@ export interface Client {
   phone: string | null;
   address: string | null;
   clientType: ClientType;
-  partnerName: string | null;
+  partner: Partner | null;
   createdAt: string;
   updatedAt: string;
 }

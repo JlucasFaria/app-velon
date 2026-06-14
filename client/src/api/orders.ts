@@ -1,5 +1,5 @@
 import { apiRequest, buildQuery, type Pagination } from "./client";
-import type { ClientType } from "./clients";
+import type { ClientType, Partner } from "./clients";
 
 export type OrderStatus =
   | "PENDING"
@@ -83,7 +83,7 @@ export interface OrderDetail extends Order {
     name: string;
     document: string;
     clientType: ClientType;
-    partnerName: string | null;
+    partner: Partner | null;
   };
   statusHistory: StatusHistoryEntry[];
 }

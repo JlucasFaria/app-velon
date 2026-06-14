@@ -259,9 +259,9 @@ export function OrderDetailPage() {
                   {order.client.name}
                 </Link>
                 {order.client.clientType === "PARTNER" &&
-                  order.client.partnerName && (
+                  order.client.partner && (
                     <p className="text-xs text-muted-foreground">
-                      Parceiro: {order.client.partnerName}
+                      Parceiro: {order.client.partner.name}
                     </p>
                   )}
               </div>
