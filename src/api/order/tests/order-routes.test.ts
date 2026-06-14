@@ -242,6 +242,27 @@ describe("Order Routes", () => {
       expect(body.data.pagination.total).toBe(2);
     });
 
+    it("should include clientType and partner in each list item", async () => {
+      await post(basePayload());
+
+      const res = await app.request("/api/orders", { headers: h() });
+      const body = (await res.json()) as {
+        data: {
+          orders: Array<{
+            client: {
+              id: number;
+              clientType: string;
+              partner: { id: number; name: string } | null;
+            };
+          }>;
+        };
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.data.orders[0]?.client.clientType).toBe("COUNTER");
+      expect(body.data.orders[0]?.client.partner).toBeNull();
+    });
+
     it("should filter by status", async () => {
       const created = (await (await post(basePayload())).json()) as {
         data: { id: number };
@@ -398,6 +419,28 @@ describe("Order Routes", () => {
     it("should return 404 for a non-existent id", async () => {
       const res = await app.request("/api/orders/999999", { headers: h() });
       expect(res.status).toBe(404);
+    });
+
+    it("should include clientType and null partner in detail for a COUNTER client", async () => {
+      const created = (await (await post(basePayload())).json()) as {
+        data: { id: number };
+      };
+
+      const res = await app.request(`/api/orders/${created.data.id}`, {
+        headers: h(),
+      });
+      const body = (await res.json()) as {
+        data: {
+          client: {
+            clientType: string;
+            partner: { id: number; name: string } | null;
+          };
+        };
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.data.client.clientType).toBe("COUNTER");
+      expect(body.data.client.partner).toBeNull();
     });
 
     it("should include the client's partner in detail for a PARTNER client", async () => {
