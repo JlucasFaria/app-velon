@@ -15,6 +15,14 @@ const orderStatusSchema = z.enum([
   "CANCELLED",
 ]);
 
+const partnerSchema = z
+  .object({
+    id: z.number().openapi({ example: 1 }),
+    name: z.string().openapi({ example: "Parceiro XYZ" }),
+  })
+  .nullable()
+  .openapi({ description: "Partner reference" });
+
 export const clientResponseSchema = z
   .object({
     id: z.number().openapi({ example: 1 }),
@@ -24,7 +32,7 @@ export const clientResponseSchema = z
     phone: z.string().nullable().openapi({ example: "(11) 91234-5678" }),
     address: z.string().nullable().openapi({ example: "Rua das Flores, 123" }),
     clientType: clientTypeSchema,
-    partnerName: z.string().nullable().openapi({ example: "Parceiro XYZ" }),
+    partner: partnerSchema,
     createdAt: z.string().datetime().openapi({ description: "Creation date" }),
     updatedAt: z
       .string()
@@ -67,24 +75,24 @@ const clientInputBaseSchema = z.object({
     example: "Rua das Flores, 123",
   }),
   clientType: clientTypeSchema,
-  partnerName: z.string().min(2).optional().openapi({
-    description: "Partner name (required when clientType is PARTNER)",
-    example: "Parceiro XYZ",
+  partnerId: z.number().int().optional().openapi({
+    description: "Partner ID (required when clientType is PARTNER)",
+    example: 1,
   }),
 });
 
 export const createClientSchema = clientInputBaseSchema
-  .refine((d) => d.clientType !== "PARTNER" || !!d.partnerName, {
-    message: "Nome do parceiro é obrigatório para clientes do tipo Parceiro",
-    path: ["partnerName"],
+  .refine((d) => d.clientType !== "PARTNER" || !!d.partnerId, {
+    message: "ID do parceiro é obrigatório para clientes do tipo Parceiro",
+    path: ["partnerId"],
   })
   .openapi("CreateClientInput");
 
 export const updateClientSchema = clientInputBaseSchema
   .partial()
-  .refine((d) => d.clientType !== "PARTNER" || !!d.partnerName, {
-    message: "Nome do parceiro é obrigatório para clientes do tipo Parceiro",
-    path: ["partnerName"],
+  .refine((d) => d.clientType !== "PARTNER" || !!d.partnerId, {
+    message: "ID do parceiro é obrigatório para clientes do tipo Parceiro",
+    path: ["partnerId"],
   })
   .openapi("UpdateClientInput");
 

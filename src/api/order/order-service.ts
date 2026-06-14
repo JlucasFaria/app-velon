@@ -116,14 +116,14 @@ const ORDER_SELECT = {
   },
 } as const;
 
-// List rows embed the client name so the orders table can display it without
-// an extra round-trip per row.
 const ORDER_LIST_SELECT = {
   ...ORDER_SELECT,
   client: {
     select: {
       id: true,
       name: true,
+      clientType: true,
+      partner: { select: { id: true, name: true } },
     },
   },
 } as const;
@@ -151,7 +151,7 @@ const ORDER_DETAIL_SELECT = {
       name: true,
       document: true,
       clientType: true,
-      partnerName: true,
+      partner: { select: { id: true, name: true } },
     },
   },
   statusHistory: {
@@ -248,9 +248,8 @@ export class OrderService {
       ...(clientType ? { clientType } : {}),
       ...(partnerName
         ? {
-            partnerName: {
-              contains: partnerName,
-              mode: "insensitive" as const,
+            partner: {
+              name: { contains: partnerName, mode: "insensitive" as const },
             },
           }
         : {}),

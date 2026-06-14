@@ -24,6 +24,7 @@ import {
   createCompanySchema,
 } from "./company-schema";
 import { createMemberRoutes } from "./member-routes";
+import { createPartnerRoutes } from "../partner/partner-routes";
 
 // Validate by file signature (magic bytes) rather than the client-supplied
 // Content-Type, which can be spoofed. Returns the real extension or null.
@@ -163,6 +164,7 @@ export function createCompanyRoutes(
 
   // Member management lives under /members; the auth middleware above covers it.
   companyRoutes.route("/members", createMemberRoutes());
+  companyRoutes.route("/partners", createPartnerRoutes());
 
   // ─── Route Handlers ─────────────────────────────────────────────
 

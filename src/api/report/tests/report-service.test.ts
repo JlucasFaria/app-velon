@@ -1,4 +1,11 @@
-import { describe, it, expect, beforeEach, beforeAll } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  beforeAll,
+  afterAll,
+} from "bun:test";
 import { ReportService } from "../report-service";
 import prisma from "../../../db/client";
 import { createTestCompany } from "../../../test-utils/company";
@@ -13,8 +20,18 @@ let companyId: number;
 const JUNE_2026 = new Date(2026, 5, 15); // June 15
 const MAY_2026 = new Date(2026, 4, 10); // May 10
 
+// Track every company this file creates so afterAll removes only its own rows. A
+// global deleteMany() would wipe data created by test files running in parallel
+// against the shared DB.
+const createdCompanyIds: number[] = [];
+async function freshCompany(name?: string): Promise<number> {
+  const id = await createTestCompany(name);
+  createdCompanyIds.push(id);
+  return id;
+}
+
 beforeAll(async () => {
-  companyId = await createTestCompany("Report Service Company");
+  companyId = await freshCompany("Report Service Company");
 
   const user = await prisma.user.upsert({
     where: { email: "report-svc-test@example.com" },
@@ -39,7 +56,18 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await prisma.serviceOrder.deleteMany();
+  // Scoped to this file's company so the per-test reset never touches orders
+  // created by parallel test files.
+  await prisma.serviceOrder.deleteMany({ where: { companyId } });
+});
+
+afterAll(async () => {
+  if (createdCompanyIds.length === 0) return;
+  const scope = { where: { companyId: { in: createdCompanyIds } } };
+  // FK-safe order: orders → clients, then the companies (cascades memberships).
+  await prisma.serviceOrder.deleteMany(scope);
+  await prisma.client.deleteMany(scope);
+  await prisma.company.deleteMany({ where: { id: { in: createdCompanyIds } } });
 });
 
 // Creates an order; when status is COMPLETED, records a COMPLETED StatusHistory
@@ -313,6 +341,51 @@ describe("ReportService", () => {
       expect(order.completedAt).toBeDefined();
       expect(order.client.id).toBe(testClientId);
       expect(order.client.name).toBe("Report Test Client");
+      expect(order.client.clientType).toBe("COUNTER");
+      expect(order.client.partnerName).toBeNull();
+    });
+
+    it("should expose clientType and partnerName for a PARTNER client", async () => {
+      const partnerEntity = await prisma.partner.create({
+        data: { name: "Billing Partner", companyId },
+      });
+      const partnerClient = await prisma.client.create({
+        data: {
+          name: "Billing Partner Co",
+          document: `billing-partner-doc-${crypto.randomUUID()}`,
+          clientType: "PARTNER",
+          partnerId: partnerEntity.id,
+          companyId,
+        },
+      });
+      await prisma.serviceOrder.create({
+        data: {
+          orderNumber: `OS-RPT-PB-${crypto.randomUUID().slice(0, 8)}`,
+          description: "Partner billing order",
+          value: "300.00",
+          clientId: partnerClient.id,
+          companyId,
+          status: "COMPLETED",
+          statusHistory: {
+            create: [
+              { toStatus: "PENDING", changedById: testUserId },
+              {
+                fromStatus: "PENDING",
+                toStatus: "COMPLETED",
+                changedById: testUserId,
+                changedAt: JUNE_2026,
+              },
+            ],
+          },
+        },
+      });
+
+      const result = await reportService.getMonthlyBilling(companyId, 6, 2026);
+      const order = result.orders.find((o) => o.client.id === partnerClient.id);
+
+      expect(order).toBeDefined();
+      expect(order!.client.clientType).toBe("PARTNER");
+      expect(order!.client.partnerName).toBe("Billing Partner");
     });
 
     it("should not count an order completed in the month but later cancelled", async () => {
@@ -390,10 +463,19 @@ describe("ReportService", () => {
       expect(result.orders).toHaveLength(2);
     });
 
+    it("should expose clientType and a null partnerName for a COUNTER client", async () => {
+      await createOrderFull({ clientId: testClientId });
+
+      const result = await reportService.getAllOrders(companyId, {});
+
+      expect(result.orders[0]!.client.clientType).toBe("COUNTER");
+      expect(result.orders[0]!.client.partnerName).toBeNull();
+    });
+
     it("should scope orders to the requesting company", async () => {
       await createOrderFull({ value: "100.00" });
 
-      const otherCompanyId = await createTestCompany("Scoping Other Company");
+      const otherCompanyId = await freshCompany("Scoping Other Company");
       const otherClient = await prisma.client.create({
         data: {
           name: "Scoping Other Client",
@@ -446,12 +528,15 @@ describe("ReportService", () => {
     });
 
     it("should filter by partnerName (case-insensitive, via the client relation)", async () => {
+      const partnerEntity = await prisma.partner.create({
+        data: { name: "Alpha Partner", companyId },
+      });
       const partnerClient = await prisma.client.create({
         data: {
           name: "Partner Co",
           document: `partner-doc-${crypto.randomUUID()}`,
           clientType: "PARTNER",
-          partnerName: "Alpha Partner",
+          partnerId: partnerEntity.id,
           companyId,
         },
       });
@@ -465,6 +550,8 @@ describe("ReportService", () => {
 
       expect(result.orders).toHaveLength(1);
       expect(result.orders[0]!.client.id).toBe(partnerClient.id);
+      expect(result.orders[0]!.client.clientType).toBe("PARTNER");
+      expect(result.orders[0]!.client.partnerName).toBe("Alpha Partner");
     });
 
     it("should filter by dateFrom", async () => {

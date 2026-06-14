@@ -138,6 +138,12 @@ export function ClientDetailPage() {
               <ClientTypeBadge type={client.clientType} />
             </p>
           </div>
+          {client.clientType === "PARTNER" && (
+            <div>
+              <p className="text-muted-foreground">Parceiro</p>
+              <p className="font-medium">{client.partner?.name ?? "—"}</p>
+            </div>
+          )}
           <div className="sm:col-span-2">
             <p className="text-muted-foreground">Endereço</p>
             <p className="font-medium">{client.address ?? "—"}</p>

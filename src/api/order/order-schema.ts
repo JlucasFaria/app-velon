@@ -24,12 +24,19 @@ const clientTypeSchema = z.enum(["COUNTER", "PARTNER"]).openapi({
   example: "COUNTER",
 });
 
+const partnerRefSchema = z
+  .object({
+    id: z.number().openapi({ example: 1 }),
+    name: z.string().openapi({ example: "Parceiro XYZ" }),
+  })
+  .nullable();
+
 const orderClientSchema = z.object({
   id: z.number().openapi({ example: 1 }),
   name: z.string().openapi({ example: "João Silva" }),
   document: z.string().openapi({ example: "123.456.789-00" }),
   clientType: clientTypeSchema,
-  partnerName: z.string().nullable().openapi({ example: "Parceiro XYZ" }),
+  partner: partnerRefSchema,
 });
 
 const statusHistoryEntrySchema = z.object({
@@ -117,12 +124,13 @@ export const orderDetailResponseSchema = orderResponseSchema
   })
   .openapi("ServiceOrderDetail");
 
-// List rows embed only the client's id and name — enough for the orders table.
 export const orderListItemSchema = orderResponseSchema
   .extend({
     client: z.object({
       id: z.number().openapi({ example: 1 }),
       name: z.string().openapi({ example: "João Silva" }),
+      clientType: clientTypeSchema,
+      partner: partnerRefSchema,
     }),
   })
   .openapi("ServiceOrderListItem");

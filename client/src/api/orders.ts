@@ -1,5 +1,5 @@
 import { apiRequest, buildQuery, type Pagination } from "./client";
-import type { ClientType } from "./clients";
+import type { ClientType, Partner } from "./clients";
 
 export type OrderStatus =
   | "PENDING"
@@ -83,7 +83,7 @@ export interface OrderDetail extends Order {
     name: string;
     document: string;
     clientType: ClientType;
-    partnerName: string | null;
+    partner: Partner | null;
   };
   statusHistory: StatusHistoryEntry[];
 }
@@ -105,12 +105,15 @@ export interface UpdateOrderInput {
   paymentNote?: string | null;
 }
 
-// List rows embed the client's id + name (see backend ORDER_LIST_SELECT) so the
-// orders table can show the client without an extra fetch per row.
+// List rows embed the client's id, name, type, and partner (see backend
+// ORDER_LIST_SELECT) so the orders table can show the order's origin without an
+// extra fetch per row.
 export interface OrderListItem extends Order {
   client: {
     id: number;
     name: string;
+    clientType: ClientType;
+    partner: Partner | null;
   };
 }
 

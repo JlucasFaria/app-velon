@@ -1,5 +1,15 @@
 import { apiRequest, buildQuery } from "./client";
 import type { OrderStatus, PaymentStatus } from "./orders";
+import type { ClientType } from "./clients";
+
+// Report rows embed the client's type and partner name so both tabs can show the
+// order's origin without an extra fetch.
+interface ReportClient {
+  id: number;
+  name: string;
+  clientType: ClientType;
+  partnerName: string | null;
+}
 
 export interface OrdersSummary {
   PENDING: number;
@@ -16,10 +26,7 @@ export interface BillingOrder {
   value: string;
   honorario: string;
   completedAt: string;
-  client: {
-    id: number;
-    name: string;
-  };
+  client: ReportClient;
 }
 
 export interface MonthlyBilling {
@@ -46,7 +53,7 @@ export function getOrdersSummary() {
 export interface AllOrdersRow {
   id: number;
   orderNumber: string;
-  client: { id: number; name: string };
+  client: ReportClient;
   createdAt: string;
   completedAt: string | null;
   total: string;

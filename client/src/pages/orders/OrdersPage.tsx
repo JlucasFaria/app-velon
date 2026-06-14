@@ -10,6 +10,7 @@ import {
 import type { ClientType } from "@/api/clients";
 import { usePaginatedList } from "@/hooks/usePaginatedList";
 import { PartnerNameFilter } from "@/components/clients/PartnerNameFilter";
+import { ClientTypeBadge } from "@/components/clients/ClientTypeBadge";
 import { OrderForm } from "@/components/orders/OrderForm";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { PaymentBadge } from "@/components/orders/PaymentBadge";
@@ -199,6 +200,7 @@ export function OrdersPage() {
               <TableRow>
                 <TableHead className={TH}>Ordem</TableHead>
                 <TableHead className={TH}>Cliente</TableHead>
+                <TableHead className={TH}>Tipo</TableHead>
                 <TableHead className={TH}>Status</TableHead>
                 <TableHead className={TH}>Pagamento</TableHead>
                 <TableHead className={TH_RIGHT}>Valor</TableHead>
@@ -215,6 +217,9 @@ export function OrdersPage() {
                       </TableCell>
                       <TableCell className={TD}>
                         <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell className={TD}>
+                        <Skeleton className="h-5 w-20 rounded-full" />
                       </TableCell>
                       <TableCell className={TD}>
                         <Skeleton className="h-5 w-24 rounded-full" />
@@ -250,6 +255,15 @@ export function OrdersPage() {
                         >
                           {order.client.name}
                         </Link>
+                      </TableCell>
+                      <TableCell className={TD}>
+                        <ClientTypeBadge type={order.client.clientType} />
+                        {order.client.clientType === "PARTNER" &&
+                          order.client.partner && (
+                            <span className="mt-0.5 block pl-2.5 text-xs text-muted-foreground">
+                              {order.client.partner.name}
+                            </span>
+                          )}
                       </TableCell>
                       <TableCell className={TD}>
                         <OrderStatusBadge status={order.status} />

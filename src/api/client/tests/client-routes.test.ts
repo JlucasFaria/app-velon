@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import app from "../../../../src/index";
 import prisma from "../../../db/client";
 import { signTestToken, createTestCompany } from "../../../test-utils/company";
@@ -11,12 +11,32 @@ describe("Client Routes", () => {
   // isolated from other test files sharing the "unknown" bucket.
   const IP = "127.0.0.21";
 
+  // Track every company this file creates so afterEach removes only its own
+  // rows. A global deleteMany() would wipe data created by test files running in
+  // parallel against the shared DB; a fresh company per test keeps every scoped
+  // query isolated without touching other tenants.
+  const createdCompanyIds: number[] = [];
+  async function freshCompany(name?: string): Promise<number> {
+    const id = await createTestCompany(name);
+    createdCompanyIds.push(id);
+    return id;
+  }
+
   beforeEach(async () => {
-    // Delete in FK-safe order: orders reference clients.
-    await prisma.serviceOrder.deleteMany();
-    await prisma.client.deleteMany();
-    companyId = await createTestCompany();
+    companyId = await freshCompany();
     token = await signTestToken(1, "test@example.com", companyId, "ADMIN");
+  });
+
+  afterEach(async () => {
+    if (createdCompanyIds.length === 0) return;
+    const scope = { where: { companyId: { in: createdCompanyIds } } };
+    // FK-safe order: orders → clients, then the companies (cascades partners).
+    await prisma.serviceOrder.deleteMany(scope);
+    await prisma.client.deleteMany(scope);
+    await prisma.company.deleteMany({
+      where: { id: { in: createdCompanyIds } },
+    });
+    createdCompanyIds.length = 0;
   });
 
   const basePayload = {
@@ -124,8 +144,7 @@ describe("Client Routes", () => {
       await post({
         name: "Maria Souza",
         document: "987.654.321-00",
-        clientType: "PARTNER",
-        partnerName: "Parceiro XYZ",
+        clientType: "COUNTER",
       });
 
       const res = await app.request("/api/clients", { headers: authHeader() });
@@ -145,11 +164,14 @@ describe("Client Routes", () => {
 
     it("should filter by clientType", async () => {
       await post(basePayload);
+      const partnerEntity = await prisma.partner.create({
+        data: { name: "Parceiro XYZ", companyId },
+      });
       await post({
         name: "Maria Souza",
         document: "987.654.321-00",
         clientType: "PARTNER",
-        partnerName: "Parceiro XYZ",
+        partnerId: partnerEntity.id,
       });
 
       const res = await app.request("/api/clients?clientType=COUNTER", {
@@ -169,8 +191,7 @@ describe("Client Routes", () => {
       await post({
         name: "Maria Souza",
         document: "987.654.321-00",
-        clientType: "PARTNER",
-        partnerName: "Parceiro XYZ",
+        clientType: "COUNTER",
       });
 
       const res = await app.request("/api/clients?search=Maria", {
@@ -190,8 +211,7 @@ describe("Client Routes", () => {
       await post({
         name: "Maria Souza",
         document: "987.654.321-00",
-        clientType: "PARTNER",
-        partnerName: "Parceiro XYZ",
+        clientType: "COUNTER",
       });
 
       const res = await app.request("/api/clients?page=1&limit=1", {
@@ -211,17 +231,23 @@ describe("Client Routes", () => {
     });
 
     it("should filter by partnerName (case-insensitive, partial match)", async () => {
+      const partnerAlpha = await prisma.partner.create({
+        data: { name: "Alpha Partner", companyId },
+      });
+      const partnerBeta = await prisma.partner.create({
+        data: { name: "Beta Partner", companyId },
+      });
       await post({
         name: "Empresa Alpha",
         document: "11111111111111",
         clientType: "PARTNER",
-        partnerName: "Alpha Partner",
+        partnerId: partnerAlpha.id,
       });
       await post({
         name: "Empresa Beta",
         document: "22222222222222",
         clientType: "PARTNER",
-        partnerName: "Beta Partner",
+        partnerId: partnerBeta.id,
       });
       await post(basePayload); // COUNTER, no partner
 
@@ -229,12 +255,14 @@ describe("Client Routes", () => {
         headers: authHeader(),
       });
       const body = (await res.json()) as {
-        data: { clients: Array<{ partnerName: string | null }> };
+        data: {
+          clients: Array<{ partner: { id: number; name: string } | null }>;
+        };
       };
 
       expect(res.status).toBe(200);
       expect(body.data.clients.length).toBe(1);
-      expect(body.data.clients[0]?.partnerName).toBe("Alpha Partner");
+      expect(body.data.clients[0]?.partner?.name).toBe("Alpha Partner");
     });
   });
 
@@ -375,10 +403,10 @@ describe("Client Routes", () => {
     });
   });
 
-  // ─── partnerName validation ───────────────────────────────────────
+  // ─── partnerId validation ─────────────────────────────────────────
 
-  describe("partnerName validation", () => {
-    it("should return 400 when clientType is PARTNER and partnerName is missing", async () => {
+  describe("partnerId validation", () => {
+    it("should return 400 when clientType is PARTNER and partnerId is missing", async () => {
       const res = await post({
         name: "Empresa Parceira",
         document: "12345678000100",
@@ -387,17 +415,20 @@ describe("Client Routes", () => {
       expect(res.status).toBe(400);
     });
 
-    it("should return 201 when clientType is PARTNER and partnerName is provided", async () => {
+    it("should return 201 when clientType is PARTNER and partnerId is provided", async () => {
+      const partnerEntity = await prisma.partner.create({
+        data: { name: "Parceiro XYZ", companyId },
+      });
       const res = await post({
         name: "Empresa Parceira",
         document: "12345678000100",
         clientType: "PARTNER",
-        partnerName: "Parceiro XYZ",
+        partnerId: partnerEntity.id,
       });
       expect(res.status).toBe(201);
     });
 
-    it("should return 400 on PUT when changing to PARTNER without partnerName", async () => {
+    it("should return 400 on PUT when changing to PARTNER without partnerId", async () => {
       const created = (await (await post(basePayload)).json()) as {
         data: { id: number };
       };
@@ -480,7 +511,7 @@ describe("Client Routes", () => {
 
     it("should not return clients from another company", async () => {
       await post(basePayload);
-      const otherCompanyId = await createTestCompany("Other Co Search");
+      const otherCompanyId = await freshCompany("Other Co Search");
       await prisma.client.create({
         data: {
           name: "João Outro",
@@ -512,9 +543,8 @@ describe("Client Routes", () => {
     });
 
     it("should return distinct partner names", async () => {
-      await post({ name: "Empresa A", document: "11111111111111", clientType: "PARTNER", partnerName: "Alpha Ltda" });
-      await post({ name: "Empresa B", document: "22222222222222", clientType: "PARTNER", partnerName: "Alpha Ltda" });
-      await post({ name: "Empresa C", document: "33333333333333", clientType: "PARTNER", partnerName: "Beta Corp" });
+      await prisma.partner.create({ data: { name: "Alpha Ltda", companyId } });
+      await prisma.partner.create({ data: { name: "Beta Corp", companyId } });
 
       const res = await app.request("/api/clients/partner-names", {
         headers: authHeader(),
@@ -529,8 +559,8 @@ describe("Client Routes", () => {
     });
 
     it("should filter by q when provided", async () => {
-      await post({ name: "Empresa A", document: "11111111111111", clientType: "PARTNER", partnerName: "Alpha Ltda" });
-      await post({ name: "Empresa B", document: "22222222222222", clientType: "PARTNER", partnerName: "Beta Corp" });
+      await prisma.partner.create({ data: { name: "Alpha Ltda", companyId } });
+      await prisma.partner.create({ data: { name: "Beta Corp", companyId } });
 
       const res = await app.request("/api/clients/partner-names?q=Alpha", {
         headers: authHeader(),
@@ -543,17 +573,9 @@ describe("Client Routes", () => {
     });
 
     it("should not return names from another company", async () => {
-      await post({ name: "Empresa A", document: "11111111111111", clientType: "PARTNER", partnerName: "Meu Parceiro" });
-      const otherCompanyId = await createTestCompany("Other Co Names");
-      await prisma.client.create({
-        data: {
-          name: "Empresa X",
-          document: "22222222222222",
-          clientType: "PARTNER",
-          partnerName: "Outro Parceiro",
-          companyId: otherCompanyId,
-        },
-      });
+      await prisma.partner.create({ data: { name: "Meu Parceiro", companyId } });
+      const otherCompanyId = await freshCompany("Other Co Names");
+      await prisma.partner.create({ data: { name: "Outro Parceiro", companyId: otherCompanyId } });
 
       const res = await app.request("/api/clients/partner-names", {
         headers: authHeader(),

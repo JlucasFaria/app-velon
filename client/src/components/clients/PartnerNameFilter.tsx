@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getPartnerNameSuggestions } from "@/api/clients";
+import { searchPartners } from "@/api/partners";
 import {
   Select,
   SelectContent,
@@ -15,10 +15,11 @@ interface PartnerNameFilterProps {
   className?: string;
 }
 
-// Filters a list by the client's partner name. Partner names are a small,
-// distinct set per company, so a Select populated from getPartnerNameSuggestions
-// is simpler and more accessible than a free-text combobox. Renders nothing when
-// the company has no partners yet.
+// Filters a list by the client's partner name. Partners are a small, distinct
+// set per company, so a Select populated from the Partner endpoint is simpler
+// and more accessible than a free-text combobox. The filter value stays the
+// partner name (the list APIs filter by name). Renders nothing when the company
+// has no partners yet.
 export function PartnerNameFilter({
   value,
   onChange,
@@ -28,9 +29,9 @@ export function PartnerNameFilter({
 
   useEffect(() => {
     let cancelled = false;
-    getPartnerNameSuggestions()
-      .then((result) => {
-        if (!cancelled) setNames(result);
+    searchPartners()
+      .then((partners) => {
+        if (!cancelled) setNames(partners.map((p) => p.name));
       })
       .catch(() => {
         if (!cancelled) setNames([]);

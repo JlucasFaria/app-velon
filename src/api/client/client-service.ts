@@ -1,3 +1,4 @@
+import { HTTPException } from "hono/http-exception";
 import prismaClient from "../../db/client";
 import type { PrismaClient, ClientType } from "../../../generated/prisma";
 import {
@@ -14,7 +15,7 @@ const CLIENT_SELECT = {
   phone: true,
   address: true,
   clientType: true,
-  partnerName: true,
+  partner: { select: { id: true, name: true } },
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -44,10 +45,32 @@ export class ClientService {
     return (result._max.registrationNumber ?? 0) + 1;
   }
 
+  // Rejects a partnerId that doesn't belong to the caller's company with 404,
+  // mirroring how order FKs are validated up front — so a client can never link
+  // to (and leak the name of) another tenant's partner. No-ops when null.
+  private async assertPartnerInCompany(
+    partnerId: number | null | undefined,
+    companyId: number,
+  ): Promise<void> {
+    if (partnerId == null) return;
+    const partner = await this.prisma.partner.findFirst({
+      where: { id: partnerId, companyId },
+      select: { id: true },
+    });
+    if (!partner) {
+      throw new HTTPException(404, { message: "Parceiro não encontrado" });
+    }
+  }
+
   async create(data: CreateClientInput, companyId: number) {
+    // A COUNTER client never carries a partner; drop any partnerId sent with it.
+    const partnerId =
+      data.clientType === "PARTNER" ? (data.partnerId ?? null) : null;
+    await this.assertPartnerInCompany(partnerId, companyId);
+
     const registrationNumber = await this.generateRegistrationNumber(companyId);
     return await this.prisma.client.create({
-      data: { ...data, companyId, registrationNumber },
+      data: { ...data, partnerId, companyId, registrationNumber },
       select: CLIENT_SELECT,
     });
   }
@@ -66,7 +89,11 @@ export class ClientService {
       companyId,
       ...(clientType ? { clientType } : {}),
       ...(partnerName
-        ? { partnerName: { contains: partnerName, mode: "insensitive" as const } }
+        ? {
+            partner: {
+              name: { contains: partnerName, mode: "insensitive" as const },
+            },
+          }
         : {}),
       ...(search
         ? {
@@ -116,12 +143,16 @@ export class ClientService {
     });
     if (!owned) return null;
 
+    const clearPartner = data.clientType === "COUNTER";
+    if (!clearPartner) {
+      await this.assertPartnerInCompany(data.partnerId, companyId);
+    }
+
     return await this.prisma.client.update({
       where: { id },
       data: {
         ...data,
-        // Changing to COUNTER must clear partnerName; Prisma ignores undefined.
-        ...(data.clientType === "COUNTER" ? { partnerName: null } : {}),
+        ...(clearPartner ? { partnerId: null } : {}),
       },
       select: CLIENT_SELECT,
     });
@@ -140,19 +171,15 @@ export class ClientService {
   }
 
   async getPartnerNameSuggestions(companyId: number, q?: string) {
-    const clients = await this.prisma.client.findMany({
+    const partners = await this.prisma.partner.findMany({
       where: {
         companyId,
-        clientType: "PARTNER",
-        partnerName: q
-          ? { contains: q, mode: "insensitive" }
-          : { not: null },
+        ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
       },
-      select: { partnerName: true },
-      distinct: ["partnerName"],
-      orderBy: { partnerName: "asc" },
+      select: { name: true },
+      orderBy: { name: "asc" },
     });
-    return clients.map((c) => c.partnerName as string);
+    return partners.map((p) => p.name);
   }
 
   async delete(id: number, companyId: number) {

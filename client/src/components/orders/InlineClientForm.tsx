@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import type { ClientInput } from "@/api/clients";
 import { ApiError } from "@/api/client";
+import { PartnerCombobox } from "@/components/clients/PartnerCombobox";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -30,11 +31,11 @@ const schema = z
     phone: z.string().optional(),
     address: z.string().optional(),
     clientType: z.enum(["COUNTER", "PARTNER"]),
-    partnerName: z.string().optional(),
+    partnerId: z.number().optional(),
   })
-  .refine((d) => d.clientType !== "PARTNER" || !!d.partnerName?.trim(), {
-    message: "Informe o nome do parceiro",
-    path: ["partnerName"],
+  .refine((d) => d.clientType !== "PARTNER" || d.partnerId != null, {
+    message: "Selecione o parceiro",
+    path: ["partnerId"],
   });
 
 type FormData = z.infer<typeof schema>;
@@ -59,7 +60,7 @@ export function InlineClientForm({
       phone: "",
       address: "",
       clientType: "COUNTER",
-      partnerName: "",
+      partnerId: undefined,
     },
   });
 
@@ -74,8 +75,7 @@ export function InlineClientForm({
         phone: data.phone || undefined,
         address: data.address || undefined,
         clientType: data.clientType,
-        partnerName:
-          data.clientType === "PARTNER" ? data.partnerName || undefined : undefined,
+        partnerId: data.clientType === "PARTNER" ? data.partnerId : undefined,
       });
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -183,15 +183,15 @@ export function InlineClientForm({
             {clientType === "PARTNER" && (
               <FormField
                 control={form.control}
-                name="partnerName"
+                name="partnerId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs">Nome do parceiro</FormLabel>
+                    <FormLabel className="text-xs">Parceiro</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Nome do parceiro"
-                        className="h-8 text-sm"
-                        {...field}
+                      <PartnerCombobox
+                        value={field.value}
+                        onChange={field.onChange}
+                        inputClassName="h-8 text-sm"
                       />
                     </FormControl>
                     <FormMessage />

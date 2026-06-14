@@ -43,7 +43,7 @@ enum PaymentStatus {
 }
 
 model Company {
-  id          Int            @id @default(autoincrement())
+  id          Int               @id @default(autoincrement())
   name        String
   document    String?
   phone       String?
@@ -51,12 +51,25 @@ model Company {
   address     String?
   logoUrl     String?
   footerNote  String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
   memberships Membership[]
   clients     Client[]
   orders      ServiceOrder[]
   templates   ServiceTemplate[]
+  partners    Partner[]
+}
+
+model Partner {
+  id        Int      @id @default(autoincrement())
+  name      String
+  companyId Int
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  clients   Client[]
+
+  @@unique([companyId, name])
 }
 
 model Membership {
@@ -101,7 +114,8 @@ model Client {
   phone              String?
   address            String?
   clientType         ClientType
-  partnerName        String?
+  partnerId          Int?
+  partner            Partner?       @relation(fields: [partnerId], references: [id])
   companyId          Int
   company            Company        @relation(fields: [companyId], references: [id])
   createdAt          DateTime       @default(now())

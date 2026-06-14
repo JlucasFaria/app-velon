@@ -49,7 +49,12 @@ export class ReportService {
             description: true,
             value: true,
             client: {
-              select: { id: true, name: true },
+              select: {
+                id: true,
+                name: true,
+                clientType: true,
+                partner: { select: { name: true } },
+              },
             },
             items: {
               select: { description: true, category: true, subtotal: true },
@@ -78,7 +83,12 @@ export class ReportService {
         value: (valueCents / 100).toFixed(2),
         honorario: (honorarioCents / 100).toFixed(2),
         completedAt: h.changedAt.toISOString(),
-        client: h.order.client,
+        client: {
+          id: h.order.client.id,
+          name: h.order.client.name,
+          clientType: h.order.client.clientType,
+          partnerName: h.order.client.partner?.name ?? null,
+        },
       };
     });
 
@@ -128,9 +138,11 @@ export class ReportService {
         ...(filters.status && { status: filters.status }),
         ...(filters.partnerName && {
           client: {
-            partnerName: {
-              contains: filters.partnerName,
-              mode: "insensitive" as const,
+            partner: {
+              name: {
+                contains: filters.partnerName,
+                mode: "insensitive" as const,
+              },
             },
           },
         }),
@@ -148,7 +160,14 @@ export class ReportService {
         status: true,
         paymentStatus: true,
         createdAt: true,
-        client: { select: { id: true, name: true } },
+        client: {
+          select: {
+            id: true,
+            name: true,
+            clientType: true,
+            partner: { select: { name: true } },
+          },
+        },
         items: {
           select: { description: true, category: true, subtotal: true },
         },
@@ -179,7 +198,12 @@ export class ReportService {
       return {
         id: o.id,
         orderNumber: o.orderNumber,
-        client: o.client,
+        client: {
+          id: o.client.id,
+          name: o.client.name,
+          clientType: o.client.clientType,
+          partnerName: o.client.partner?.name ?? null,
+        },
         createdAt: o.createdAt.toISOString(),
         completedAt: o.statusHistory[0]?.changedAt.toISOString() ?? null,
         total: (totalCents / 100).toFixed(2),
