@@ -165,6 +165,10 @@ export function createClientRoutes(
         content: { "application/json": { schema: errorResponseSchema } },
         description: "Missing or invalid authentication token",
       },
+      404: {
+        content: { "application/json": { schema: errorResponseSchema } },
+        description: "Partner not found in this company",
+      },
       409: {
         content: { "application/json": { schema: errorResponseSchema } },
         description: "Document already in use",

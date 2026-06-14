@@ -1,3 +1,4 @@
+import { HTTPException } from "hono/http-exception";
 import prismaClient from "../../db/client";
 import type { PrismaClient, ClientType } from "../../../generated/prisma";
 import {
@@ -44,10 +45,32 @@ export class ClientService {
     return (result._max.registrationNumber ?? 0) + 1;
   }
 
+  // Rejects a partnerId that doesn't belong to the caller's company with 404,
+  // mirroring how order FKs are validated up front — so a client can never link
+  // to (and leak the name of) another tenant's partner. No-ops when null.
+  private async assertPartnerInCompany(
+    partnerId: number | null | undefined,
+    companyId: number,
+  ): Promise<void> {
+    if (partnerId == null) return;
+    const partner = await this.prisma.partner.findFirst({
+      where: { id: partnerId, companyId },
+      select: { id: true },
+    });
+    if (!partner) {
+      throw new HTTPException(404, { message: "Parceiro não encontrado" });
+    }
+  }
+
   async create(data: CreateClientInput, companyId: number) {
+    // A COUNTER client never carries a partner; drop any partnerId sent with it.
+    const partnerId =
+      data.clientType === "PARTNER" ? (data.partnerId ?? null) : null;
+    await this.assertPartnerInCompany(partnerId, companyId);
+
     const registrationNumber = await this.generateRegistrationNumber(companyId);
     return await this.prisma.client.create({
-      data: { ...data, companyId, registrationNumber },
+      data: { ...data, partnerId, companyId, registrationNumber },
       select: CLIENT_SELECT,
     });
   }
@@ -120,11 +143,16 @@ export class ClientService {
     });
     if (!owned) return null;
 
+    const clearPartner = data.clientType === "COUNTER";
+    if (!clearPartner) {
+      await this.assertPartnerInCompany(data.partnerId, companyId);
+    }
+
     return await this.prisma.client.update({
       where: { id },
       data: {
         ...data,
-        ...(data.clientType === "COUNTER" ? { partnerId: null } : {}),
+        ...(clearPartner ? { partnerId: null } : {}),
       },
       select: CLIENT_SELECT,
     });

@@ -91,6 +91,60 @@ describe("ClientService", () => {
       expect(client.phone).toBe("(11) 91234-5678");
       expect(client.address).toBe("Rua das Flores, 123");
     });
+
+    it("should link a partner from the same company", async () => {
+      const partner = await prisma.partner.create({
+        data: { name: "Same Co Partner", companyId },
+      });
+      const client = await clientService.create(
+        {
+          name: "Empresa Parceira",
+          document: "99999999999999",
+          clientType: "PARTNER" as const,
+          partnerId: partner.id,
+        },
+        companyId,
+      );
+      expect(client.partner?.id).toBe(partner.id);
+    });
+
+    it("should reject a partnerId that belongs to another company (404)", async () => {
+      const otherCompanyId = await createTestCompany("Foreign Partner Co");
+      const foreignPartner = await prisma.partner.create({
+        data: { name: "Foreign Partner", companyId: otherCompanyId },
+      });
+
+      let status: number | undefined;
+      try {
+        await clientService.create(
+          {
+            name: "Empresa Parceira",
+            document: "88888888888888",
+            clientType: "PARTNER" as const,
+            partnerId: foreignPartner.id,
+          },
+          companyId,
+        );
+      } catch (err) {
+        status = (err as { status?: number }).status;
+      }
+      expect(status).toBe(404);
+    });
+
+    it("should not attach a partner to a COUNTER client even if partnerId is sent", async () => {
+      const partner = await prisma.partner.create({
+        data: { name: "Ignored Partner", companyId },
+      });
+      const client = await clientService.create(
+        {
+          ...baseClient,
+          clientType: "COUNTER" as const,
+          partnerId: partner.id,
+        },
+        companyId,
+      );
+      expect(client.partner).toBeNull();
+    });
   });
 
   describe("getAll", () => {
@@ -291,6 +345,25 @@ describe("ClientService", () => {
 
       expect(updated?.clientType).toBe("COUNTER");
       expect(updated?.partner).toBeNull();
+    });
+
+    it("should reject updating to a partnerId from another company (404)", async () => {
+      const created = await clientService.create(baseClient, companyId);
+      const otherCompanyId = await createTestCompany("Foreign Update Co");
+      const foreignPartner = await prisma.partner.create({
+        data: { name: "Foreign Update Partner", companyId: otherCompanyId },
+      });
+
+      let status: number | undefined;
+      try {
+        await clientService.update(created.id, companyId, {
+          clientType: "PARTNER",
+          partnerId: foreignPartner.id,
+        });
+      } catch (err) {
+        status = (err as { status?: number }).status;
+      }
+      expect(status).toBe(404);
     });
   });
 
