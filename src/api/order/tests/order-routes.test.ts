@@ -564,8 +564,39 @@ describe("Order Routes", () => {
         body: JSON.stringify({ description: "Too late to edit" }),
         headers: h({ "Content-Type": "application/json" }),
       });
+      const body = (await res.json()) as { error: string };
 
       expect(res.status).toBe(409);
+      expect(body.error).toBe(
+        "Não é possível editar uma ordem concluída ou cancelada",
+      );
+    });
+
+    it("should still allow a payment-only change on a COMPLETED order", async () => {
+      const created = (await (await post(basePayload())).json()) as {
+        data: { id: number };
+      };
+
+      await app.request(`/api/orders/${created.data.id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "COMPLETED" }),
+        headers: h({ "Content-Type": "application/json" }),
+      });
+
+      // Editing content is locked once completed, but recording payment (e.g.
+      // the client pays after the work is done) must still go through.
+      const res = await app.request(`/api/orders/${created.data.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ paymentStatus: "PAID_PIX" }),
+        headers: h({ "Content-Type": "application/json" }),
+      });
+      const body = (await res.json()) as {
+        data: { paymentStatus: string; status: string };
+      };
+
+      expect(res.status).toBe(200);
+      expect(body.data.paymentStatus).toBe("PAID_PIX");
+      expect(body.data.status).toBe("COMPLETED");
     });
 
     it("should return 409 when editing a CANCELLED order", async () => {
@@ -586,8 +617,12 @@ describe("Order Routes", () => {
         }),
         headers: h({ "Content-Type": "application/json" }),
       });
+      const body = (await res.json()) as { error: string };
 
       expect(res.status).toBe(409);
+      expect(body.error).toBe(
+        "Não é possível editar uma ordem concluída ou cancelada",
+      );
     });
 
     it("should return 404 when updating a non-existent order", async () => {
