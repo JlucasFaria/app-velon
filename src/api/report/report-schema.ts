@@ -19,6 +19,17 @@ const PAYMENT_STATUSES = [
   "PAID_OTHER",
 ] as const;
 
+const CLIENT_TYPES = ["COUNTER", "PARTNER"] as const;
+
+// Shared client projection for report rows: identifies the order's origin
+// (walk-in vs partner referral) without an extra fetch.
+const reportClientSchema = z.object({
+  id: z.number().openapi({ example: 1 }),
+  name: z.string().openapi({ example: "João Silva" }),
+  clientType: z.enum(CLIENT_TYPES).openapi({ example: "PARTNER" }),
+  partnerName: z.string().nullable().openapi({ example: "Parceiro XYZ" }),
+});
+
 const billingOrderSchema = z.object({
   id: z.number().openapi({ example: 1 }),
   orderNumber: z.string().openapi({ example: "OS-0001" }),
@@ -33,10 +44,7 @@ const billingOrderSchema = z.object({
     .string()
     .datetime()
     .openapi({ description: "Date the order was last updated to COMPLETED" }),
-  client: z.object({
-    id: z.number().openapi({ example: 1 }),
-    name: z.string().openapi({ example: "João Silva" }),
-  }),
+  client: reportClientSchema,
 });
 
 export const monthlyBillingResponseSchema = successResponseSchema(
@@ -111,10 +119,7 @@ export type AllOrdersQuery = z.infer<typeof allOrdersQuerySchema>;
 const allOrdersRowSchema = z.object({
   id: z.number().openapi({ example: 1 }),
   orderNumber: z.string().openapi({ example: "OS-0001" }),
-  client: z.object({
-    id: z.number().openapi({ example: 1 }),
-    name: z.string().openapi({ example: "João Silva" }),
-  }),
+  client: reportClientSchema,
   createdAt: z
     .string()
     .datetime()
