@@ -1,5 +1,5 @@
 // Integration tests for User Routes — sends real HTTP requests to the Hono app
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import app from "../../../../src/index";
 import prisma from "../../../db/client";
 import {
@@ -373,6 +373,306 @@ describe("User Routes", () => {
       expect(body.data.pagination.total).toBe(3);
       expect(body.data.pagination.totalPages).toBe(2);
     });
+  });
+});
+
+// ─── PATCH /api/users/me ─────────────────────────────────────────────────────
+
+describe("PATCH /api/users/me", () => {
+  const createdUserIds: number[] = [];
+
+  afterEach(async () => {
+    if (createdUserIds.length > 0) {
+      await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
+      createdUserIds.length = 0;
+    }
+  });
+
+  async function makeUser(password = "Secret1234") {
+    const email = `me-${crypto.randomUUID()}@test.com`;
+    const res = await app.request("/api/users", {
+      method: "POST",
+      body: JSON.stringify({ email, password, name: "Original Name" }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    const body = (await res.json()) as { data: { id: number } };
+    createdUserIds.push(body.data.id);
+
+    const loginRes = await app.request("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    const loginBody = (await loginRes.json()) as { data: { token: string } };
+    return { id: body.data.id, email, token: loginBody.data.token };
+  }
+
+  it("should return 401 when no token is provided", async () => {
+    const res = await app.request("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({ name: "New Name" }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it("should update name without requiring current password", async () => {
+    const { token } = await makeUser();
+
+    const res = await app.request("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({ name: "Updated Name" }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+
+    const body = (await res.json()) as {
+      success: boolean;
+      data: { name: string };
+    };
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.data.name).toBe("Updated Name");
+    expect(body.data).not.toHaveProperty("password");
+  });
+
+  it("should update email when correct currentPassword is provided", async () => {
+    const { token } = await makeUser("Secret1234");
+    const newEmail = `new-${crypto.randomUUID()}@test.com`;
+
+    const res = await app.request("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({
+        email: newEmail,
+        currentPassword: "Secret1234",
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+
+    const body = (await res.json()) as {
+      success: boolean;
+      data: { email: string };
+    };
+    expect(res.status).toBe(200);
+    expect(body.data.email).toBe(newEmail.toLowerCase());
+  });
+
+  it("should return 401 when wrong currentPassword is provided for email change", async () => {
+    const { token } = await makeUser("Secret1234");
+
+    const res = await app.request("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({
+        email: `other-${crypto.randomUUID()}@test.com`,
+        currentPassword: "WrongPass999",
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("should return 400 when email change is requested without currentPassword", async () => {
+    const { token } = await makeUser();
+
+    const res = await app.request("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({
+        email: `no-pass-${crypto.randomUUID()}@test.com`,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("should update password when correct currentPassword is provided", async () => {
+    const { email, token } = await makeUser("Secret1234");
+
+    const patchRes = await app.request("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({
+        currentPassword: "Secret1234",
+        newPassword: "NewPass5678",
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    expect(patchRes.status).toBe(200);
+
+    // Confirm new password works for login
+    const loginRes = await app.request("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password: "NewPass5678" }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    expect(loginRes.status).toBe(200);
+  });
+
+  it("should revoke existing refresh tokens after a password change", async () => {
+    const { email, token } = await makeUser("Secret1234");
+
+    // Capture a refresh token from a real login before changing the password.
+    const loginRes = await app.request("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password: "Secret1234" }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    const loginBody = (await loginRes.json()) as {
+      data: { refreshToken: string };
+    };
+    const oldRefreshToken = loginBody.data.refreshToken;
+
+    const patchRes = await app.request("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({
+        currentPassword: "Secret1234",
+        newPassword: "NewPass5678",
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    expect(patchRes.status).toBe(200);
+
+    // The pre-change refresh token must no longer be accepted.
+    const refreshRes = await app.request("/api/auth/refresh", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken: oldRefreshToken }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    expect(refreshRes.status).toBe(401);
+  });
+
+  it("should not revoke refresh tokens on a name-only change", async () => {
+    const { email, token } = await makeUser("Secret1234");
+
+    const loginRes = await app.request("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password: "Secret1234" }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    const loginBody = (await loginRes.json()) as {
+      data: { refreshToken: string };
+    };
+    const refreshToken = loginBody.data.refreshToken;
+
+    await app.request("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({ name: "Renamed" }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+
+    // The refresh token is still valid because no password change occurred.
+    const refreshRes = await app.request("/api/auth/refresh", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+    expect(refreshRes.status).toBe(200);
+  });
+
+  it("should return 401 when wrong currentPassword is provided for password change", async () => {
+    const { token } = await makeUser("Secret1234");
+
+    const res = await app.request("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({
+        currentPassword: "WrongOld999",
+        newPassword: "NewPass5678",
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("should return 400 when newPassword change is requested without currentPassword", async () => {
+    const { token } = await makeUser();
+
+    const res = await app.request("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({ newPassword: "NewPass5678" }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("should return 409 when new email is already taken by another user", async () => {
+    const userA = await makeUser();
+    const userB = await makeUser();
+
+    const res = await app.request("/api/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({
+        email: userA.email,
+        currentPassword: "Secret1234",
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${userB.token}`,
+        "X-Forwarded-For": "127.0.0.40",
+      },
+    });
+
+    expect(res.status).toBe(409);
   });
 });
 

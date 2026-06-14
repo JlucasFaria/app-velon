@@ -1,6 +1,7 @@
 // Business service for user operations
 import prismaClient from "../../db/client";
 import type { PrismaClient } from "../../../generated/prisma";
+import { HTTPException } from "hono/http-exception";
 import {
   getPaginationParams,
   createPaginationMeta,
@@ -96,6 +97,64 @@ export class UserService {
     return await this.prisma.user.findUnique({
       where: { id },
       select: { id: true, email: true, name: true },
+    });
+  }
+
+  async updateMe(
+    userId: number,
+    data: {
+      name?: string;
+      email?: string;
+      currentPassword?: string;
+      newPassword?: string;
+    },
+  ) {
+    const updateData: {
+      name?: string;
+      email?: string;
+      password?: string;
+    } = {};
+
+    if (data.email !== undefined || data.newPassword !== undefined) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { password: true },
+      });
+      if (!user) throw new HTTPException(404, { message: "User not found" });
+      const valid = await Bun.password.verify(
+        data.currentPassword!,
+        user.password,
+      );
+      if (!valid)
+        throw new HTTPException(401, { message: "Invalid current password" });
+    }
+
+    if (data.name !== undefined) updateData.name = data.name;
+
+    if (data.email !== undefined) {
+      const normalized = data.email.trim().toLowerCase();
+      const existing = await this.prisma.user.findUnique({
+        where: { email: normalized },
+      });
+      if (existing && existing.id !== userId)
+        throw new HTTPException(409, { message: "Email already in use" });
+      updateData.email = normalized;
+    }
+
+    if (data.newPassword !== undefined) {
+      updateData.password = await Bun.password.hash(data.newPassword);
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   }
 
