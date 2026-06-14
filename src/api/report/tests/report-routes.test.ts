@@ -391,12 +391,15 @@ describe("Report Routes", () => {
     });
 
     it("should filter by partnerName query param", async () => {
+      const partnerEntity = await prisma.partner.create({
+        data: { name: "Beta Partner", companyId },
+      });
       const partnerClient = await prisma.client.create({
         data: {
           name: "Routes Partner Co",
           document: `routes-partner-doc-${crypto.randomUUID()}`,
           clientType: "PARTNER",
-          partnerName: "Beta Partner",
+          partnerId: partnerEntity.id,
           companyId,
         },
       });

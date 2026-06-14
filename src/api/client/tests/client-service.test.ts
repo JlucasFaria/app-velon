@@ -269,25 +269,28 @@ describe("ClientService", () => {
       expect(updated).toBeNull();
     });
 
-    it("should clear partnerName when clientType changes from PARTNER to COUNTER", async () => {
-      const partner = await clientService.create(
+    it("should clear partner when clientType changes from PARTNER to COUNTER", async () => {
+      const partnerEntity = await prisma.partner.create({
+        data: { name: "Parceiro Original", companyId },
+      });
+      const partnerClient = await clientService.create(
         {
           name: "Empresa Parceira",
           document: "99999999999999",
           clientType: "PARTNER" as const,
-          partnerName: "Parceiro Original",
+          partnerId: partnerEntity.id,
         },
         companyId,
       );
 
-      expect(partner.partnerName).toBe("Parceiro Original");
+      expect(partnerClient.partner?.name).toBe("Parceiro Original");
 
-      const updated = await clientService.update(partner.id, companyId, {
+      const updated = await clientService.update(partnerClient.id, companyId, {
         clientType: "COUNTER",
       });
 
       expect(updated?.clientType).toBe("COUNTER");
-      expect(updated?.partnerName).toBeNull();
+      expect(updated?.partner).toBeNull();
     });
   });
 
@@ -337,7 +340,7 @@ describe("ClientService", () => {
       expect(results[0]).toHaveProperty("document");
       expect(results[0]).toHaveProperty("clientType");
       expect(results[0]).not.toHaveProperty("phone");
-      expect(results[0]).not.toHaveProperty("partnerName");
+      expect(results[0]).not.toHaveProperty("partner");
     });
 
     it("should return at most 5 results", async () => {
@@ -374,18 +377,8 @@ describe("ClientService", () => {
 
   describe("getPartnerNameSuggestions", () => {
     it("should return distinct partner names", async () => {
-      await clientService.create(
-        { name: "Empresa A", document: "11111111111111", clientType: "PARTNER" as const, partnerName: "Alpha Ltda" },
-        companyId,
-      );
-      await clientService.create(
-        { name: "Empresa B", document: "22222222222222", clientType: "PARTNER" as const, partnerName: "Alpha Ltda" },
-        companyId,
-      );
-      await clientService.create(
-        { name: "Empresa C", document: "33333333333333", clientType: "PARTNER" as const, partnerName: "Beta Corp" },
-        companyId,
-      );
+      await prisma.partner.create({ data: { name: "Alpha Ltda", companyId } });
+      await prisma.partner.create({ data: { name: "Beta Corp", companyId } });
 
       const names = await clientService.getPartnerNameSuggestions(companyId);
 
@@ -395,14 +388,8 @@ describe("ClientService", () => {
     });
 
     it("should filter by q when provided", async () => {
-      await clientService.create(
-        { name: "Empresa A", document: "11111111111111", clientType: "PARTNER" as const, partnerName: "Alpha Ltda" },
-        companyId,
-      );
-      await clientService.create(
-        { name: "Empresa B", document: "22222222222222", clientType: "PARTNER" as const, partnerName: "Beta Corp" },
-        companyId,
-      );
+      await prisma.partner.create({ data: { name: "Alpha Ltda", companyId } });
+      await prisma.partner.create({ data: { name: "Beta Corp", companyId } });
 
       const names = await clientService.getPartnerNameSuggestions(companyId, "Alpha");
 
@@ -410,12 +397,9 @@ describe("ClientService", () => {
       expect(names).not.toContain("Beta Corp");
     });
 
-    it("should only include PARTNER type clients", async () => {
+    it("should return all partner entities for the company", async () => {
       await clientService.create(baseClient, companyId);
-      await clientService.create(
-        { name: "Empresa B", document: "22222222222222", clientType: "PARTNER" as const, partnerName: "Meu Parceiro" },
-        companyId,
-      );
+      await prisma.partner.create({ data: { name: "Meu Parceiro", companyId } });
 
       const names = await clientService.getPartnerNameSuggestions(companyId);
 
@@ -424,15 +408,9 @@ describe("ClientService", () => {
     });
 
     it("should not return names from another company", async () => {
-      await clientService.create(
-        { name: "Empresa A", document: "11111111111111", clientType: "PARTNER" as const, partnerName: "Meu Parceiro" },
-        companyId,
-      );
+      await prisma.partner.create({ data: { name: "Meu Parceiro", companyId } });
       const otherCompanyId = await createTestCompany("Other Co Names");
-      await clientService.create(
-        { name: "Empresa X", document: "22222222222222", clientType: "PARTNER" as const, partnerName: "Outro Parceiro" },
-        otherCompanyId,
-      );
+      await prisma.partner.create({ data: { name: "Outro Parceiro", companyId: otherCompanyId } });
 
       const names = await clientService.getPartnerNameSuggestions(companyId);
 

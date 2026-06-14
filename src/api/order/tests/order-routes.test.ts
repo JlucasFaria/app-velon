@@ -335,21 +335,24 @@ describe("Order Routes", () => {
       expect(body.data.orders[0]?.paymentStatus).toBe("PAID_PIX");
     });
 
-    it("should filter orders by the client's partnerName", async () => {
+    it("should filter orders by the client's partner name", async () => {
       // Default order belongs to the COUNTER client (no partner).
       await post(basePayload());
 
       // A second order belongs to a PARTNER client.
-      const partner = await prisma.client.create({
+      const partnerEntity = await prisma.partner.create({
+        data: { name: "Acme Partner", companyId },
+      });
+      const partnerClient = await prisma.client.create({
         data: {
           name: "Partner Client",
           document: "order-routes-partner-doc",
           clientType: "PARTNER",
-          partnerName: "Acme Partner",
+          partnerId: partnerEntity.id,
           companyId,
         },
       });
-      await post({ ...basePayload(), clientId: partner.id });
+      await post({ ...basePayload(), clientId: partnerClient.id });
 
       const res = await app.request("/api/orders?partnerName=Acme", {
         headers: h(),
@@ -360,7 +363,7 @@ describe("Order Routes", () => {
 
       expect(res.status).toBe(200);
       expect(body.data.orders.length).toBe(1);
-      expect(body.data.orders[0]?.clientId).toBe(partner.id);
+      expect(body.data.orders[0]?.clientId).toBe(partnerClient.id);
     });
   });
 
@@ -397,30 +400,38 @@ describe("Order Routes", () => {
       expect(res.status).toBe(404);
     });
 
-    it("should include the client's partnerName in detail for a PARTNER client", async () => {
-      const partner = await prisma.client.create({
+    it("should include the client's partner in detail for a PARTNER client", async () => {
+      const partnerEntity = await prisma.partner.create({
+        data: { name: "Beta Partner", companyId },
+      });
+      const partnerClient = await prisma.client.create({
         data: {
           name: "Partner Detail Client",
           document: "order-routes-partner-detail-doc",
           clientType: "PARTNER",
-          partnerName: "Beta Partner",
+          partnerId: partnerEntity.id,
           companyId,
         },
       });
       const created = (await (
-        await post({ ...basePayload(), clientId: partner.id })
+        await post({ ...basePayload(), clientId: partnerClient.id })
       ).json()) as { data: { id: number } };
 
       const res = await app.request(`/api/orders/${created.data.id}`, {
         headers: h(),
       });
       const body = (await res.json()) as {
-        data: { client: { clientType: string; partnerName: string | null } };
+        data: {
+          client: {
+            clientType: string;
+            partner: { id: number; name: string } | null;
+          };
+        };
       };
 
       expect(res.status).toBe(200);
       expect(body.data.client.clientType).toBe("PARTNER");
-      expect(body.data.client.partnerName).toBe("Beta Partner");
+      expect(body.data.client.partner?.name).toBe("Beta Partner");
     });
   });
 

@@ -446,12 +446,15 @@ describe("ReportService", () => {
     });
 
     it("should filter by partnerName (case-insensitive, via the client relation)", async () => {
+      const partnerEntity = await prisma.partner.create({
+        data: { name: "Alpha Partner", companyId },
+      });
       const partnerClient = await prisma.client.create({
         data: {
           name: "Partner Co",
           document: `partner-doc-${crypto.randomUUID()}`,
           clientType: "PARTNER",
-          partnerName: "Alpha Partner",
+          partnerId: partnerEntity.id,
           companyId,
         },
       });
