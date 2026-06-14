@@ -38,6 +38,7 @@ import {
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { PaymentBadge } from "@/components/orders/PaymentBadge";
 import { PartnerNameFilter } from "@/components/clients/PartnerNameFilter";
+import { ClientTypeBadge } from "@/components/clients/ClientTypeBadge";
 import { TH, TH_RIGHT, TD, TD_RIGHT, TABLE_WRAP } from "@/lib/table-classes";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => ({
@@ -246,6 +247,8 @@ function MonthlyBillingTab() {
               <TableRow>
                 <TableHead className={TH}>Ordem</TableHead>
                 <TableHead className={TH}>Cliente</TableHead>
+                <TableHead className={TH}>Tipo</TableHead>
+                <TableHead className={TH}>Parceiro</TableHead>
                 <TableHead className={TH}>Concluída em</TableHead>
                 <TableHead className={TH_RIGHT}>Valor</TableHead>
                 <TableHead className={TH_RIGHT}>Serviço</TableHead>
@@ -260,6 +263,12 @@ function MonthlyBillingTab() {
                       </TableCell>
                       <TableCell className={TD}>
                         <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell className={TD}>
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                      </TableCell>
+                      <TableCell className={TD}>
+                        <Skeleton className="h-4 w-24" />
                       </TableCell>
                       <TableCell className={TD}>
                         <Skeleton className="h-4 w-24" />
@@ -283,6 +292,12 @@ function MonthlyBillingTab() {
                         </Link>
                       </TableCell>
                       <TableCell className={TD}>{order.client.name}</TableCell>
+                      <TableCell className={TD}>
+                        <ClientTypeBadge type={order.client.clientType} />
+                      </TableCell>
+                      <TableCell className={TD}>
+                        {order.client.partnerName ?? "—"}
+                      </TableCell>
                       <TableCell className={TD}>{formatDate(order.completedAt)}</TableCell>
                       <TableCell className={TD_RIGHT}>
                         {formatCurrency(order.value)}
@@ -436,6 +451,8 @@ function AllOrdersTab() {
               <TableRow>
                 <TableHead className={TH}>Nº OS</TableHead>
                 <TableHead className={TH}>Cliente</TableHead>
+                <TableHead className={TH}>Tipo</TableHead>
+                <TableHead className={TH}>Parceiro</TableHead>
                 <TableHead className={TH}>Criado em</TableHead>
                 <TableHead className={TH}>Concluído em</TableHead>
                 <TableHead className={TH_RIGHT}>Total</TableHead>
@@ -448,7 +465,7 @@ function AllOrdersTab() {
               {loading
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 8 }).map((__, j) => (
+                      {Array.from({ length: 10 }).map((__, j) => (
                         <TableCell key={j} className={TD}>
                           <Skeleton className="h-4 w-full" />
                         </TableCell>
@@ -466,6 +483,12 @@ function AllOrdersTab() {
                         </Link>
                       </TableCell>
                       <TableCell className={TD}>{order.client.name}</TableCell>
+                      <TableCell className={TD}>
+                        <ClientTypeBadge type={order.client.clientType} />
+                      </TableCell>
+                      <TableCell className={TD}>
+                        {order.client.partnerName ?? "—"}
+                      </TableCell>
                       <TableCell className={TD}>{formatDate(order.createdAt)}</TableCell>
                       <TableCell className={TD}>
                         {order.completedAt
@@ -491,7 +514,7 @@ function AllOrdersTab() {
               <TableFooter>
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={6}
                     className={`${TD} font-medium text-muted-foreground`}
                   >
                     Totais
