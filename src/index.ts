@@ -96,8 +96,6 @@ app.doc("/doc", {
 
 app.get("/ui", swaggerUI({ url: "/doc" }));
 
-app.get("/", (c) => c.text("Server is running!"));
-
 // Global error handler
 app.onError(errorHandler);
 
@@ -112,6 +110,23 @@ app.route("/api/templates", createTemplateRoutes());
 app.route("/api/reports", createReportRoutes());
 app.route("/api/company", createCompanyRoutes());
 app.route("/api/invites", createInviteRoutes());
+
+// Serve the built React frontend (client/dist) from the same origin as the API.
+// Registered after the API/health/doc/ui routes so those always take precedence.
+// Existing files (index.html, /assets/*) are served directly; any other non-API
+// GET falls back to index.html so client-side routing survives a page reload.
+const CLIENT_DIST = "./client/dist";
+app.use("/*", serveStatic({ root: CLIENT_DIST }));
+app.notFound(async (c) => {
+  if (c.req.method === "GET" && !c.req.path.startsWith("/api")) {
+    const res = await serveStatic({ path: `${CLIENT_DIST}/index.html` })(
+      c,
+      async () => {},
+    );
+    if (res) return res;
+  }
+  return c.json({ success: false, error: "Not Found" }, 404);
+});
 
 const port = env.PORT;
 console.log(`\n🚀 Server running at: http://localhost:${port}`);

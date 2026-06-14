@@ -6,11 +6,13 @@ import { createHealthRoutes } from "../health-routes";
 import type { PrismaClient } from "../../../../generated/prisma";
 
 describe("Smoke tests", () => {
-  it("should return 200 with 'Server is running!' for GET /", async () => {
-    const res = await app.request("/");
+  it("should return a JSON 404 for an unknown API route", async () => {
+    const res = await app.request("/api/does-not-exist");
 
-    expect(res.status).toBe(200);
-    expect(await res.text()).toBe("Server is running!");
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { success: boolean; error: string };
+    expect(body.success).toBe(false);
+    expect(body.error).toBe("Not Found");
   });
 
   it("should return 200 for GET /ui", async () => {
