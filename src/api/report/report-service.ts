@@ -2,9 +2,8 @@ import prismaClient from "../../db/client";
 import type { PrismaClient } from "../../../generated/prisma";
 import type { AllOrdersQuery } from "./report-schema";
 
-// Sums the value (in integer cents) of every "Honorário" line item, matching the
-// category case-insensitively. Shared by the all-orders and monthly-billing
-// reports so the service-fee figure is computed identically in both.
+const SERVICE_KEYWORDS = ["honorário", "serviço"];
+
 function computeHonorarioCents(
   items: Array<{
     description: string;
@@ -13,11 +12,11 @@ function computeHonorarioCents(
   }>,
 ): number {
   return items
-    .filter(
-      (i) =>
-        i.category?.trim().toLowerCase() === "honorário" ||
-        i.description.trim().toLowerCase() === "honorário",
-    )
+    .filter((i) => {
+      const desc = i.description.trim().toLowerCase();
+      const cat = i.category?.trim().toLowerCase() ?? "";
+      return SERVICE_KEYWORDS.includes(desc) || SERVICE_KEYWORDS.includes(cat);
+    })
     .reduce(
       (sum, i) => sum + Math.round(parseFloat(i.subtotal.toString()) * 100),
       0,

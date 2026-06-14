@@ -592,7 +592,7 @@ describe("ReportService", () => {
         paymentStatus: "UNPAID",
         items: [
           {
-            description: "Serviço",
+            description: "Peças",
             category: null,
             unitValue: "200.00",
             quantity: 1,
