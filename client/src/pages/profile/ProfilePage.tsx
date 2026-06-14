@@ -102,7 +102,7 @@ function toFormValues(company: Company): FormData {
 type Tab = "perfil" | "empresa" | "modelos" | "membros";
 
 export function ProfilePage() {
-  const { user } = useAuth();
+  const { user, refreshSession } = useAuth();
   const isAdmin = user?.role === "ADMIN";
 
   const [activeTab, setActiveTab] = useState<Tab>("empresa");
@@ -230,6 +230,9 @@ export function ProfilePage() {
       });
       setProfileEmail(updated.email);
       emailForm.reset({ email: updated.email, currentPassword: "" });
+      // The email lives in the JWT, so rotate the session token to keep the
+      // decoded AuthContext (and anything reading user.email) in sync.
+      await refreshSession();
       toast.success("E-mail atualizado");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Algo deu errado");
