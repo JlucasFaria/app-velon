@@ -36,17 +36,17 @@ O sistema é **multi-tenant**: cada usuário pertence a uma **empresa** (`Compan
 
 ## Stack
 
-| Camada      | Tecnologia                                            |
-| ----------- | ----------------------------------------------------- |
-| Runtime     | [Bun](https://bun.sh)                                 |
-| Backend     | [Hono](https://hono.dev) + `@hono/zod-openapi`        |
-| ORM         | [Prisma 7](https://prisma.io) + `@prisma/adapter-pg`  |
-| Validação   | [Zod 4](https://zod.dev)                              |
-| Frontend    | [React 19](https://react.dev) + Vite 8 + shadcn/ui    |
-| Estilização | [Tailwind CSS 4](https://tailwindcss.com)             |
-| Banco       | PostgreSQL 16 (Docker)                                |
-| PDF         | [PDFKit](https://pdfkit.org)                          |
-| Linguagem   | TypeScript (strict mode)                              |
+| Camada      | Tecnologia                                             |
+| ----------- | ------------------------------------------------------ |
+| Runtime     | [Bun](https://bun.sh)                                  |
+| Backend     | [Hono](https://hono.dev) + `@hono/zod-openapi`         |
+| ORM         | [Prisma 7](https://prisma.io) + `@prisma/adapter-pg`   |
+| Validação   | [Zod 4](https://zod.dev)                               |
+| Frontend    | [React 19](https://react.dev) + Vite 8 + shadcn/ui     |
+| Estilização | [Tailwind CSS 4](https://tailwindcss.com)              |
+| Banco       | PostgreSQL 16 (Docker)                                 |
+| PDF         | [PDFKit](https://pdfkit.org)                           |
+| Linguagem   | TypeScript (strict mode)                               |
 | Deploy      | [Railway](https://railway.app) (Docker, serviço único) |
 
 ---
@@ -141,15 +141,15 @@ bun run client:build         # build de produção → client/dist/
 
 Validadas na inicialização por Zod (`src/config/env.ts`) — a aplicação não sobe com configuração inválida.
 
-| Variável                                              | Descrição                                                                   |
-| ----------------------------------------------------- | --------------------------------------------------------------------------- |
-| `DATABASE_URL`                                        | String de conexão do Postgres (validada como URL)                           |
-| `JWT_SECRET`                                          | Mínimo de 32 caracteres                                                      |
-| `PORT`                                                | Padrão 3000                                                                  |
-| `NODE_ENV`                                            | `development` \| `test` \| `production`                                      |
-| `CORS_ORIGIN`                                         | `"*"` ou URLs separadas por vírgula (não pode ser `"*"` em produção)         |
+| Variável                                              | Descrição                                                                      |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `DATABASE_URL`                                        | String de conexão do Postgres (validada como URL)                              |
+| `JWT_SECRET`                                          | Mínimo de 32 caracteres                                                        |
+| `PORT`                                                | Padrão 3000                                                                    |
+| `NODE_ENV`                                            | `development` \| `test` \| `production`                                        |
+| `CORS_ORIGIN`                                         | `"*"` ou URLs separadas por vírgula (não pode ser `"*"` em produção)           |
 | `APP_URL`                                             | URL base do frontend para os links de convite (padrão `http://localhost:5173`) |
-| `DATABASE_DB` / `DATABASE_USER` / `DATABASE_PASSWORD` | Usadas pelo Docker Compose                                                   |
+| `DATABASE_DB` / `DATABASE_USER` / `DATABASE_PASSWORD` | Usadas pelo Docker Compose                                                     |
 
 ---
 
