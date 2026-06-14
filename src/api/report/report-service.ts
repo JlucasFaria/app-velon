@@ -149,7 +149,9 @@ export class ReportService {
         paymentStatus: true,
         createdAt: true,
         client: { select: { id: true, name: true } },
-        items: { select: { description: true, category: true, subtotal: true } },
+        items: {
+          select: { description: true, category: true, subtotal: true },
+        },
         statusHistory: {
           where: { toStatus: "COMPLETED" },
           orderBy: { changedAt: "desc" },
