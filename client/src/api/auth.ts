@@ -48,3 +48,25 @@ export function logout(refreshToken: string) {
     body: { refreshToken },
   });
 }
+
+export interface UpdateMeInput {
+  name?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
+export interface UpdateMeData {
+  id: number;
+  email: string;
+  name: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function updateMe(data: UpdateMeInput) {
+  return apiRequest<UpdateMeData>("/users/me", {
+    method: "PATCH",
+    body: data,
+  });
+}
