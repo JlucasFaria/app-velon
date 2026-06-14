@@ -126,7 +126,7 @@ export class UserService {
         user.password,
       );
       if (!valid)
-        throw new HTTPException(401, { message: "Senha atual incorreta" });
+        throw new HTTPException(401, { message: "Invalid current password" });
     }
 
     if (data.name !== undefined) updateData.name = data.name;
