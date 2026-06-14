@@ -313,6 +313,51 @@ describe("ReportService", () => {
       expect(order.completedAt).toBeDefined();
       expect(order.client.id).toBe(testClientId);
       expect(order.client.name).toBe("Report Test Client");
+      expect(order.client.clientType).toBe("COUNTER");
+      expect(order.client.partnerName).toBeNull();
+    });
+
+    it("should expose clientType and partnerName for a PARTNER client", async () => {
+      const partnerEntity = await prisma.partner.create({
+        data: { name: "Billing Partner", companyId },
+      });
+      const partnerClient = await prisma.client.create({
+        data: {
+          name: "Billing Partner Co",
+          document: `billing-partner-doc-${crypto.randomUUID()}`,
+          clientType: "PARTNER",
+          partnerId: partnerEntity.id,
+          companyId,
+        },
+      });
+      await prisma.serviceOrder.create({
+        data: {
+          orderNumber: `OS-RPT-PB-${crypto.randomUUID().slice(0, 8)}`,
+          description: "Partner billing order",
+          value: "300.00",
+          clientId: partnerClient.id,
+          companyId,
+          status: "COMPLETED",
+          statusHistory: {
+            create: [
+              { toStatus: "PENDING", changedById: testUserId },
+              {
+                fromStatus: "PENDING",
+                toStatus: "COMPLETED",
+                changedById: testUserId,
+                changedAt: JUNE_2026,
+              },
+            ],
+          },
+        },
+      });
+
+      const result = await reportService.getMonthlyBilling(companyId, 6, 2026);
+      const order = result.orders.find((o) => o.client.id === partnerClient.id);
+
+      expect(order).toBeDefined();
+      expect(order!.client.clientType).toBe("PARTNER");
+      expect(order!.client.partnerName).toBe("Billing Partner");
     });
 
     it("should not count an order completed in the month but later cancelled", async () => {
@@ -388,6 +433,15 @@ describe("ReportService", () => {
       const result = await reportService.getAllOrders(companyId, {});
 
       expect(result.orders).toHaveLength(2);
+    });
+
+    it("should expose clientType and a null partnerName for a COUNTER client", async () => {
+      await createOrderFull({ clientId: testClientId });
+
+      const result = await reportService.getAllOrders(companyId, {});
+
+      expect(result.orders[0]!.client.clientType).toBe("COUNTER");
+      expect(result.orders[0]!.client.partnerName).toBeNull();
     });
 
     it("should scope orders to the requesting company", async () => {
@@ -468,6 +522,8 @@ describe("ReportService", () => {
 
       expect(result.orders).toHaveLength(1);
       expect(result.orders[0]!.client.id).toBe(partnerClient.id);
+      expect(result.orders[0]!.client.clientType).toBe("PARTNER");
+      expect(result.orders[0]!.client.partnerName).toBe("Alpha Partner");
     });
 
     it("should filter by dateFrom", async () => {

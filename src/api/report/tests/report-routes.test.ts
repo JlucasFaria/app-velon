@@ -135,7 +135,13 @@ describe("Report Routes", () => {
           year: number;
           totalRevenue: string;
           orderCount: number;
-          orders: unknown[];
+          orders: Array<{
+            client: {
+              id: number;
+              clientType: string;
+              partnerName: string | null;
+            };
+          }>;
         };
       };
 
@@ -146,6 +152,8 @@ describe("Report Routes", () => {
       expect(body.data.orderCount).toBe(2);
       expect(body.data.totalRevenue).toBe("350.00");
       expect(body.data.orders).toHaveLength(2);
+      expect(body.data.orders[0]!.client.clientType).toBe("COUNTER");
+      expect(body.data.orders[0]!.client.partnerName).toBeNull();
     });
 
     it("should return empty result when no COMPLETED orders in the month", async () => {
@@ -349,7 +357,12 @@ describe("Report Routes", () => {
         data: {
           orders: Array<{
             orderNumber: string;
-            client: { id: number; name: string };
+            client: {
+              id: number;
+              name: string;
+              clientType: string;
+              partnerName: string | null;
+            };
             createdAt: string;
             completedAt: string | null;
             total: string;
@@ -370,6 +383,8 @@ describe("Report Routes", () => {
       expect(body.data.orders).toHaveLength(1);
       expect(body.data.orders[0]!.total).toBe("150.00");
       expect(body.data.orders[0]!.paymentStatus).toBe("PAID_PIX");
+      expect(body.data.orders[0]!.client.clientType).toBe("COUNTER");
+      expect(body.data.orders[0]!.client.partnerName).toBeNull();
       expect(body.data.totals.sumTotal).toBe("150.00");
       expect(body.data.totals.totalReceived).toBe("150.00");
     });
@@ -432,12 +447,22 @@ describe("Report Routes", () => {
         headers: h(),
       });
       const body = (await res.json()) as {
-        data: { orders: Array<{ client: { id: number } }> };
+        data: {
+          orders: Array<{
+            client: {
+              id: number;
+              clientType: string;
+              partnerName: string | null;
+            };
+          }>;
+        };
       };
 
       expect(res.status).toBe(200);
       expect(body.data.orders).toHaveLength(1);
       expect(body.data.orders[0]!.client.id).toBe(partnerClient.id);
+      expect(body.data.orders[0]!.client.clientType).toBe("PARTNER");
+      expect(body.data.orders[0]!.client.partnerName).toBe("Beta Partner");
     });
 
     it("should return empty orders list and zero totals when no orders match filters", async () => {
