@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-        sans-serif;
+    --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system,
+        "Segoe UI", sans-serif;
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
@@ -59,77 +59,83 @@
 }
 
 :root {
-    --radius: 0.625rem;
+    /* Velon Design System — azure primary, navy brand, cool light surfaces.
+       Source tokens: client/design-ref/velon-design-system.css */
+    --radius: 0.8125rem; /* 13px — design --r-md */
 
-    /* ── Surfaces ─────────────────────────────────────────────────────────
-       Near-white app background (indigo-tinted), pure white cards/sidebar.
-       Stripe / Vercel: clean, flat, high-contrast. */
-    --background: oklch(0.976 0.004 265);
-    --foreground: oklch(0.135 0.022 262);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.135 0.022 262);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.135 0.022 262);
+    /* Velon brand reference (used by bespoke surfaces, e.g. auth art panel) */
+    --velon-navy: #15385c;
+    --velon-primary-soft: #e7eefb;
+    --velon-primary-soft-2: #d2e1f8;
+    --velon-primary-text: #2058bd;
 
-    /* ── Primary — true indigo, not generic blue ──────────────────────────
-       Distinctive, confident, Stripe-like. Not the flat #2563EB blue. */
-    --primary: oklch(0.51 0.225 270);
-    --primary-foreground: oklch(0.985 0 0);
+    /* ── Surfaces — cool light canvas, white cards ───────────────────────*/
+    --background: #edf1f7;
+    --foreground: #121c2b;
+    --card: #ffffff;
+    --card-foreground: #121c2b;
+    --popover: #ffffff;
+    --popover-foreground: #121c2b;
 
-    /* ── Secondary — very light indigo surface ────────────────────────────*/
-    --secondary: oklch(0.944 0.018 268);
-    --secondary-foreground: oklch(0.38 0.06 268);
+    /* ── Primary — azure (from logo streaks + navy wordmark) ─────────────*/
+    --primary: #2a66d0;
+    --primary-foreground: #ffffff;
+
+    /* ── Secondary — soft azure surface (soft buttons) ───────────────────*/
+    --secondary: #e7eefb;
+    --secondary-foreground: #2058bd;
 
     /* ── Muted ────────────────────────────────────────────────────────────*/
-    --muted: oklch(0.952 0.008 265);
-    --muted-foreground: oklch(0.495 0.022 262);
+    --muted: #f6f8fc;
+    --muted-foreground: #56627a;
 
-    /* ── Accent — light indigo tint for hover/focus surfaces ─────────────*/
-    --accent: oklch(0.938 0.030 270);
-    --accent-foreground: oklch(0.44 0.18 270);
+    /* ── Accent — soft azure tint for hover/focus surfaces ───────────────*/
+    --accent: #e7eefb;
+    --accent-foreground: #2058bd;
 
     /* ── Destructive ──────────────────────────────────────────────────────*/
-    --destructive: oklch(0.545 0.225 27);
+    --destructive: #d9503c;
 
-    /* ── Semantic status tokens ───────────────────────────────────────────*/
-    --success: oklch(0.545 0.155 152);
-    --success-foreground: oklch(0.985 0 0);
-    --warning: oklch(0.695 0.160 60);
-    --warning-foreground: oklch(0.24 0.05 55);
-    --info: oklch(0.51 0.225 270);
-    --info-foreground: oklch(0.985 0 0);
-    --danger: oklch(0.545 0.225 27);
-    --danger-foreground: oklch(0.985 0 0);
+    /* ── Semantic status tokens (order/payment badges) ───────────────────
+       done → success · progress → info · pending → warning · cancel → danger */
+    --success: #0e9f7c;
+    --success-foreground: #ffffff;
+    --warning: #e0a23e;
+    --warning-foreground: #5a3a06;
+    --info: #0e8fa8;
+    --info-foreground: #ffffff;
+    --danger: #d9503c;
+    --danger-foreground: #ffffff;
 
     /* ── Borders & inputs ─────────────────────────────────────────────────*/
-    --border: oklch(0.882 0.012 265);
-    --input: oklch(0.882 0.012 265);
-    --ring: oklch(0.51 0.225 270);
+    --border: #dce3ee;
+    --input: #dce3ee;
+    --ring: #2a66d0;
 
     /* ── Charts ───────────────────────────────────────────────────────────*/
-    --chart-1: oklch(0.51 0.225 270);
-    --chart-2: oklch(0.58 0.20 310);
-    --chart-3: oklch(0.545 0.155 152);
-    --chart-4: oklch(0.695 0.160 60);
-    --chart-5: oklch(0.545 0.225 27);
+    --chart-1: #2a66d0;
+    --chart-2: #7c53d9;
+    --chart-3: #0e9f7c;
+    --chart-4: #e0a23e;
+    --chart-5: #d9503c;
 
-    /* ── Sidebar — pure white, crisp border ──────────────────────────────*/
-    --sidebar: oklch(1 0 0);
-    --sidebar-foreground: oklch(0.135 0.022 262);
-    --sidebar-primary: oklch(0.51 0.225 270);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.938 0.030 270);
-    --sidebar-accent-foreground: oklch(0.44 0.18 270);
-    --sidebar-border: oklch(0.882 0.012 265);
-    --sidebar-ring: oklch(0.51 0.225 270);
+    /* ── Sidebar — white, crisp cool border ──────────────────────────────*/
+    --sidebar: #ffffff;
+    --sidebar-foreground: #121c2b;
+    --sidebar-primary: #2a66d0;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #e7eefb;
+    --sidebar-accent-foreground: #2058bd;
+    --sidebar-border: #dce3ee;
+    --sidebar-ring: #2a66d0;
 
-    /* ── Elevation — crisp subtle shadows, Stripe-style ──────────────────*/
-    --shadow-card: 0 1px 2px 0 oklch(0.135 0.022 262 / 0.05),
-        0 0 0 1px oklch(0.135 0.022 262 / 0.04);
-    --shadow-elevated: 0 4px 12px -2px oklch(0.135 0.022 262 / 0.08),
-        0 2px 6px -2px oklch(0.135 0.022 262 / 0.05);
-    --shadow-overlay: 0 12px 32px -4px oklch(0.135 0.022 262 / 0.14),
-        0 4px 12px -4px oklch(0.135 0.022 262 / 0.08);
+    /* ── Elevation — design --sh-sm / --sh-md / --sh-lg ──────────────────*/
+    --shadow-card: 0 1px 3px rgba(18, 32, 56, 0.08),
+        0 1px 2px rgba(18, 32, 56, 0.05);
+    --shadow-elevated: 0 6px 16px -6px rgba(18, 32, 56, 0.14),
+        0 2px 6px -2px rgba(18, 32, 56, 0.08);
+    --shadow-overlay: 0 24px 48px -16px rgba(18, 32, 56, 0.24),
+        0 8px 20px -8px rgba(18, 32, 56, 0.14);
 }
 
 .dark {
