@@ -15,6 +15,7 @@ import { OrderForm } from "@/components/orders/OrderForm";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { PaymentBadge } from "@/components/orders/PaymentBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/order-status";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -237,7 +238,7 @@ export function OrdersPage() {
                   ))
                 : data?.orders.map((order) => (
                     <TableRow key={order.id}>
-                      <TableCell className={`${TD} font-medium`}>
+                      <TableCell className={`${TD} font-medium tabular-nums`}>
                         <Link
                           to={`/orders/${order.id}`}
                           className="underline-offset-2 transition-colors hover:text-primary hover:underline"
@@ -246,12 +247,23 @@ export function OrdersPage() {
                         </Link>
                       </TableCell>
                       <TableCell className={TD}>
-                        <Link
-                          to={`/clients/${order.client.id}`}
-                          className="underline-offset-2 transition-colors hover:text-primary hover:underline"
-                        >
-                          {order.client.name}
-                        </Link>
+                        <div className="flex items-center gap-2.5">
+                          <InitialsAvatar
+                            name={order.client.name}
+                            size={30}
+                            variant={
+                              order.client.clientType === "PARTNER"
+                                ? "warm"
+                                : "primary"
+                            }
+                          />
+                          <Link
+                            to={`/clients/${order.client.id}`}
+                            className="underline-offset-2 transition-colors hover:text-primary hover:underline"
+                          >
+                            {order.client.name}
+                          </Link>
+                        </div>
                       </TableCell>
                       <TableCell className={TD}>
                         <ClientTypeBadge type={order.client.clientType} />
@@ -271,10 +283,14 @@ export function OrdersPage() {
                           note={order.paymentNote}
                         />
                       </TableCell>
-                      <TableCell className={TD_RIGHT}>
+                      <TableCell className={`${TD_RIGHT} font-medium tabular-nums`}>
                         {formatCurrency(order.value)}
                       </TableCell>
-                      <TableCell className={TD}>{formatDate(order.createdAt)}</TableCell>
+                      <TableCell
+                        className={`${TD} tabular-nums text-muted-foreground`}
+                      >
+                        {formatDate(order.createdAt)}
+                      </TableCell>
                       <TableCell className={TD_RIGHT}>
                         <Button
                           variant="ghost"
