@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ElementType } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ClipboardList,
   Clock,
@@ -10,10 +10,23 @@ import {
   HourglassIcon,
 } from "lucide-react";
 import { getOrdersSummary, type OrdersSummary } from "@/api/reports";
+import { getOrders, type OrderListItem } from "@/api/orders";
+import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { formatCurrency, formatDate } from "@/lib/format";
+import { TH, TH_RIGHT, TD, TD_RIGHT } from "@/lib/table-classes";
 
 interface StatCardProps {
   title: string;
@@ -63,6 +76,89 @@ function StatCardSkeleton() {
       <Skeleton className="h-8 w-12" />
       <Skeleton className="mt-2 h-3 w-20" />
     </div>
+  );
+}
+
+function RecentOrdersCard() {
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState<OrderListItem[] | null>(null);
+
+  useEffect(() => {
+    getOrders({ limit: 5 })
+      .then((d) => setOrders(d.orders))
+      .catch(() => setOrders([]));
+  }, []);
+
+  return (
+    <Card className="shadow-card">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardTitle className="text-[17px] font-bold tracking-[-0.01em]">
+          Ordens recentes
+        </CardTitle>
+        <Link
+          to="/orders"
+          className="text-sm font-semibold text-[color:var(--velon-primary-text)] hover:underline"
+        >
+          Ver todas
+        </Link>
+      </CardHeader>
+      <CardContent className="px-0 pb-2">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className={TH}>Ordem</TableHead>
+              <TableHead className={TH}>Cliente</TableHead>
+              <TableHead className={TH}>Status</TableHead>
+              <TableHead className={TH_RIGHT}>Valor</TableHead>
+              <TableHead className={TH_RIGHT}>Criada em</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {orders === null
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell className={TD}>
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                    <TableCell className={TD}>
+                      <Skeleton className="h-4 w-32" />
+                    </TableCell>
+                    <TableCell className={TD}>
+                      <Skeleton className="h-5 w-24 rounded-full" />
+                    </TableCell>
+                    <TableCell className={TD_RIGHT}>
+                      <Skeleton className="ml-auto h-4 w-16" />
+                    </TableCell>
+                    <TableCell className={TD_RIGHT}>
+                      <Skeleton className="ml-auto h-4 w-20" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              : orders.map((order) => (
+                  <TableRow
+                    key={order.id}
+                    className="cursor-pointer"
+                    onClick={() => navigate(`/orders/${order.id}`)}
+                  >
+                    <TableCell className={`${TD} font-medium tabular-nums`}>
+                      {order.orderNumber}
+                    </TableCell>
+                    <TableCell className={TD}>{order.client.name}</TableCell>
+                    <TableCell className={TD}>
+                      <OrderStatusBadge status={order.status} />
+                    </TableCell>
+                    <TableCell className={`${TD_RIGHT} tabular-nums`}>
+                      {formatCurrency(order.value)}
+                    </TableCell>
+                    <TableCell className={`${TD_RIGHT} tabular-nums`}>
+                      {formatDate(order.createdAt)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -185,11 +281,14 @@ export function DashboardPage() {
       )}
 
       {summary && total > 0 && (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {stats.map((stat) => (
-            <StatCard key={stat.title} {...stat} />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {stats.map((stat) => (
+              <StatCard key={stat.title} {...stat} />
+            ))}
+          </div>
+          <RecentOrdersCard />
+        </>
       )}
       </div>
     </div>
