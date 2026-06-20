@@ -49,7 +49,7 @@ export function LoginPage() {
   return (
     <AuthLayout
       title="Bem-vindo de volta"
-      subtitle="Acesse o painel de gestão da sua empresa."
+      subtitle="Acesse o painel de gestão do seu negócio."
       footer={
         <>
           Não tem uma conta?{" "}
@@ -119,9 +119,32 @@ export function LoginPage() {
                   </FormItem>
                 )}
               />
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    defaultChecked
+                    className="size-4 accent-primary"
+                  />
+                  <span className="text-[13.5px] text-muted-foreground">
+                    Lembrar de mim
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    toast.info(
+                      "A recuperação de senha estará disponível em breve.",
+                    )
+                  }
+                  className="text-[13.5px] font-semibold text-[color:var(--velon-primary-text)] hover:underline"
+                >
+                  Esqueci a senha
+                </button>
+              </div>
               <Button
                 type="submit"
-                className="h-11 w-full text-[15px]"
+                className="h-[46px] w-full text-[15.5px]"
                 disabled={isSubmitting}
               >
                 {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
