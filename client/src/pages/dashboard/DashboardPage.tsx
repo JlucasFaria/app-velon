@@ -84,9 +84,17 @@ function RecentOrdersCard() {
   const [orders, setOrders] = useState<OrderListItem[] | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     getOrders({ limit: 5 })
-      .then((d) => setOrders(d.orders))
-      .catch(() => setOrders([]));
+      .then((d) => {
+        if (!cancelled) setOrders(d.orders);
+      })
+      .catch(() => {
+        if (!cancelled) setOrders([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
