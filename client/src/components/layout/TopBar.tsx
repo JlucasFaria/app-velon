@@ -1,44 +1,53 @@
-import { LogOut, Menu, Moon, Sun } from "lucide-react";
+import { Bell, Menu, Moon, Sun } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { useTheme } from "next-themes";
+import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/contexts/auth-context";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
+const SECTION_CRUMBS: Record<string, string> = {
+  "": "Painel",
+  clients: "Clientes",
+  orders: "Ordens de serviço",
+  reports: "Relatórios",
+  profile: "Perfil",
+};
+
+function useCrumb() {
+  const { pathname } = useLocation();
+  const section = pathname.split("/")[1] ?? "";
+  return SECTION_CRUMBS[section] ?? "";
+}
 
 export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
+  const crumb = useCrumb();
 
   return (
     <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between gap-2 border-b border-border bg-background/75 px-4 backdrop-blur-md backdrop-saturate-150 md:px-7 print:hidden">
-      {/* Mobile brand + menu toggle */}
-      <div className="flex items-center gap-2 md:hidden">
+      {/* Left — mobile menu + logo, desktop breadcrumb */}
+      <div className="flex items-center gap-2">
         <Button
           variant="ghost"
           size="icon"
-          className="min-h-9 min-w-9"
+          className="min-h-9 min-w-9 md:hidden"
           aria-label="Abrir menu"
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <Logo size={22} />
+        <Logo size={22} className="md:hidden" />
+        <span className="hidden text-[13.5px] font-semibold text-muted-foreground/70 md:inline">
+          {crumb}
+        </span>
       </div>
 
-      {/* Spacer so actions stay right-aligned on desktop too */}
-      <div className="hidden md:flex flex-1" />
-
-      {/* Right actions */}
-      <div className="flex items-center gap-1">
+      {/* Right — theme, notifications, user */}
+      <div className="flex items-center gap-2">
         <Button
           variant="ghost"
           size="icon"
@@ -51,36 +60,26 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
           <span className="sr-only">Alternar tema</span>
         </Button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="flex items-center gap-2 px-2 h-9 text-muted-foreground hover:text-foreground"
-            >
-              <Avatar className="h-7 w-7">
-                <AvatarFallback className="text-[10px] font-semibold bg-primary/10 text-primary">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <span className="hidden max-w-40 truncate text-xs sm:block">
-                {user?.email}
-              </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-44">
-            <div className="px-2 py-1.5">
-              <p className="text-xs font-medium text-foreground truncate">{user?.email}</p>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive focus:bg-destructive/10"
-              onClick={() => void logout()}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Sair
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="min-h-9 min-w-9 text-muted-foreground hover:text-foreground"
+          aria-label="Notificações"
+          onClick={() => toast.info("Você não tem notificações no momento.")}
+        >
+          <Bell className="h-[18px] w-[18px]" />
+        </Button>
+
+        <div className="mx-1 hidden h-6 w-px bg-border sm:block" />
+
+        <div className="flex items-center gap-2 pr-0.5">
+          <span className="grid size-[30px] shrink-0 place-items-center rounded-full bg-accent text-[11px] font-bold text-accent-foreground">
+            {initials}
+          </span>
+          <span className="hidden max-w-40 truncate text-[13.5px] font-medium sm:block">
+            {user?.email}
+          </span>
+        </div>
       </div>
     </header>
   );
