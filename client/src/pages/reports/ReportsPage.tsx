@@ -337,7 +337,6 @@ function AllOrdersTab() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     getAllOrders(filters)
       .then((d) => {
         if (!cancelled) {
@@ -379,20 +378,29 @@ function AllOrdersTab() {
           <Input
             type="date"
             value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
+            onChange={(e) => {
+              setLoading(true);
+              setDateFrom(e.target.value);
+            }}
             className="w-full sm:w-40"
             aria-label="Data inicial"
           />
           <Input
             type="date"
             value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
+            onChange={(e) => {
+              setLoading(true);
+              setDateTo(e.target.value);
+            }}
             className="w-full sm:w-40"
             aria-label="Data final"
           />
           <Select
             value={status || "all"}
-            onValueChange={(v) => setStatus(v === "all" ? "" : v)}
+            onValueChange={(v) => {
+              setLoading(true);
+              setStatus(v === "all" ? "" : v);
+            }}
           >
             <SelectTrigger className="w-full sm:w-48" aria-label="Status da OS">
               <SelectValue placeholder="Todos os status" />
@@ -406,7 +414,13 @@ function AllOrdersTab() {
               ))}
             </SelectContent>
           </Select>
-          <PartnerNameFilter value={partnerName} onChange={setPartnerName} />
+          <PartnerNameFilter
+            value={partnerName}
+            onChange={(v) => {
+              setLoading(true);
+              setPartnerName(v);
+            }}
+          />
         </div>
 
         <div className="flex shrink-0 gap-2">
