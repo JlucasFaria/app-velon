@@ -167,25 +167,33 @@ export function OrderDetailPage() {
     );
   }
 
+  const creator = order.statusHistory.find(
+    (h) => h.fromStatus === null,
+  )?.changedBy;
+  const creatorName = creator?.name ?? creator?.email ?? null;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-4">
         <BackButton />
         <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-[26px] font-extrabold tracking-[-0.025em]">
-              {order.orderNumber}
-            </h1>
-            <p className="text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-[26px] font-extrabold tabular-nums tracking-[-0.025em]">
+                {order.orderNumber}
+              </h1>
+              <OrderStatusBadge status={order.status} />
+              <PaymentBadge
+                status={order.paymentStatus}
+                note={order.paymentNote}
+              />
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
               Criada em {formatDate(order.createdAt)}
+              {creatorName ? ` · por ${creatorName}` : ""}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <OrderStatusBadge status={order.status} />
-            <PaymentBadge
-              status={order.paymentStatus}
-              note={order.paymentNote}
-            />
             <Button
               variant="outline"
               onClick={handleDownloadPdf}
@@ -333,14 +341,14 @@ export function OrderDetailPage() {
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="border-t bg-muted/40">
+                    <tr className="border-t-[1.5px] border-border">
                       <td
                         colSpan={4}
-                        className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                        className="px-4 pt-4 text-right text-sm font-semibold text-muted-foreground"
                       >
                         Total
                       </td>
-                      <td className="px-4 py-3 text-right font-bold text-foreground">
+                      <td className="px-4 pt-4 text-right text-[17px] font-extrabold tabular-nums text-[color:var(--velon-primary-text)]">
                         {formatCurrency(order.value)}
                       </td>
                     </tr>
