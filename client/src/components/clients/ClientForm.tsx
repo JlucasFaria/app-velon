@@ -138,7 +138,7 @@ export function ClientForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="rounded-2xl sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Editar cliente" : "Novo cliente"}

@@ -16,13 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AuthLayout } from "@/components/auth/AuthLayout";
 
 const schema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -53,23 +47,32 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-elevated">
-            V
-          </div>
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight text-primary">Velon</h1>
-            <p className="text-sm text-muted-foreground">Acesse o painel de gestão</p>
-          </div>
-        </div>
-      <Card className="w-full shadow-elevated">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base font-semibold">Entrar na conta</CardTitle>
-          <CardDescription className="text-sm">Informe suas credenciais abaixo</CardDescription>
-        </CardHeader>
-        <CardContent>
+    <AuthLayout
+      title="Bem-vindo de volta"
+      subtitle="Acesse o painel de gestão do seu negócio."
+      art={{
+        headline: (
+          <>
+            Ordens de serviço,
+            <br />
+            do balcão ao recibo.
+          </>
+        ),
+        subtitle:
+          "Organize atendimentos, acompanhe prazos e fature mais rápido — tudo num só lugar.",
+      }}
+      footer={
+        <>
+          Não tem uma conta?{" "}
+          <Link
+            to="/register"
+            className="font-bold text-[color:var(--velon-primary-text)] underline-offset-4 hover:underline"
+          >
+            Criar conta
+          </Link>
+        </>
+      }
+    >
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -127,24 +130,39 @@ export function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    defaultChecked
+                    className="size-4 accent-primary"
+                  />
+                  <span className="text-[13.5px] text-muted-foreground">
+                    Lembrar de mim
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    toast.info(
+                      "A recuperação de senha estará disponível em breve.",
+                    )
+                  }
+                  className="text-[13.5px] font-semibold text-[color:var(--velon-primary-text)] hover:underline"
+                >
+                  Esqueci a senha
+                </button>
+              </div>
+              <Button
+                type="submit"
+                className="h-[46px] w-full text-[15.5px]"
+                disabled={isSubmitting}
+              >
                 {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 {isSubmitting ? "Entrando…" : "Entrar"}
               </Button>
-              <p className="text-center text-sm text-muted-foreground">
-                Não tem uma conta?{" "}
-                <Link
-                  to="/register"
-                  className="font-medium text-primary underline-offset-4 hover:underline"
-                >
-                  Criar conta
-                </Link>
-              </p>
             </form>
           </Form>
-        </CardContent>
-      </Card>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }

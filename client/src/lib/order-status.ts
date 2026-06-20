@@ -9,7 +9,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
 };
 
 // Soft pill styles per status — muted background tones harmonized with the
-// teal+terracotta palette. Each entry is [pill classes, dot color class].
+// Velon azure palette via the semantic status tokens (see index.css).
 export const ORDER_STATUS_BADGE_CLASSES: Record<OrderStatus, string> = {
   PENDING:
     "bg-muted text-muted-foreground border border-border",

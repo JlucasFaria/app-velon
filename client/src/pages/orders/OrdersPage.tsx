@@ -14,6 +14,8 @@ import { ClientTypeBadge } from "@/components/clients/ClientTypeBadge";
 import { OrderForm } from "@/components/orders/OrderForm";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { PaymentBadge } from "@/components/orders/PaymentBadge";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/order-status";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -77,22 +79,18 @@ export function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Ordens de serviço
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Gerencie as ordens de serviço do seu negócio
-          </p>
-        </div>
-        {canWrite && (
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova ordem
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Ordens de serviço"
+        subtitle="Gerencie as ordens de serviço do seu negócio"
+        actions={
+          canWrite && (
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova ordem
+            </Button>
+          )
+        }
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <div className="relative flex-1 sm:max-w-sm">
@@ -240,7 +238,7 @@ export function OrdersPage() {
                   ))
                 : data?.orders.map((order) => (
                     <TableRow key={order.id}>
-                      <TableCell className={`${TD} font-medium`}>
+                      <TableCell className={`${TD} font-medium tabular-nums`}>
                         <Link
                           to={`/orders/${order.id}`}
                           className="underline-offset-2 transition-colors hover:text-primary hover:underline"
@@ -249,12 +247,23 @@ export function OrdersPage() {
                         </Link>
                       </TableCell>
                       <TableCell className={TD}>
-                        <Link
-                          to={`/clients/${order.client.id}`}
-                          className="underline-offset-2 transition-colors hover:text-primary hover:underline"
-                        >
-                          {order.client.name}
-                        </Link>
+                        <div className="flex items-center gap-2.5">
+                          <InitialsAvatar
+                            name={order.client.name}
+                            size={30}
+                            variant={
+                              order.client.clientType === "PARTNER"
+                                ? "warm"
+                                : "primary"
+                            }
+                          />
+                          <Link
+                            to={`/clients/${order.client.id}`}
+                            className="underline-offset-2 transition-colors hover:text-primary hover:underline"
+                          >
+                            {order.client.name}
+                          </Link>
+                        </div>
                       </TableCell>
                       <TableCell className={TD}>
                         <ClientTypeBadge type={order.client.clientType} />
@@ -274,10 +283,14 @@ export function OrdersPage() {
                           note={order.paymentNote}
                         />
                       </TableCell>
-                      <TableCell className={TD_RIGHT}>
+                      <TableCell className={`${TD_RIGHT} font-medium tabular-nums`}>
                         {formatCurrency(order.value)}
                       </TableCell>
-                      <TableCell className={TD}>{formatDate(order.createdAt)}</TableCell>
+                      <TableCell
+                        className={`${TD} tabular-nums text-muted-foreground`}
+                      >
+                        {formatDate(order.createdAt)}
+                      </TableCell>
                       <TableCell className={TD_RIGHT}>
                         <Button
                           variant="ghost"

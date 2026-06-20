@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ClipboardList } from "lucide-react";
 import { getClient, type ClientDetail } from "@/api/clients";
@@ -11,7 +11,8 @@ import {
 } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TH, TH_RIGHT, TD, TD_RIGHT, TABLE_WRAP } from "@/lib/table-classes";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
+import { TH, TH_RIGHT, TD, TD_RIGHT } from "@/lib/table-classes";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -103,66 +104,114 @@ export function ClientDetailPage() {
     );
   }
 
+  const ordersTotal = client.orders.length;
+  const billedCents = client.orders
+    .filter((o) => o.status === "COMPLETED")
+    .reduce((sum, o) => sum + Math.round(Number(o.value) * 100), 0);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <BackButton />
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {client.name}
-          </h1>
-          <p className="text-sm text-muted-foreground">{client.document}</p>
+        <div className="flex items-center gap-3">
+          <InitialsAvatar
+            name={client.name}
+            size={48}
+            variant={client.clientType === "PARTNER" ? "warm" : "primary"}
+          />
+          <div>
+            <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.025em]">
+              {client.name}
+            </h1>
+            <p className="text-sm tabular-nums text-muted-foreground">
+              {client.document}
+            </p>
+          </div>
         </div>
       </div>
 
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="text-base">Dados do cliente</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
-          {client.registrationNumber != null && (
-            <div>
-              <p className="text-muted-foreground">Nº de cadastro</p>
-              <p className="font-medium tabular-nums">
-                {formatRegistrationNumber(client.registrationNumber)}
-              </p>
-            </div>
-          )}
-          <div>
-            <p className="text-muted-foreground">Telefone</p>
-            <p className="font-medium">{client.phone ?? "—"}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Tipo</p>
-            <p className="mt-1">
+      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="text-[17px] font-bold tracking-[-0.01em]">
+              Dados do cliente
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-5 sm:grid-cols-2">
+            {client.registrationNumber != null && (
+              <Field label="Nº de cadastro">
+                <span className="font-semibold tabular-nums">
+                  {formatRegistrationNumber(client.registrationNumber)}
+                </span>
+              </Field>
+            )}
+            <Field label="Telefone">
+              <span className="font-semibold tabular-nums">
+                {client.phone ?? "—"}
+              </span>
+            </Field>
+            <Field label="Tipo">
               <ClientTypeBadge type={client.clientType} />
-            </p>
-          </div>
-          {client.clientType === "PARTNER" && (
-            <div>
-              <p className="text-muted-foreground">Parceiro</p>
-              <p className="font-medium">{client.partner?.name ?? "—"}</p>
-            </div>
-          )}
-          <div className="sm:col-span-2">
-            <p className="text-muted-foreground">Endereço</p>
-            <p className="font-medium">{client.address ?? "—"}</p>
-          </div>
-        </CardContent>
-      </Card>
+            </Field>
+            {client.clientType === "PARTNER" && (
+              <Field label="Parceiro">
+                <span className="font-semibold">
+                  {client.partner?.name ?? "—"}
+                </span>
+              </Field>
+            )}
+            <Field label="Endereço" full>
+              <span className="font-semibold">{client.address ?? "—"}</span>
+            </Field>
+          </CardContent>
+        </Card>
 
-      <div>
-        <h2 className="mb-4 text-lg font-semibold tracking-tight">
-          Ordens de serviço ({client.orders.length})
-        </h2>
-        {client.orders.length === 0 ? (
-          <EmptyState
-            icon={ClipboardList}
-            title="Nenhuma ordem de serviço"
-            description="Este cliente ainda não possui ordens de serviço."
-          />
-        ) : (
-          <div className={TABLE_WRAP}>
+        <Card className="bg-muted/40 shadow-card">
+          <CardContent className="pt-6">
+            <span className="text-[11.5px] font-bold uppercase tracking-[0.09em] text-muted-foreground/70">
+              Resumo
+            </span>
+            <div className="mt-3 flex items-end gap-4">
+              <div>
+                <div className="text-[30px] font-extrabold leading-none tracking-[-0.03em] tabular-nums">
+                  {ordersTotal}
+                </div>
+                <div className="mt-2 text-[12.5px] text-muted-foreground/80">
+                  Ordens totais
+                </div>
+              </div>
+              <div className="ml-auto text-right">
+                <div className="text-[30px] font-extrabold leading-none tracking-[-0.03em] tabular-nums text-[color:var(--velon-primary-text)]">
+                  {formatCurrency(billedCents / 100)}
+                </div>
+                <div className="mt-2 text-[12.5px] text-muted-foreground/80">
+                  Faturado
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="shadow-card">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-[17px] font-bold tracking-[-0.01em]">
+            Ordens de serviço
+          </CardTitle>
+          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+            {ordersTotal}
+          </span>
+        </CardHeader>
+        <CardContent className="px-0 pb-2">
+          {client.orders.length === 0 ? (
+            <div className="px-6 pb-4">
+              <EmptyState
+                icon={ClipboardList}
+                title="Nenhuma ordem de serviço"
+                description="Este cliente ainda não possui ordens de serviço."
+              />
+            </div>
+          ) : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -178,25 +227,46 @@ export function ClientDetailPage() {
                     <TableCell className={`${TD} font-medium`}>
                       <Link
                         to={`/orders/${order.id}`}
-                        className="text-primary hover:underline"
+                        className="text-[color:var(--velon-primary-text)] hover:underline"
                       >
                         {order.orderNumber}
                       </Link>
                     </TableCell>
-                    <TableCell className={TD}>{formatDate(order.createdAt)}</TableCell>
+                    <TableCell className={`${TD} tabular-nums`}>
+                      {formatDate(order.createdAt)}
+                    </TableCell>
                     <TableCell className={TD}>
                       <OrderStatusBadge status={order.status} />
                     </TableCell>
-                    <TableCell className={TD_RIGHT}>
+                    <TableCell className={`${TD_RIGHT} tabular-nums`}>
                       {formatCurrency(order.value)}
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
-        )}
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  full,
+  children,
+}: {
+  label: string;
+  full?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className={full ? "sm:col-span-2" : undefined}>
+      <div className="mb-1.5 text-[11.5px] font-bold uppercase tracking-[0.09em] text-muted-foreground/70">
+        {label}
       </div>
+      <div className="text-sm">{children}</div>
     </div>
   );
 }

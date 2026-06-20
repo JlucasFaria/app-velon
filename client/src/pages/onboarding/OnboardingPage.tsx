@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import * as companyApi from "@/api/company";
 import { ApiError } from "@/api/client";
+import { Logo } from "@/components/brand/Logo";
 import {
   Form,
   FormControl,
@@ -89,13 +90,10 @@ export function OnboardingPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-elevated">
-            V
-          </div>
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight text-primary">Velon</h1>
-            <p className="text-sm text-muted-foreground">Configure sua empresa para começar</p>
-          </div>
+          <Logo size={32} />
+          <p className="text-sm text-muted-foreground">
+            Configure sua empresa para começar
+          </p>
         </div>
       <Card className="w-full shadow-elevated">
         <CardHeader className="pb-4">

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Printer } from "lucide-react";
 import { getReceipt, type Receipt } from "@/api/receipts";
+import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDateTime } from "@/lib/format";
@@ -82,14 +83,9 @@ export function ReceiptPage() {
       {/* Receipt document — explicit light colors so it prints cleanly. */}
       <div className="rounded-lg border border-gray-200 bg-white p-8 text-gray-900 shadow-card print:shadow-none">
         <div className="flex items-start justify-between border-b border-gray-200 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg border-2 border-indigo-700 text-lg font-bold text-indigo-700">
-              V
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold leading-none text-indigo-700">Velon</h1>
-              <p className="mt-1 text-sm text-gray-500">Recibo de serviço</p>
-            </div>
+          <div>
+            <Logo size={26} />
+            <p className="mt-1.5 text-sm text-gray-500">Recibo de serviço</p>
           </div>
           <div className="text-right text-sm">
             <p className="font-semibold">Recibo nº {receipt.receiptNumber}</p>

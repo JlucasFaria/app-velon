@@ -16,6 +16,8 @@ import { formatRegistrationNumber } from "@/lib/format";
 import { ClientForm } from "@/components/clients/ClientForm";
 import { ClientTypeBadge } from "@/components/clients/ClientTypeBadge";
 import { PartnerNameFilter } from "@/components/clients/PartnerNameFilter";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -143,20 +145,18 @@ export function ClientsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
-          <p className="text-sm text-muted-foreground">
-            Gerencie os clientes do seu negócio
-          </p>
-        </div>
-        {canWrite && (
-          <Button onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo cliente
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Clientes"
+        subtitle="Gerencie os clientes do seu negócio"
+        actions={
+          canWrite && (
+            <Button onClick={openCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo cliente
+            </Button>
+          )
+        }
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1 sm:max-w-sm">
@@ -280,12 +280,22 @@ export function ClientsPage() {
                           : "—"}
                       </TableCell>
                       <TableCell className={`${TD} font-medium`}>
-                        <Link
-                          to={`/clients/${client.id}`}
-                          className="underline-offset-2 transition-colors hover:text-primary hover:underline"
-                        >
-                          {client.name}
-                        </Link>
+                        <div className="flex items-center gap-3">
+                          <InitialsAvatar
+                            name={client.name}
+                            variant={
+                              client.clientType === "PARTNER"
+                                ? "warm"
+                                : "primary"
+                            }
+                          />
+                          <Link
+                            to={`/clients/${client.id}`}
+                            className="underline-offset-2 transition-colors hover:text-primary hover:underline"
+                          >
+                            {client.name}
+                          </Link>
+                        </div>
                       </TableCell>
                       <TableCell className={TD}>{client.document}</TableCell>
                       <TableCell className={TD}>{client.phone ?? "—"}</TableCell>

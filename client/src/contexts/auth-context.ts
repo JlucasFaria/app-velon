@@ -5,6 +5,8 @@ export type UserRole = "ADMIN" | "OPERATOR" | "VIEWER";
 export interface AuthUser {
   id: number;
   email: string;
+  /** Display name from `GET /auth/me` (the JWT carries no name); null until loaded. */
+  name: string | null;
   companyId: number | null;
   role: UserRole | null;
 }

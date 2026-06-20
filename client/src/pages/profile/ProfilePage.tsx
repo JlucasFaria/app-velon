@@ -15,6 +15,7 @@ import {
 } from "@/api/company";
 import { me, updateMe } from "@/api/auth";
 import { useAuth } from "@/contexts/auth-context";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -294,12 +295,10 @@ export function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Perfil</h1>
-        <p className="text-sm text-muted-foreground">
-          Dados da empresa e gerenciamento de membros
-        </p>
-      </div>
+      <PageHeader
+        title="Perfil"
+        subtitle="Dados da empresa e gerenciamento de membros"
+      />
 
       {/* Tab bar */}
       <div className="flex gap-1 border-b">
@@ -322,9 +321,9 @@ export function ProfilePage() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={[
-                "px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-all",
+                "px-4 py-2.5 text-[14.5px] font-semibold -mb-px border-b-2 transition-all",
                 activeTab === tab
-                  ? "border-primary text-primary"
+                  ? "border-primary text-[color:var(--velon-primary-text)]"
                   : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
               ].join(" ")}
             >
