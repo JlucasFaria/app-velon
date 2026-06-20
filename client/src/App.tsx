@@ -5,12 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 
 function App() {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="light"
-      enableSystem={false}
-      disableTransitionOnChange
-    >
+    <ThemeProvider attribute="class" forcedTheme="light" disableTransitionOnChange>
       <AuthProvider>
         <AppRouter />
         <Toaster />
