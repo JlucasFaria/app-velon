@@ -2,6 +2,8 @@
 // injects the Authorization header, unwraps the { success, data } envelope,
 // and bounces expired sessions to /login on 401.
 
+import { getAccessToken, clearTokens } from "@/lib/token-storage";
+
 const API_BASE = "/api";
 
 export class ApiError extends Error {
@@ -28,7 +30,7 @@ export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const token = localStorage.getItem("accessToken");
+  const token = getAccessToken();
   const { body, headers, ...rest } = options;
 
   const res = await fetch(`${API_BASE}${path}`, {
@@ -57,8 +59,7 @@ export async function apiRequest<T>(
     // Only a 401 on an existing session means the token expired — clear it and
     // bounce to login. A 401 without a token is just a failed login attempt.
     if (res.status === 401 && token) {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      clearTokens();
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }
@@ -79,7 +80,7 @@ export async function apiUpload<T>(
   path: string,
   formData: FormData,
 ): Promise<T> {
-  const token = localStorage.getItem("accessToken");
+  const token = getAccessToken();
 
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
@@ -101,8 +102,7 @@ export async function apiUpload<T>(
       `Request failed (${res.status})`;
 
     if (res.status === 401 && token) {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      clearTokens();
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }

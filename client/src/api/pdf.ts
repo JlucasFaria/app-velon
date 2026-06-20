@@ -1,7 +1,9 @@
 // Fetches the OS PDF as a Blob and triggers a browser file download.
 // Uses fetch directly because apiRequest unwraps JSON; PDFs are binary.
+import { getAccessToken } from "@/lib/token-storage";
+
 export async function downloadOrderPdf(orderId: number): Promise<void> {
-  const token = localStorage.getItem("accessToken");
+  const token = getAccessToken();
   const res = await fetch(`/api/pdf/orders/${orderId}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
