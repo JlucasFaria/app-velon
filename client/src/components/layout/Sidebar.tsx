@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/brand/Logo";
 
 interface NavItem {
   to: string;
@@ -28,13 +29,8 @@ const navItems: NavItem[] = [
 
 function Brand() {
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-sm">
-        V
-      </div>
-      <span className="text-xl font-bold tracking-tight text-foreground">
-        Velon
-      </span>
+    <div className="flex items-center">
+      <Logo size={26} />
     </div>
   );
 }
