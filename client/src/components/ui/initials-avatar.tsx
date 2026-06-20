@@ -20,23 +20,30 @@ export function InitialsAvatar({
   name,
   variant = "primary",
   round = false,
+  size = 34,
   className,
 }: {
   name: string;
   variant?: "primary" | "warm";
   round?: boolean;
+  size?: number;
   className?: string;
 }) {
   return (
     <span
       className={cn(
-        "grid size-[34px] shrink-0 place-items-center border text-[12.5px] font-bold",
-        round ? "rounded-full" : "rounded-[10px]",
+        "grid shrink-0 place-items-center border font-bold",
         variant === "warm"
           ? "border-[#f0e2c5] bg-[#fbeeda] text-[#ac7314]"
           : "border-border bg-accent text-accent-foreground",
         className,
       )}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: round ? 9999 : size * 0.29,
+        fontSize: size * 0.36,
+      }}
     >
       {getInitials(name)}
     </span>
