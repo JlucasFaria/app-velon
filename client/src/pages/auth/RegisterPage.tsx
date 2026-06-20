@@ -17,13 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AuthLayout } from "@/components/auth/AuthLayout";
 
 const schema = z
   .object({
@@ -78,23 +72,21 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-elevated">
-            V
-          </div>
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight text-primary">Velon</h1>
-            <p className="text-sm text-muted-foreground">Crie sua conta para começar</p>
-          </div>
-        </div>
-      <Card className="w-full shadow-elevated">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base font-semibold">Criar conta</CardTitle>
-          <CardDescription className="text-sm">Preencha seus dados abaixo</CardDescription>
-        </CardHeader>
-        <CardContent>
+    <AuthLayout
+      title="Crie sua conta"
+      subtitle="Comece a organizar suas ordens de serviço em minutos."
+      footer={
+        <>
+          Já tem uma conta?{" "}
+          <Link
+            to="/login"
+            className="font-bold text-[color:var(--velon-primary-text)] underline-offset-4 hover:underline"
+          >
+            Entrar
+          </Link>
+        </>
+      }
+    >
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -205,24 +197,16 @@ export function RegisterPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                className="h-11 w-full text-[15px]"
+                disabled={isSubmitting}
+              >
                 {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 {isSubmitting ? "Criando conta…" : "Criar conta"}
               </Button>
-              <p className="text-center text-sm text-muted-foreground">
-                Já tem uma conta?{" "}
-                <Link
-                  to="/login"
-                  className="font-medium text-primary underline-offset-4 hover:underline"
-                >
-                  Entrar
-                </Link>
-              </p>
             </form>
           </Form>
-        </CardContent>
-      </Card>
-      </div>
-    </div>
+    </AuthLayout>
   );
 }

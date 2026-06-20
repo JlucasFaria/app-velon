@@ -218,3 +218,14 @@
     font-family: var(--font-sans);
     }
 }
+
+/* Auth art panel — gentle float for the mock card and floating chips. */
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
