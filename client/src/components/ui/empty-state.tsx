@@ -9,6 +9,11 @@ interface EmptyStateProps {
   className?: string;
 }
 
+/**
+ * Empty state inside a dashed frame, with the design's illustrated art:
+ * a soft radial halo (`ring`), an elevated glyph tile, and two accent sparks.
+ * Mirrors `.frame-empty` / `.empty` / `.empty-art` from the design reference.
+ */
 export function EmptyState({
   icon: Icon,
   title,
@@ -19,19 +24,35 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-5 rounded-2xl border border-dashed border-border bg-card px-8 py-16 text-center",
+        "flex flex-col items-center justify-center rounded-[18px] border border-dashed border-border bg-muted/40 px-6 py-14 text-center",
         className,
       )}
     >
       {Icon ? (
-        <div className="relative flex size-20 items-center justify-center">
-          <div aria-hidden="true" className="absolute inset-0 rounded-2xl bg-primary/8" />
-          <div aria-hidden="true" className="absolute inset-2 rounded-xl bg-primary/14" />
-          <Icon className="relative size-9 text-primary/65" />
+        <div className="relative mb-[22px] grid size-[92px] place-items-center">
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 rounded-[24px]"
+            style={{
+              background:
+                "radial-gradient(120% 120% at 50% 0%, var(--velon-primary-soft) 0%, transparent 70%)",
+            }}
+          />
+          <div className="relative grid size-[60px] place-items-center rounded-[18px] border border-border bg-card text-primary shadow-elevated">
+            <Icon className="size-[27px]" />
+          </div>
+          <span
+            aria-hidden="true"
+            className="absolute right-3 top-1.5 size-2 rounded-full bg-[#e0a23e] opacity-85"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute bottom-3 left-2 size-[5px] rounded-full bg-primary opacity-70"
+          />
         </div>
       ) : null}
-      <div className="space-y-1.5 max-w-xs">
-        <h3 className="text-base font-semibold tracking-tight text-foreground">
+      <div className="max-w-[360px] space-y-1.5">
+        <h3 className="text-[16.5px] font-bold tracking-[-0.01em] text-foreground">
           {title}
         </h3>
         {description ? (
@@ -40,7 +61,7 @@ export function EmptyState({
           </p>
         ) : null}
       </div>
-      {action ? <div className="mt-1">{action}</div> : null}
+      {action ? <div className="mt-5">{action}</div> : null}
     </div>
   );
 }
