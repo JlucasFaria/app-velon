@@ -83,6 +83,22 @@ export const registerResponseSchema = successResponseSchema(
   "RegisterResponse",
 );
 
+export const forgotPasswordSchema = z
+  .object({
+    email: z.email().openapi({
+      example: "admin@template.com",
+      description: "Email address to send the password reset link to",
+    }),
+  })
+  .openapi("ForgotPasswordInput");
+
+// Generic acknowledgement — intentionally the same whether or not the email
+// matches a user, so the response can't be used to enumerate accounts.
+export const forgotPasswordResponseSchema = successResponseSchema(
+  messageSchema,
+  "ForgotPasswordResponse",
+);
+
 export const meResponseSchema = successResponseSchema(
   z
     .object({

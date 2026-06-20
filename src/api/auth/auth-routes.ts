@@ -11,6 +11,7 @@ import {
   type AuthVariables,
 } from "../../middlewares/auth";
 import { ACCESS_TOKEN_TTL_SECONDS } from "../../config/constants";
+import { emailTransport, type EmailTransport } from "../../utils/email";
 import { AuthService } from "./auth-service";
 import {
   loginSchema,
@@ -20,12 +21,28 @@ import {
   registerSchema,
   registerResponseSchema,
   meResponseSchema,
+  forgotPasswordSchema,
+  forgotPasswordResponseSchema,
 } from "./auth-schema";
 import {
   errorResponseSchema,
   validationErrorResponseSchema,
 } from "../../schemas/response";
 import { successResponse, errorResponse } from "../../utils/response";
+
+// Frontend route that handles the reset-password flow (see Task 2.6).
+function buildResetUrl(token: string): string {
+  const base = env.APP_URL.replace(/\/$/, "");
+  return `${base}/reset-password?token=${token}`;
+}
+
+function buildResetEmailHtml(resetUrl: string): string {
+  return [
+    "<p>Recebemos um pedido para redefinir a senha da sua conta no Velon.</p>",
+    `<p><a href="${resetUrl}">Clique aqui para redefinir sua senha</a></p>`,
+    "<p>Este link expira em 1 hora. Se você não fez este pedido, ignore este e-mail.</p>",
+  ].join("");
+}
 
 // Minimal interface — auth only needs these two methods from the user domain.
 // Using an interface instead of importing UserService directly keeps this module
@@ -56,6 +73,7 @@ export interface IUserAuthRepository {
 export function createAuthRoutes(
   userRepo: IUserAuthRepository,
   authService: AuthService = new AuthService(),
+  email: EmailTransport = emailTransport,
 ) {
   const authRoutes = new OpenAPIHono<{ Variables: AuthVariables }>();
 
@@ -173,6 +191,32 @@ export function createAuthRoutes(
       401: {
         content: { "application/json": { schema: errorResponseSchema } },
         description: "Invalid or expired refresh token",
+      },
+    },
+  });
+
+  const forgotPasswordRoute = createRoute({
+    method: "post",
+    path: "/forgot-password",
+    tags: ["Auth"],
+    request: {
+      body: {
+        content: { "application/json": { schema: forgotPasswordSchema } },
+      },
+    },
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: forgotPasswordResponseSchema },
+        },
+        description:
+          "Request acknowledged. A reset link is sent only if the email matches an account",
+      },
+      400: {
+        content: {
+          "application/json": { schema: validationErrorResponseSchema },
+        },
+        description: "Validation error",
       },
     },
   });
@@ -300,6 +344,32 @@ export function createAuthRoutes(
       { token: accessToken, refreshToken: newRefreshToken },
       200,
       "Tokens refreshed successfully",
+    );
+  });
+
+  // === Forgot Password Handler ===
+  authRoutes.openapi(forgotPasswordRoute, async (c) => {
+    const { email: rawEmail } = c.req.valid("json");
+
+    // Always respond the same way, regardless of whether the account exists,
+    // so the endpoint can't be used to probe which emails are registered.
+    const user = await userRepo.findByEmail(rawEmail);
+    if (user) {
+      const token = await authService.createPasswordResetToken(user.id);
+      await email.send({
+        to: user.email,
+        subject: "Redefinição de senha — Velon",
+        html: buildResetEmailHtml(buildResetUrl(token)),
+      });
+    }
+
+    return successResponse(
+      c,
+      {
+        message:
+          "Se houver uma conta com este e-mail, enviaremos as instruções para redefinir a senha.",
+      },
+      200,
     );
   });
 
