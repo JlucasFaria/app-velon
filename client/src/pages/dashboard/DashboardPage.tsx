@@ -10,20 +10,18 @@ import {
   HourglassIcon,
 } from "lucide-react";
 import { getOrdersSummary, type OrdersSummary } from "@/api/reports";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface StatCardProps {
   title: string;
   value: number;
   description: string;
   icon: ElementType;
-  iconAccent: string;
-  stripColor: string;
-  gradientOverlay: string;
+  iconBg: string;
+  iconFg: string;
 }
 
 function StatCard({
@@ -31,44 +29,40 @@ function StatCard({
   value,
   description,
   icon: Icon,
-  iconAccent,
-  stripColor,
-  gradientOverlay,
+  iconBg,
+  iconFg,
 }: StatCardProps) {
   return (
-    <Card className="relative overflow-hidden shadow-card transition-shadow hover:shadow-elevated">
-      {/* Subtle gradient overlay — light mode only */}
-      <div aria-hidden="true" className={cn("pointer-events-none absolute inset-0 dark:hidden", gradientOverlay)} />
-      {/* Left accent strip */}
-      <div aria-hidden="true" className={cn("absolute inset-y-0 left-0 w-[3px]", stripColor)} />
-      <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2 pl-5">
-        <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground/80">
+    <div className="rounded-[18px] border border-border bg-card p-[22px] shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:shadow-elevated">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <span className="text-[13px] font-semibold text-muted-foreground">
           {title}
-        </CardTitle>
-        <span className={cn("flex size-9 items-center justify-center rounded-xl", iconAccent)}>
-          <Icon className="h-5 w-5 shrink-0" />
         </span>
-      </CardHeader>
-      <CardContent className="relative pl-5">
-        <div className="text-3xl font-bold tracking-tight">{value}</div>
-        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
+        <span
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full"
+          style={{ background: iconBg, color: iconFg }}
+        >
+          <Icon className="h-[19px] w-[19px]" strokeWidth={1.75} />
+        </span>
+      </div>
+      <div className="text-[34px] font-extrabold leading-none tracking-[-0.03em] tabular-nums">
+        {value}
+      </div>
+      <p className="mt-2 text-[12.5px] text-muted-foreground/80">{description}</p>
+    </div>
   );
 }
 
 function StatCardSkeleton() {
   return (
-    <Card className="shadow-card">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <div className="rounded-[18px] border border-border bg-card p-[22px] shadow-card">
+      <div className="mb-4 flex items-center justify-between">
         <Skeleton className="h-4 w-24" />
-        <Skeleton className="size-9 rounded-xl" />
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="h-8 w-12" />
-        <Skeleton className="mt-2 h-3 w-20" />
-      </CardContent>
-    </Card>
+        <Skeleton className="h-10 w-10 rounded-full" />
+      </div>
+      <Skeleton className="h-8 w-12" />
+      <Skeleton className="mt-2 h-3 w-20" />
+    </div>
   );
 }
 
@@ -104,72 +98,65 @@ export function DashboardPage() {
           value: total,
           description: "Desde o início",
           icon: ClipboardList,
-          iconAccent: "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400",
-          stripColor: "bg-indigo-500",
-          gradientOverlay: "bg-gradient-to-br from-white to-indigo-50/70",
+          iconBg: "var(--velon-primary-soft)",
+          iconFg: "var(--primary)",
         },
         {
           title: "Pendentes",
           value: summary.PENDING,
           description: "Aguardando início",
           icon: Clock,
-          iconAccent: "bg-slate-100 text-slate-500 dark:bg-slate-700/40 dark:text-slate-400",
-          stripColor: "bg-slate-400",
-          gradientOverlay: "bg-gradient-to-br from-white to-slate-50/80",
+          iconBg: "#faebd0",
+          iconFg: "#c8870f",
         },
         {
           title: "Em andamento",
           value: summary.IN_PROGRESS,
           description: "Sendo executadas",
           icon: Wrench,
-          iconAccent: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400",
-          stripColor: "bg-blue-500",
-          gradientOverlay: "bg-gradient-to-br from-white to-blue-50/70",
+          iconBg: "#d7edf3",
+          iconFg: "#0e8fa8",
         },
         {
           title: "Aguardando cliente",
           value: summary.AWAITING_CLIENT,
           description: "Esperando retorno do cliente",
           icon: HourglassIcon,
-          iconAccent: "bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400",
-          stripColor: "bg-amber-400",
-          gradientOverlay: "bg-gradient-to-br from-white to-amber-50/70",
+          iconBg: "#ebe3fa",
+          iconFg: "#7c53d9",
         },
         {
           title: "Concluídas",
           value: summary.COMPLETED,
           description: "Desde o início",
           icon: CheckCircle2,
-          iconAccent: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400",
-          stripColor: "bg-emerald-500",
-          gradientOverlay: "bg-gradient-to-br from-white to-emerald-50/70",
+          iconBg: "#d4f0e4",
+          iconFg: "#0e9f7c",
         },
         {
           title: "Canceladas",
           value: summary.CANCELLED,
           description: "Desde o início",
           icon: XCircle,
-          iconAccent: "bg-rose-50 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400",
-          stripColor: "bg-rose-500",
-          gradientOverlay: "bg-gradient-to-br from-white to-rose-50/70",
+          iconBg: "#fadfdb",
+          iconFg: "#d9503c",
         },
       ]
     : [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Painel</h1>
-          <p className="text-sm text-muted-foreground">
-            Visão geral das ordens de serviço
-          </p>
-        </div>
-        <Button asChild variant="default" size="sm">
-          <Link to="/orders">Ver todas as ordens</Link>
-        </Button>
-      </div>
+    <div>
+      <PageHeader
+        title="Painel"
+        subtitle="Visão geral das ordens de serviço"
+        actions={
+          <Button asChild variant="default">
+            <Link to="/orders">Ver todas as ordens</Link>
+          </Button>
+        }
+      />
 
+      <div className="space-y-6">
       {error && (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {error}
@@ -204,6 +191,7 @@ export function DashboardPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
