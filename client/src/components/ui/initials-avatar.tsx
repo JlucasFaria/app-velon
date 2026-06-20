@@ -1,14 +1,16 @@
 import { cn } from "@/lib/utils";
 
-/** First letters of up to two name words, uppercased (e.g. "Mariana Costa" → "MC"). */
+/**
+ * Initials from a name or email: two-word names give both initials
+ * ("Mariana Costa" → "MC"); a single token falls back to its first two
+ * characters ("joao@x.com" → "JO").
+ */
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  const initials = parts
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-  return initials || "?";
+  const first = parts[0] ?? "";
+  const second = parts[1] ?? "";
+  if (second) return (first.charAt(0) + second.charAt(0)).toUpperCase();
+  return first ? first.slice(0, 2).toUpperCase() : "?";
 }
 
 /**

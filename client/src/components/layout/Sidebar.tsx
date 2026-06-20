@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import { ROLE_LABELS } from "@/components/members/member-constants";
 import { Button } from "@/components/ui/button";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { Logo } from "@/components/brand/Logo";
 
 interface NavItem {
@@ -80,18 +81,16 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
 
 function UserChip() {
   const { user, logout } = useAuth();
-  const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
+  const displayName = user?.name ?? user?.email ?? "—";
   const roleLabel = user?.role ? ROLE_LABELS[user.role] : null;
 
   return (
     <div className="border-t border-border/70 p-3.5">
       <div className="flex items-center gap-2.5 rounded-[10px] p-2 transition-colors hover:bg-muted">
-        <span className="grid size-[34px] shrink-0 place-items-center rounded-full bg-accent text-[12.5px] font-bold text-accent-foreground">
-          {initials}
-        </span>
+        <InitialsAvatar name={displayName} round size={34} />
         <div className="min-w-0 flex-1">
           <div className="truncate text-[13.5px] font-semibold">
-            {user?.email}
+            {displayName}
           </div>
           {roleLabel && (
             <div className="text-[12px] text-muted-foreground/70">

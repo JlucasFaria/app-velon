@@ -3,10 +3,11 @@ import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
 
 export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const { user } = useAuth();
-  const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
+  const displayName = user?.name ?? user?.email ?? "—";
 
   return (
     <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between gap-2 border-b border-border bg-background/75 px-4 backdrop-blur-md backdrop-saturate-150 md:px-7 print:hidden">
@@ -39,11 +40,9 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
         <div className="mx-1 hidden h-6 w-px bg-border sm:block" />
 
         <div className="flex items-center gap-2 pr-0.5">
-          <span className="grid size-[30px] shrink-0 place-items-center rounded-full bg-accent text-[11px] font-bold text-accent-foreground">
-            {initials}
-          </span>
+          <InitialsAvatar name={displayName} round size={30} />
           <span className="hidden max-w-40 truncate text-[13.5px] font-medium sm:block">
-            {user?.email}
+            {displayName}
           </span>
         </div>
       </div>

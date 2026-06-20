@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import * as authApi from "@/api/auth";
 import { AuthContext, type AuthUser, type UserRole } from "./auth-context";
 
@@ -28,6 +28,7 @@ function decodeUser(token: string): AuthUser | null {
       return {
         id: payload.id,
         email: payload.email,
+        name: null, // enriched from GET /auth/me once authenticated
         companyId:
           typeof payload.companyId === "number" ? payload.companyId : null,
         role:
@@ -54,6 +55,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(
     initialUser ? localStorage.getItem(ACCESS_TOKEN_KEY) : null,
   );
+
+  // The JWT carries no display name, so enrich the user with it from /auth/me
+  // whenever the session token changes (login, refresh, initial load).
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    authApi
+      .me()
+      .then((data) => {
+        if (!cancelled) {
+          setUser((prev) => (prev ? { ...prev, name: data.name } : prev));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
 
   const setSession = useCallback((token: string, refreshToken: string) => {
     localStorage.setItem(ACCESS_TOKEN_KEY, token);
