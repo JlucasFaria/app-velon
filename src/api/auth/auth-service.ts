@@ -1,7 +1,10 @@
 import crypto from "crypto";
 import prismaClient from "../../db/client";
 import type { PrismaClient } from "../../../generated/prisma";
-import { REFRESH_TOKEN_TTL_MS } from "../../config/constants";
+import {
+  PASSWORD_RESET_TTL_MS,
+  REFRESH_TOKEN_TTL_MS,
+} from "../../config/constants";
 
 export class AuthService {
   constructor(private prisma: PrismaClient = prismaClient) {}
@@ -57,5 +60,47 @@ export class AuthService {
   // Reserved for "logout all devices" flows (e.g. password change, account compromise)
   async revokeAllUserTokens(userId: number) {
     await this.prisma.refreshToken.deleteMany({ where: { userId } });
+  }
+
+  // Issues a single-use password reset token for the user. Any prior unused
+  // tokens are dropped first (single active token per request), so an older
+  // link can't still be valid once a fresh one is requested.
+  async createPasswordResetToken(userId: number): Promise<string> {
+    const token = crypto.randomBytes(40).toString("hex");
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS);
+
+    return await this.prisma.$transaction(async (tx) => {
+      await tx.passwordResetToken.deleteMany({
+        where: { userId, usedAt: null },
+      });
+      await tx.passwordResetToken.create({
+        data: { token, userId, expiresAt },
+      });
+      return token;
+    });
+  }
+
+  // Atomically validates a reset token (exists, not expired, not already used)
+  // and marks it used, so it can never be redeemed twice. Returns the owning
+  // userId on success, or null when the token is invalid.
+  async consumePasswordResetToken(
+    token: string,
+  ): Promise<{ userId: number } | null> {
+    return await this.prisma.$transaction(async (tx) => {
+      const record = await tx.passwordResetToken.findUnique({
+        where: { token },
+      });
+
+      if (!record || record.usedAt || record.expiresAt < new Date()) {
+        return null;
+      }
+
+      await tx.passwordResetToken.update({
+        where: { token },
+        data: { usedAt: new Date() },
+      });
+
+      return { userId: record.userId };
+    });
   }
 }
