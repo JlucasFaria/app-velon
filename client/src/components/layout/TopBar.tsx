@@ -1,32 +1,16 @@
 import { Bell, Menu } from "lucide-react";
-import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 
-const SECTION_CRUMBS: Record<string, string> = {
-  "": "Painel",
-  clients: "Clientes",
-  orders: "Ordens de serviço",
-  reports: "Relatórios",
-  profile: "Perfil",
-};
-
-function useCrumb() {
-  const { pathname } = useLocation();
-  const section = pathname.split("/")[1] ?? "";
-  return SECTION_CRUMBS[section] ?? "";
-}
-
 export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const { user } = useAuth();
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
-  const crumb = useCrumb();
 
   return (
     <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between gap-2 border-b border-border bg-background/75 px-4 backdrop-blur-md backdrop-saturate-150 md:px-7 print:hidden">
-      {/* Left — mobile menu + logo, desktop breadcrumb */}
+      {/* Left — mobile menu + logo (empty on desktop) */}
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
@@ -38,9 +22,6 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
           <Menu className="h-5 w-5" />
         </Button>
         <Logo size={22} className="md:hidden" />
-        <span className="hidden text-[13.5px] font-semibold text-muted-foreground/70 md:inline">
-          {crumb}
-        </span>
       </div>
 
       {/* Right — theme, notifications, user */}
