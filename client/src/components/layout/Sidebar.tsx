@@ -37,7 +37,10 @@ function Brand() {
 
 function NavItems({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <nav className="flex flex-1 flex-col gap-0.5 px-3 py-4">
+    <nav className="flex flex-1 flex-col gap-[3px] px-3.5 py-4">
+      <span className="px-3 pb-1.5 pt-2 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground/70">
+        Navegação
+      </span>
       {navItems.map(({ to, label, icon: Icon, end = false }) => (
         <NavLink
           key={to}
@@ -46,10 +49,10 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
           className={({ isActive }) =>
             cn(
-              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+              "group relative flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[14.5px] font-semibold transition-colors duration-150",
               isActive
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                ? "bg-accent text-accent-foreground before:absolute before:-left-3.5 before:top-2 before:bottom-2 before:w-[3px] before:rounded-r-[3px] before:bg-primary before:content-['']"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )
           }
         >
@@ -57,9 +60,9 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
             <>
               <Icon
                 className={cn(
-                  "h-5 w-5 shrink-0 transition-colors",
+                  "h-[19px] w-[19px] shrink-0 transition-colors",
                   isActive
-                    ? "text-primary-foreground"
+                    ? "text-primary"
                     : "text-muted-foreground group-hover:text-foreground",
                 )}
               />
@@ -74,8 +77,8 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
 
 export function Sidebar() {
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-sidebar md:flex print:hidden">
-      <div className="flex h-16 items-center border-b border-border px-5">
+    <aside className="hidden w-[248px] shrink-0 flex-col border-r border-border bg-sidebar md:flex print:hidden">
+      <div className="flex h-[68px] items-center border-b border-border/70 px-5">
         <Brand />
       </div>
       <NavItems />
@@ -112,7 +115,7 @@ export function MobileSidebar({
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-16 items-center justify-between border-b border-border px-5">
+        <div className="flex h-[68px] items-center justify-between border-b border-border/70 px-5">
           <Brand />
           <Button
             variant="ghost"

@@ -1,5 +1,6 @@
 import { LogOut, Menu, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import { Logo } from "@/components/brand/Logo";
 import { useAuth } from "@/contexts/auth-context";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
 
   return (
-    <header className="flex h-16 items-center justify-between gap-2 border-b border-border bg-card px-4 md:px-6 print:hidden">
+    <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between gap-2 border-b border-border bg-background/75 px-4 backdrop-blur-md backdrop-saturate-150 md:px-7 print:hidden">
       {/* Mobile brand + menu toggle */}
       <div className="flex items-center gap-2 md:hidden">
         <Button
@@ -30,7 +31,7 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <span className="text-sm font-semibold tracking-tight text-primary">Velon</span>
+        <Logo size={22} />
       </div>
 
       {/* Spacer so actions stay right-aligned on desktop too */}
