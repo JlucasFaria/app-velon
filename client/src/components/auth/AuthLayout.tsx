@@ -22,7 +22,7 @@ export function AuthLayout({
     <div className="grid min-h-screen lg:grid-cols-[1.04fr_1fr]">
       <div className="flex flex-col items-center justify-center bg-card px-6 py-12 sm:px-12">
         <div className="w-full max-w-[392px]">
-          <Logo size={28} className="mb-10" />
+          <Logo size={30} className="mb-10" />
           <h1 className="text-[27px] font-extrabold leading-[1.12] tracking-[-0.03em] text-foreground">
             {title}
           </h1>
@@ -70,7 +70,7 @@ function AuthArt() {
       />
 
       <div className="relative z-10 mb-10 max-w-[380px]">
-        <Logo size={28} tone="onPrimary" className="mb-7" />
+        <Logo size={30} tone="onPrimary" className="mb-7" />
         <h2 className="text-[30px] font-extrabold leading-[1.18] tracking-[-0.03em] text-white">
           Tudo pronto
           <br />
