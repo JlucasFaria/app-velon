@@ -220,7 +220,7 @@ export function OrderForm({ open, onOpenChange }: OrderFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="rounded-2xl sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Nova ordem de serviço</DialogTitle>
           <DialogDescription>
