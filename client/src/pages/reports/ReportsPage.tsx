@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -56,12 +57,10 @@ export function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Relatórios</h1>
-        <p className="text-sm text-muted-foreground">
-          Acompanhe as ordens de serviço e o faturamento da empresa
-        </p>
-      </div>
+      <PageHeader
+        title="Relatórios"
+        subtitle="Acompanhe as ordens de serviço e o faturamento da empresa"
+      />
 
       <div className="border-b flex gap-1">
         {(["monthly", "all"] as const).map((t) => (
