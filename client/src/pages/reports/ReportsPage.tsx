@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Download, FileBarChart, Wallet } from "lucide-react";
+import type { ElementType } from "react";
+import {
+  CheckCircle2,
+  Download,
+  FileBarChart,
+  Receipt,
+  Wallet,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   downloadAllOrdersExport,
@@ -14,7 +21,6 @@ import { type OrderStatus } from "@/api/orders";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/order-status";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -52,6 +58,67 @@ const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
 
 type Tab = "monthly" | "all";
 
+function BillingStat({
+  label,
+  value,
+  foot,
+  icon: Icon,
+  iconBg,
+  iconFg,
+  gradient,
+  valuePrimary,
+  loading,
+}: {
+  label: string;
+  value: string | number;
+  foot: string;
+  icon: ElementType;
+  iconBg: string;
+  iconFg: string;
+  gradient?: boolean;
+  valuePrimary?: boolean;
+  loading?: boolean;
+}) {
+  return (
+    <div
+      className="rounded-[18px] border border-border bg-card p-[22px] shadow-card"
+      style={
+        gradient
+          ? {
+              background:
+                "linear-gradient(150deg, var(--velon-primary-soft) 0%, var(--card) 60%)",
+            }
+          : undefined
+      }
+    >
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <span className="text-[13px] font-semibold text-muted-foreground">
+          {label}
+        </span>
+        <span
+          className="grid size-10 shrink-0 place-items-center rounded-full"
+          style={{ background: iconBg, color: iconFg }}
+        >
+          <Icon className="h-[19px] w-[19px]" strokeWidth={1.75} />
+        </span>
+      </div>
+      {loading ? (
+        <Skeleton className="h-9 w-32" />
+      ) : (
+        <div
+          className={cn(
+            "text-[34px] font-extrabold leading-none tracking-[-0.03em] tabular-nums",
+            valuePrimary && "text-[color:var(--velon-primary-text)]",
+          )}
+        >
+          {value}
+        </div>
+      )}
+      <p className="mt-2 text-[12.5px] text-muted-foreground/80">{foot}</p>
+    </div>
+  );
+}
+
 export function ReportsPage() {
   const [tab, setTab] = useState<Tab>("monthly");
 
@@ -68,9 +135,9 @@ export function ReportsPage() {
             key={t}
             onClick={() => setTab(t)}
             className={cn(
-              "px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-all",
+              "px-4 py-2.5 text-[14.5px] font-semibold border-b-2 -mb-px transition-all",
               tab === t
-                ? "border-primary text-primary"
+                ? "border-primary text-[color:var(--velon-primary-text)]"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
             )}
           >
@@ -169,68 +236,35 @@ function MonthlyBillingTab() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Faturamento total
-            </CardTitle>
-            <span className="flex size-9 items-center justify-center rounded-xl bg-success/10 text-success">
-              <Wallet className="h-5 w-5 shrink-0" />
-            </span>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-32" />
-            ) : (
-              <div className="text-2xl font-bold">
-                {formatCurrency(data?.totalRevenue ?? 0)}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Apenas ordens concluídas
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Serviço total
-            </CardTitle>
-            <span className="flex size-9 items-center justify-center rounded-xl bg-info/10 text-info">
-              <Wallet className="h-5 w-5 shrink-0" />
-            </span>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-32" />
-            ) : (
-              <div className="text-2xl font-bold">
-                {formatCurrency(data?.totalHonorario ?? 0)}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Receita de serviço no mês
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Ordens concluídas
-            </CardTitle>
-            <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <CheckCircle2 className="h-5 w-5 shrink-0" />
-            </span>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-12" />
-            ) : (
-              <div className="text-2xl font-bold">{data?.orderCount ?? 0}</div>
-            )}
-            <p className="text-xs text-muted-foreground">No mês selecionado</p>
-          </CardContent>
-        </Card>
+        <BillingStat
+          label="Faturamento total"
+          value={formatCurrency(data?.totalRevenue ?? 0)}
+          foot="Apenas ordens concluídas"
+          icon={Receipt}
+          iconBg="#d4f0e4"
+          iconFg="#0e9f7c"
+          gradient
+          valuePrimary
+          loading={loading}
+        />
+        <BillingStat
+          label="Serviço total"
+          value={formatCurrency(data?.totalHonorario ?? 0)}
+          foot="Receita de serviço no mês"
+          icon={Wallet}
+          iconBg="#d7edf3"
+          iconFg="#0e8fa8"
+          loading={loading}
+        />
+        <BillingStat
+          label="Ordens concluídas"
+          value={data?.orderCount ?? 0}
+          foot="No mês selecionado"
+          icon={CheckCircle2}
+          iconBg="var(--velon-primary-soft)"
+          iconFg="var(--primary)"
+          loading={loading}
+        />
       </div>
 
       {!loading && data && data.orders.length === 0 ? (
@@ -532,17 +566,20 @@ function AllOrdersTab() {
                   >
                     Totais
                   </TableCell>
-                  <TableCell className={`${TD_RIGHT} font-bold`}>
+                  <TableCell className={`${TD_RIGHT} font-bold tabular-nums`}>
                     {formatCurrency(data.totals.sumTotal)}
                   </TableCell>
-                  <TableCell className={`${TD_RIGHT} font-bold`}>
+                  <TableCell className={`${TD_RIGHT} font-bold tabular-nums`}>
                     {formatCurrency(data.totals.sumHonorario)}
                   </TableCell>
                   <TableCell
                     colSpan={2}
                     className={`${TD} text-sm text-muted-foreground`}
                   >
-                    Recebido: {formatCurrency(data.totals.totalReceived)}
+                    Recebido:{" "}
+                    <span className="font-bold tabular-nums text-[color:var(--velon-primary-text)]">
+                      {formatCurrency(data.totals.totalReceived)}
+                    </span>
                   </TableCell>
                 </TableRow>
               </TableFooter>
