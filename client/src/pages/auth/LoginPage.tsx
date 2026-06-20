@@ -50,6 +50,17 @@ export function LoginPage() {
     <AuthLayout
       title="Bem-vindo de volta"
       subtitle="Acesse o painel de gestão do seu negócio."
+      art={{
+        headline: (
+          <>
+            Ordens de serviço,
+            <br />
+            do balcão ao recibo.
+          </>
+        ),
+        subtitle:
+          "Organize atendimentos, acompanhe prazos e fature mais rápido — tudo num só lugar.",
+      }}
       footer={
         <>
           Não tem uma conta?{" "}

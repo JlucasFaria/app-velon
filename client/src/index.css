@@ -229,3 +229,16 @@
     transform: translateY(-10px);
   }
 }
+
+/* Auth art panel — diagonal light streaks drifting across the azure panel. */
+@keyframes streak {
+  0%,
+  100% {
+    transform: translateX(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateX(26px);
+    opacity: 1;
+  }
+}

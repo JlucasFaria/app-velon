@@ -75,6 +75,17 @@ export function RegisterPage() {
     <AuthLayout
       title="Crie sua conta"
       subtitle="Comece a organizar suas ordens de serviço em minutos."
+      art={{
+        headline: (
+          <>
+            Tudo pronto
+            <br />
+            para começar.
+          </>
+        ),
+        subtitle:
+          "Cadastre clientes, monte modelos de serviço e emita recibos em segundos.",
+      }}
       footer={
         <>
           Já tem uma conta?{" "}
