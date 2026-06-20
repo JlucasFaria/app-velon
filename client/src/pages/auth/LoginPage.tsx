@@ -21,6 +21,7 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 const schema = z.object({
   email: z.string().email("E-mail inválido"),
   password: z.string().min(1, "Informe a senha"),
+  remember: z.boolean(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -32,14 +33,14 @@ export function LoginPage() {
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { email: "", password: "", remember: true },
   });
 
   const { isSubmitting } = form.formState;
 
   async function onSubmit(data: FormData) {
     try {
-      await login(data.email, data.password);
+      await login(data.email, data.password, data.remember);
       navigate("/", { replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao entrar");
@@ -131,16 +132,27 @@ export function LoginPage() {
                 )}
               />
               <div className="flex items-center justify-between pt-1">
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="size-4 accent-primary"
-                  />
-                  <span className="text-[13.5px] text-muted-foreground">
-                    Lembrar de mim
-                  </span>
-                </label>
+                <FormField
+                  control={form.control}
+                  name="remember"
+                  render={({ field }) => (
+                    <FormItem className="space-y-0">
+                      <label className="flex cursor-pointer items-center gap-2">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                            className="size-4 accent-primary"
+                          />
+                        </FormControl>
+                        <span className="text-[13.5px] text-muted-foreground">
+                          Lembrar de mim
+                        </span>
+                      </label>
+                    </FormItem>
+                  )}
+                />
                 <button
                   type="button"
                   onClick={() =>

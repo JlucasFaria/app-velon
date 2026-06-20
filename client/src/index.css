@@ -59,8 +59,7 @@
 }
 
 :root {
-    /* Velon Design System — azure primary, navy brand, cool light surfaces.
-       Source tokens: client/design-ref/velon-design-system.css */
+    /* Velon Design System — azure primary, navy brand, cool light surfaces. */
     --radius: 0.8125rem; /* 13px — design --r-md */
 
     /* Velon brand reference (used by bespoke surfaces, e.g. auth art panel) */
@@ -142,7 +141,7 @@
   /* Global UI scale — bumps the root rem so spacing and rem-based text grow
      uniformly (layout-safe: vh/sticky unaffected). Tune this value to taste. */
   html {
-    font-size: 118%;
+    font-size: 115.5%;
   }
   * {
     @apply border-border outline-ring/50;

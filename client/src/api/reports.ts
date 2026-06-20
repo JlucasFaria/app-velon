@@ -1,4 +1,5 @@
 import { apiRequest, buildQuery } from "./client";
+import { getAccessToken } from "@/lib/token-storage";
 import type { OrderStatus, PaymentStatus } from "./orders";
 import type { ClientType } from "./clients";
 
@@ -90,7 +91,7 @@ export async function downloadAllOrdersExport(
   format: "csv" | "pdf",
   filters: AllOrdersFilters = {},
 ): Promise<void> {
-  const token = localStorage.getItem("accessToken");
+  const token = getAccessToken();
   const url = `/api/reports/orders/export/${format}${buildQuery({ ...filters })}`;
 
   const res = await fetch(url, {

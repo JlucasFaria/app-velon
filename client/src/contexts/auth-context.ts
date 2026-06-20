@@ -14,10 +14,15 @@ export interface AuthUser {
 export interface AuthContextValue {
   user: AuthUser | null;
   accessToken: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  /** `remember` persists the session across browser restarts (default true). */
+  login: (email: string, password: string, remember?: boolean) => Promise<void>;
   logout: () => Promise<void>;
-  /** Stores a token pair received from register or refresh without re-calling the API. */
-  setSession: (token: string, refreshToken: string) => void;
+  /**
+   * Stores a token pair received from register or refresh without re-calling the
+   * API. `remember` picks the backing store; when omitted it preserves the
+   * current session's choice (so a token refresh keeps it where it was).
+   */
+  setSession: (token: string, refreshToken: string, remember?: boolean) => void;
   /** Rotates the refresh token and updates the stored session (used after onboarding). */
   refreshSession: () => Promise<void>;
 }

@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback, type ReactNode } from "react";
 import * as authApi from "@/api/auth";
+import {
+  getAccessToken,
+  getRefreshToken,
+  isPersistentSession,
+  setTokens,
+  clearTokens,
+} from "@/lib/token-storage";
 import { AuthContext, type AuthUser, type UserRole } from "./auth-context";
-
-const ACCESS_TOKEN_KEY = "accessToken";
-const REFRESH_TOKEN_KEY = "refreshToken";
 
 /** Decodes the JWT payload into a user, or null if invalid/expired. */
 function decodeUser(token: string): AuthUser | null {
@@ -48,12 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Derive the initial session from a single check so token and user stay
   // consistent: a missing or expired token means no session at all.
   const initialUser = (() => {
-    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+    const token = getAccessToken();
     return token ? decodeUser(token) : null;
   })();
   const [user, setUser] = useState<AuthUser | null>(initialUser);
   const [accessToken, setAccessToken] = useState<string | null>(
-    initialUser ? localStorage.getItem(ACCESS_TOKEN_KEY) : null,
+    initialUser ? getAccessToken() : null,
   );
 
   // The JWT carries no display name, so enrich the user with it from /auth/me
@@ -74,27 +78,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [accessToken]);
 
-  const setSession = useCallback((token: string, refreshToken: string) => {
-    localStorage.setItem(ACCESS_TOKEN_KEY, token);
-    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-    setAccessToken(token);
-    setUser(decodeUser(token));
-  }, []);
+  const setSession = useCallback(
+    (token: string, refreshToken: string, remember = isPersistentSession()) => {
+      setTokens(token, refreshToken, remember);
+      setAccessToken(token);
+      setUser(decodeUser(token));
+    },
+    [],
+  );
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { token, refreshToken } = await authApi.login(email, password);
-    setSession(token, refreshToken);
-  }, [setSession]);
+  const login = useCallback(
+    async (email: string, password: string, remember = true) => {
+      const { token, refreshToken } = await authApi.login(email, password);
+      setSession(token, refreshToken, remember);
+    },
+    [setSession],
+  );
 
   const refreshSession = useCallback(async () => {
-    const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    const storedRefreshToken = getRefreshToken();
     if (!storedRefreshToken) throw new Error("No refresh token");
     const { token, refreshToken } = await authApi.refresh(storedRefreshToken);
     setSession(token, refreshToken);
   }, [setSession]);
 
   const logout = useCallback(async () => {
-    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    const refreshToken = getRefreshToken();
     try {
       if (refreshToken) {
         await authApi.logout(refreshToken);
@@ -102,8 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // best-effort: clear local state even if the server call fails
     }
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    clearTokens();
     setAccessToken(null);
     setUser(null);
   }, []);

@@ -9,8 +9,7 @@ interface ArtContent {
 
 /**
  * Split auth layout — form pane on the left, illustrated azure panel on the
- * right (hidden below `lg`). Reproduced from the Velon design reference
- * (client/design-ref/velon-design-system.css: .auth-split / .auth-art).
+ * right (hidden below `lg`). Reproduced from the Velon design reference.
  */
 export function AuthLayout({
   title,
