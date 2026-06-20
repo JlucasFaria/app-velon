@@ -321,9 +321,9 @@ export function ProfilePage() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={[
-                "px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-all",
+                "px-4 py-2.5 text-[14.5px] font-semibold -mb-px border-b-2 transition-all",
                 activeTab === tab
-                  ? "border-primary text-primary"
+                  ? "border-primary text-[color:var(--velon-primary-text)]"
                   : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/60",
               ].join(" ")}
             >

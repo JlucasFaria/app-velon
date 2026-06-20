@@ -11,6 +11,7 @@ import {
   type MemberStatus,
 } from "@/api/company";
 import { Button } from "@/components/ui/button";
+import { InitialsAvatar } from "@/components/ui/initials-avatar";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -153,16 +154,26 @@ export function MemberList({
           const displayEmail = m.user?.email ?? m.invitedEmail ?? "";
 
           return (
-            <div key={m.id} className="flex items-center justify-between py-3.5">
+            <div key={m.id} className="flex items-center gap-3.5 py-4">
+              <InitialsAvatar name={displayName} round size={40} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{displayName}</p>
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-sm font-semibold">
+                    {displayName}
+                  </p>
+                  {isSelf && (
+                    <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                      você
+                    </span>
+                  )}
+                </div>
                 {displayEmail && displayName !== displayEmail && (
                   <p className="truncate text-xs text-muted-foreground">
                     {displayEmail}
                   </p>
                 )}
               </div>
-              <div className="ml-4 flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium", ROLE_BADGE_CLASSES[m.role])}>
                   {ROLE_LABELS[m.role]}
                 </span>

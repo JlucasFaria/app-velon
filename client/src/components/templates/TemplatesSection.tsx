@@ -125,19 +125,22 @@ export function TemplatesSection() {
         ) : (
           <div className="divide-y">
             {templates.map((t) => (
-              <div key={t.id} className="flex items-center justify-between py-3">
+              <div key={t.id} className="flex items-center gap-3.5 py-4">
+                <span className="grid size-10 shrink-0 place-items-center rounded-[11px] bg-accent text-primary">
+                  <FileText className="h-[19px] w-[19px]" />
+                </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{t.name}</p>
+                  <p className="truncate text-sm font-semibold">{t.name}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {t.defaultDescription}
                   </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
+                  <p className="mt-0.5 text-xs text-muted-foreground/70">
                     {t.items.length}{" "}
-                    {t.items.length === 1 ? "item" : "itens"}
+                    {t.items.length === 1 ? "item sugerido" : "itens sugeridos"}
                   </p>
                 </div>
                 {canWrite && (
-                  <div className="ml-4 flex shrink-0 items-center gap-1">
+                  <div className="flex shrink-0 items-center gap-1">
                     <Button
                       variant="ghost"
                       size="icon"
