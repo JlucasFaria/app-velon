@@ -23,6 +23,8 @@ import {
   meResponseSchema,
   forgotPasswordSchema,
   forgotPasswordResponseSchema,
+  resetPasswordSchema,
+  resetPasswordResponseSchema,
 } from "./auth-schema";
 import {
   errorResponseSchema,
@@ -65,6 +67,7 @@ export interface IUserAuthRepository {
   findById(
     id: number,
   ): Promise<{ id: number; email: string; name: string | null } | null>;
+  updatePassword(userId: number, newPassword: string): Promise<void>;
 }
 
 // === Factory function ===
@@ -221,6 +224,29 @@ export function createAuthRoutes(
     },
   });
 
+  const resetPasswordRoute = createRoute({
+    method: "post",
+    path: "/reset-password",
+    tags: ["Auth"],
+    request: {
+      body: {
+        content: { "application/json": { schema: resetPasswordSchema } },
+      },
+    },
+    responses: {
+      200: {
+        content: {
+          "application/json": { schema: resetPasswordResponseSchema },
+        },
+        description: "Password reset successfully",
+      },
+      400: {
+        content: { "application/json": { schema: errorResponseSchema } },
+        description: "Invalid/expired/used token or password validation error",
+      },
+    },
+  });
+
   const logoutRoute = createRoute({
     method: "post",
     path: "/logout",
@@ -369,6 +395,27 @@ export function createAuthRoutes(
         message:
           "Se houver uma conta com este e-mail, enviaremos as instruções para redefinir a senha.",
       },
+      200,
+    );
+  });
+
+  // === Reset Password Handler ===
+  authRoutes.openapi(resetPasswordRoute, async (c) => {
+    const { token, password } = c.req.valid("json");
+
+    // Atomically validates and burns the token, so it can't be redeemed twice.
+    const consumed = await authService.consumePasswordResetToken(token);
+    if (!consumed) {
+      return errorResponse(c, "Token inválido ou expirado", 400);
+    }
+
+    await userRepo.updatePassword(consumed.userId, password);
+    // Force re-login everywhere: any session predating the reset is revoked.
+    await authService.revokeAllUserTokens(consumed.userId);
+
+    return successResponse(
+      c,
+      { message: "Senha redefinida com sucesso. Faça login com a nova senha." },
       200,
     );
   });

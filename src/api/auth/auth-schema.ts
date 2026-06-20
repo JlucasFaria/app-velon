@@ -99,6 +99,28 @@ export const forgotPasswordResponseSchema = successResponseSchema(
   "ForgotPasswordResponse",
 );
 
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, "Token é obrigatório").openapi({
+      description: "Single-use password reset token from the email link",
+    }),
+    password: z
+      .string()
+      .min(8, "A senha deve ter no mínimo 8 caracteres")
+      .regex(/[a-zA-Z]/, "A senha deve conter ao menos uma letra")
+      .regex(/[0-9]/, "A senha deve conter ao menos um número")
+      .openapi({
+        description: "New password — at least 8 chars, 1 letter and 1 number",
+        example: "novasenha123",
+      }),
+  })
+  .openapi("ResetPasswordInput");
+
+export const resetPasswordResponseSchema = successResponseSchema(
+  messageSchema,
+  "ResetPasswordResponse",
+);
+
 export const meResponseSchema = successResponseSchema(
   z
     .object({

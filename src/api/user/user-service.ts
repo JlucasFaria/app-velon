@@ -158,6 +158,17 @@ export class UserService {
     });
   }
 
+  // Sets a new password directly, bypassing current-password verification —
+  // used by the password reset flow, where the single-use reset token (not the
+  // old password) authorizes the change.
+  async updatePassword(userId: number, newPassword: string) {
+    const hashedPassword = await Bun.password.hash(newPassword);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+  }
+
   // Active company membership used by auth to scope the access token.
   // Returns the first active membership (single-company per user for now).
   async getActiveMembership(userId: number) {
