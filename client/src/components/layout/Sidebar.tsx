@@ -6,9 +6,12 @@ import {
   ClipboardList,
   BarChart2,
   Building2,
+  LogOut,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/auth-context";
+import { ROLE_LABELS } from "@/components/members/member-constants";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/Logo";
 
@@ -22,7 +25,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { to: "/", label: "Painel", icon: LayoutDashboard, end: true },
   { to: "/clients", label: "Clientes", icon: Users },
-  { to: "/orders", label: "Ordens de Serviço", icon: ClipboardList },
+  { to: "/orders", label: "Ordens de serviço", icon: ClipboardList },
   { to: "/reports", label: "Relatórios", icon: BarChart2 },
   { to: "/profile", label: "Perfil", icon: Building2 },
 ];
@@ -39,7 +42,7 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex flex-1 flex-col gap-[3px] px-3.5 py-4">
       <span className="px-3 pb-1.5 pt-2 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground/70">
-        Navegação
+        Gestão
       </span>
       {navItems.map(({ to, label, icon: Icon, end = false }) => (
         <NavLink
@@ -75,6 +78,41 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+function UserChip() {
+  const { user, logout } = useAuth();
+  const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
+  const roleLabel = user?.role ? ROLE_LABELS[user.role] : null;
+
+  return (
+    <div className="border-t border-border/70 p-3.5">
+      <div className="flex items-center gap-2.5 rounded-[10px] p-2 transition-colors hover:bg-muted">
+        <span className="grid size-[34px] shrink-0 place-items-center rounded-full bg-accent text-[12.5px] font-bold text-accent-foreground">
+          {initials}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[13.5px] font-semibold">
+            {user?.email}
+          </div>
+          {roleLabel && (
+            <div className="text-[12px] text-muted-foreground/70">
+              {roleLabel}
+            </div>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+          aria-label="Sair"
+          onClick={() => void logout()}
+        >
+          <LogOut className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function Sidebar() {
   return (
     <aside className="hidden w-[248px] shrink-0 flex-col border-r border-border bg-sidebar md:flex print:hidden">
@@ -82,6 +120,7 @@ export function Sidebar() {
         <Brand />
       </div>
       <NavItems />
+      <UserChip />
     </aside>
   );
 }
@@ -128,6 +167,7 @@ export function MobileSidebar({
           </Button>
         </div>
         <NavItems onNavigate={onClose} />
+        <UserChip />
       </aside>
     </div>
   );
