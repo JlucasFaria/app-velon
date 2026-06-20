@@ -142,7 +142,7 @@
   /* Global UI scale — bumps the root rem so spacing and rem-based text grow
      uniformly (layout-safe: vh/sticky unaffected). Tune this value to taste. */
   html {
-    font-size: 112.5%;
+    font-size: 118%;
   }
   * {
     @apply border-border outline-ring/50;
