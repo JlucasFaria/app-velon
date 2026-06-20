@@ -173,7 +173,7 @@ export function OrderDetailPage() {
         <BackButton />
         <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-[26px] font-extrabold tracking-[-0.025em]">
               {order.orderNumber}
             </h1>
             <p className="text-sm text-muted-foreground">

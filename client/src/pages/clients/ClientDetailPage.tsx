@@ -108,7 +108,7 @@ export function ClientDetailPage() {
       <div className="flex items-center gap-3">
         <BackButton />
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-[26px] font-extrabold tracking-[-0.025em]">
             {client.name}
           </h1>
           <p className="text-sm text-muted-foreground">{client.document}</p>

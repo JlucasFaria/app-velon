@@ -25,7 +25,7 @@ export function StatusTimeline({
         <li key={entry.id} className="relative space-y-1.5">
           <span
             className={cn(
-              "absolute top-1.5 -left-[1.4375rem] h-2.5 w-2.5 rounded-full border-2 border-card",
+              "absolute top-1.5 -left-[1.4375rem] h-2.5 w-2.5 rounded-full ring-4 ring-primary/10",
               ORDER_STATUS_DOT_CLASSES[entry.toStatus as keyof typeof ORDER_STATUS_DOT_CLASSES] ?? "bg-primary",
             )}
           />
