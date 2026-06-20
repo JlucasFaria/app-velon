@@ -14,6 +14,7 @@ import { ClientTypeBadge } from "@/components/clients/ClientTypeBadge";
 import { OrderForm } from "@/components/orders/OrderForm";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { PaymentBadge } from "@/components/orders/PaymentBadge";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/order-status";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -77,22 +78,18 @@ export function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Ordens de serviço
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Gerencie as ordens de serviço do seu negócio
-          </p>
-        </div>
-        {canWrite && (
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova ordem
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Ordens de serviço"
+        subtitle="Gerencie as ordens de serviço do seu negócio"
+        actions={
+          canWrite && (
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova ordem
+            </Button>
+          )
+        }
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <div className="relative flex-1 sm:max-w-sm">

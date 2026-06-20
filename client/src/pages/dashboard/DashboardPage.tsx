@@ -145,7 +145,7 @@ export function DashboardPage() {
     : [];
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="Painel"
         subtitle="Visão geral das ordens de serviço"
