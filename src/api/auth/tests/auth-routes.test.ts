@@ -9,6 +9,7 @@ import prisma from "../../../db/client";
 const LOGIN_IP = "127.0.0.33";
 const REGISTER_IP = "127.0.0.30";
 const ME_IP = "127.0.0.31";
+const RESET_IP = "127.0.0.34";
 
 const jsonHeaders = (ip: string, extra?: Record<string, string>) => ({
   "Content-Type": "application/json",
@@ -595,6 +596,191 @@ describe("Me Route", () => {
 
     expect(res.status).toBe(200);
     expect(body.data.hasCompany).toBe(true);
+  });
+});
+
+// ─── Password Reset (forgot-password / reset-password) ────────────────────────
+
+describe("Password Reset Routes", () => {
+  const createdEmails: string[] = [];
+
+  afterEach(async () => {
+    if (createdEmails.length > 0) {
+      await prisma.user.deleteMany({ where: { email: { in: createdEmails } } });
+      createdEmails.length = 0;
+    }
+  });
+
+  async function registerUser(password = "Secret1234"): Promise<string> {
+    const email = `reset-${crypto.randomUUID()}@test.com`;
+    createdEmails.push(email);
+    await app.request("/api/users", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+      headers: jsonHeaders(RESET_IP),
+    });
+    return email;
+  }
+
+  // Reads the active (unused) reset token straight from the DB — the dev email
+  // transport only logs, so this is how an end-to-end test gets the link token.
+  async function getResetToken(email: string): Promise<string> {
+    const user = await prisma.user.findUnique({ where: { email } });
+    const record = await prisma.passwordResetToken.findFirst({
+      where: { userId: user!.id, usedAt: null },
+      orderBy: { id: "desc" },
+    });
+    return record!.token;
+  }
+
+  async function requestReset(email: string): Promise<Response> {
+    return app.request("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+      headers: jsonHeaders(RESET_IP),
+    });
+  }
+
+  // ─── POST /api/auth/forgot-password ──────────────────────────────
+
+  describe("POST /api/auth/forgot-password", () => {
+    it("should return 200 and create a reset token for an existing email", async () => {
+      const email = await registerUser();
+
+      const res = await requestReset(email);
+
+      expect(res.status).toBe(200);
+      const token = await getResetToken(email);
+      expect(typeof token).toBe("string");
+      expect(token.length).toBeGreaterThan(0);
+    });
+
+    it("should return 200 for an unknown email without creating a token (no enumeration)", async () => {
+      const email = `unknown-${crypto.randomUUID()}@test.com`;
+
+      const res = await requestReset(email);
+
+      expect(res.status).toBe(200);
+      const tokenCount = await prisma.passwordResetToken.count({
+        where: { user: { email } },
+      });
+      expect(tokenCount).toBe(0);
+    });
+
+    it("should return 400 for an invalid email format", async () => {
+      const res = await app.request("/api/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email: "not-an-email" }),
+        headers: jsonHeaders(RESET_IP),
+      });
+
+      expect(res.status).toBe(400);
+    });
+  });
+
+  // ─── POST /api/auth/reset-password ───────────────────────────────
+
+  describe("POST /api/auth/reset-password", () => {
+    it("should reset the password — old password rejected, new password works", async () => {
+      const email = await registerUser("OldPass123");
+      await requestReset(email);
+      const token = await getResetToken(email);
+
+      const res = await app.request("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ token, password: "NewPass456" }),
+        headers: jsonHeaders(RESET_IP),
+      });
+      expect(res.status).toBe(200);
+
+      const oldLogin = await app.request("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password: "OldPass123" }),
+        headers: jsonHeaders(RESET_IP),
+      });
+      expect(oldLogin.status).toBe(401);
+
+      const newLogin = await app.request("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password: "NewPass456" }),
+        headers: jsonHeaders(RESET_IP),
+      });
+      expect(newLogin.status).toBe(200);
+    });
+
+    it("should revoke pre-existing refresh tokens after a reset", async () => {
+      const email = await registerUser("OldPass123");
+      const loginRes = await app.request("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password: "OldPass123" }),
+        headers: jsonHeaders(RESET_IP),
+      });
+      const {
+        data: { refreshToken },
+      } = (await loginRes.json()) as { data: { refreshToken: string } };
+
+      await requestReset(email);
+      const token = await getResetToken(email);
+      await app.request("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ token, password: "NewPass456" }),
+        headers: jsonHeaders(RESET_IP),
+      });
+
+      const refreshRes = await app.request("/api/auth/refresh", {
+        method: "POST",
+        body: JSON.stringify({ refreshToken }),
+        headers: jsonHeaders(RESET_IP),
+      });
+      expect(refreshRes.status).toBe(401);
+    });
+
+    it("should return 400 for an invalid token", async () => {
+      const res = await app.request("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({
+          token: "invalid-token",
+          password: "NewPass456",
+        }),
+        headers: jsonHeaders(RESET_IP),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 when reusing an already-used token", async () => {
+      const email = await registerUser();
+      await requestReset(email);
+      const token = await getResetToken(email);
+
+      await app.request("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ token, password: "NewPass456" }),
+        headers: jsonHeaders(RESET_IP),
+      });
+
+      const res = await app.request("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ token, password: "AnotherPass789" }),
+        headers: jsonHeaders(RESET_IP),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("should return 400 for a password that fails validation", async () => {
+      const email = await registerUser();
+      await requestReset(email);
+      const token = await getResetToken(email);
+
+      const res = await app.request("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ token, password: "short" }),
+        headers: jsonHeaders(RESET_IP),
+      });
+
+      expect(res.status).toBe(400);
+    });
   });
 });
 

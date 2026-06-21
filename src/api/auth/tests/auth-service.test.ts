@@ -1,5 +1,5 @@
 // Unit tests for AuthService — runs directly against the database
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { AuthService } from "../auth-service";
 import { UserService } from "../../user/user-service";
 import prisma from "../../../db/client";
@@ -11,16 +11,19 @@ const userService = new UserService();
 describe("AuthService", () => {
   let userId: number;
 
+  // Each test owns a unique user (UUID email) and cleans up only its own row,
+  // so this file never wipes data created by parallel test files. Deleting the
+  // user cascades its refresh and password-reset tokens.
   beforeEach(async () => {
-    // FK-safe order: receipts → orders (cascades StatusHistory) → users
-    await prisma.receipt.deleteMany();
-    await prisma.serviceOrder.deleteMany();
-    await prisma.user.deleteMany();
     const user = await userService.create({
-      email: "auth@test.com",
+      email: `auth-svc-${crypto.randomUUID()}@test.com`,
       password: "secret1234",
     });
     userId = user.id;
+  });
+
+  afterEach(async () => {
+    await prisma.user.deleteMany({ where: { id: userId } });
   });
 
   describe("generateRefreshToken", () => {
@@ -155,6 +158,112 @@ describe("AuthService", () => {
         where: { userId },
       });
       expect(tokens.length).toBe(0);
+    });
+  });
+
+  describe("createPasswordResetToken", () => {
+    it("should create an unused reset token linked to the user", async () => {
+      const token = await authService.createPasswordResetToken(userId);
+
+      const stored = await prisma.passwordResetToken.findUnique({
+        where: { token },
+      });
+
+      expect(stored).not.toBeNull();
+      expect(stored?.userId).toBe(userId);
+      expect(stored?.usedAt).toBeNull();
+    });
+
+    it("should set expiresAt to approximately 1 hour from now", async () => {
+      const before = Date.now();
+      const token = await authService.createPasswordResetToken(userId);
+
+      const stored = await prisma.passwordResetToken.findUnique({
+        where: { token },
+      });
+
+      const oneHourMs = 60 * 60 * 1000;
+      expect(stored!.expiresAt.getTime()).toBeGreaterThanOrEqual(
+        before + oneHourMs - 1000,
+      );
+      expect(stored!.expiresAt.getTime()).toBeLessThanOrEqual(
+        Date.now() + oneHourMs + 1000,
+      );
+    });
+
+    it("should drop prior unused tokens so only one stays active per request", async () => {
+      const first = await authService.createPasswordResetToken(userId);
+      const second = await authService.createPasswordResetToken(userId);
+
+      expect(second).not.toBe(first);
+      const firstStored = await prisma.passwordResetToken.findUnique({
+        where: { token: first },
+      });
+      expect(firstStored).toBeNull();
+
+      const active = await prisma.passwordResetToken.findMany({
+        where: { userId, usedAt: null },
+      });
+      expect(active.length).toBe(1);
+      expect(active[0]?.token).toBe(second);
+    });
+
+    it("should preserve already-used tokens when issuing a new one", async () => {
+      const used = await authService.createPasswordResetToken(userId);
+      await authService.consumePasswordResetToken(used);
+
+      await authService.createPasswordResetToken(userId);
+
+      const usedStored = await prisma.passwordResetToken.findUnique({
+        where: { token: used },
+      });
+      expect(usedStored).not.toBeNull();
+      expect(usedStored?.usedAt).not.toBeNull();
+    });
+  });
+
+  describe("consumePasswordResetToken", () => {
+    it("should return the userId and mark a valid token used", async () => {
+      const token = await authService.createPasswordResetToken(userId);
+
+      const result = await authService.consumePasswordResetToken(token);
+
+      expect(result).toEqual({ userId });
+      const stored = await prisma.passwordResetToken.findUnique({
+        where: { token },
+      });
+      expect(stored?.usedAt).not.toBeNull();
+    });
+
+    it("should return null for a nonexistent token", async () => {
+      const result =
+        await authService.consumePasswordResetToken("nonexistent-token");
+
+      expect(result).toBeNull();
+    });
+
+    it("should return null and not consume an already-used token twice", async () => {
+      const token = await authService.createPasswordResetToken(userId);
+      await authService.consumePasswordResetToken(token);
+
+      const second = await authService.consumePasswordResetToken(token);
+
+      expect(second).toBeNull();
+    });
+
+    it("should return null for an expired token and leave it unused", async () => {
+      const token = crypto.randomBytes(40).toString("hex");
+      await prisma.passwordResetToken.create({
+        data: { token, userId, expiresAt: new Date(Date.now() - 1000) },
+      });
+
+      const result = await authService.consumePasswordResetToken(token);
+
+      expect(result).toBeNull();
+      const stored = await prisma.passwordResetToken.findUnique({
+        where: { token },
+      });
+      expect(stored?.usedAt).toBeNull();
     });
   });
 });
