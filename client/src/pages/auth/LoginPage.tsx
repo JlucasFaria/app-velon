@@ -153,17 +153,12 @@ export function LoginPage() {
                     </FormItem>
                   )}
                 />
-                <button
-                  type="button"
-                  onClick={() =>
-                    toast.info(
-                      "A recuperação de senha estará disponível em breve.",
-                    )
-                  }
+                <Link
+                  to="/forgot-password"
                   className="text-[13.5px] font-semibold text-[color:var(--velon-primary-text)] hover:underline"
                 >
                   Esqueci a senha
-                </button>
+                </Link>
               </div>
               <Button
                 type="submit"
