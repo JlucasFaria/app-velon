@@ -8,6 +8,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { RegisterPage } from "@/pages/auth/RegisterPage";
+import { ForgotPasswordPage } from "@/pages/auth/ForgotPasswordPage";
+import { ResetPasswordPage } from "@/pages/auth/ResetPasswordPage";
 import { OnboardingPage } from "@/pages/onboarding/OnboardingPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
 import { ClientsPage } from "@/pages/clients/ClientsPage";
@@ -50,6 +52,8 @@ function OnboardingGuard() {
 const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/register", element: <RegisterPage /> },
+  { path: "/forgot-password", element: <ForgotPasswordPage /> },
+  { path: "/reset-password", element: <ResetPasswordPage /> },
   { path: "/invites/:token", element: <AcceptInvitePage /> },
   {
     element: <OnboardingGuard />,

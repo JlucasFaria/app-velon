@@ -49,6 +49,22 @@ export function logout(refreshToken: string) {
   });
 }
 
+// Always resolves on 200 regardless of whether the email exists — the backend
+// deliberately does not reveal that, so the UI shows the same confirmation.
+export function forgotPassword(email: string) {
+  return apiRequest<{ message?: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export function resetPassword(token: string, password: string) {
+  return apiRequest<{ message?: string }>("/auth/reset-password", {
+    method: "POST",
+    body: { token, password },
+  });
+}
+
 export interface UpdateMeInput {
   name?: string;
   email?: string;

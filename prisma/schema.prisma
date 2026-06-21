@@ -101,6 +101,7 @@ model User {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   refreshTokens  RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
   assignedOrders ServiceOrder[]
   statusChanges  StatusHistory[]
   memberships    Membership[]
@@ -216,4 +217,14 @@ model RefreshToken {
   expiresAt  DateTime
   createdAt  DateTime  @default(now())
   lastUsedAt DateTime?
+}
+
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  token     String    @unique
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 }
