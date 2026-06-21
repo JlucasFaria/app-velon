@@ -382,11 +382,18 @@ export function createAuthRoutes(
     const user = await userRepo.findByEmail(rawEmail);
     if (user) {
       const token = await authService.createPasswordResetToken(user.id);
-      await email.send({
-        to: user.email,
-        subject: "Redefinição de senha — Velon",
-        html: buildResetEmailHtml(buildResetUrl(token)),
-      });
+      try {
+        await email.send({
+          to: user.email,
+          subject: "Redefinição de senha — Velon",
+          html: buildResetEmailHtml(buildResetUrl(token)),
+        });
+      } catch (err) {
+        // Never surface delivery failures — the response must stay identical
+        // whether or not the account exists, so a failing transport can't be
+        // used to enumerate emails.
+        console.error("Failed to send password reset email", err);
+      }
     }
 
     return successResponse(

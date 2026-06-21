@@ -80,27 +80,23 @@ export class AuthService {
     });
   }
 
-  // Atomically validates a reset token (exists, not expired, not already used)
-  // and marks it used, so it can never be redeemed twice. Returns the owning
-  // userId on success, or null when the token is invalid.
+  // Validates a reset token (exists, not expired, not already used) and marks it
+  // used, so it can never be redeemed twice. The conditional UPDATE is an atomic
+  // compare-and-swap: a concurrent second call matches 0 rows, closing the
+  // double-use race. Returns the owning userId on success, or null if invalid.
   async consumePasswordResetToken(
     token: string,
   ): Promise<{ userId: number } | null> {
-    return await this.prisma.$transaction(async (tx) => {
-      const record = await tx.passwordResetToken.findUnique({
-        where: { token },
-      });
+    const claimed = await this.prisma.passwordResetToken.updateMany({
+      where: { token, usedAt: null, expiresAt: { gt: new Date() } },
+      data: { usedAt: new Date() },
+    });
 
-      if (!record || record.usedAt || record.expiresAt < new Date()) {
-        return null;
-      }
+    if (claimed.count === 0) return null;
 
-      await tx.passwordResetToken.update({
-        where: { token },
-        data: { usedAt: new Date() },
-      });
-
-      return { userId: record.userId };
+    return await this.prisma.passwordResetToken.findUnique({
+      where: { token },
+      select: { userId: true },
     });
   }
 }
